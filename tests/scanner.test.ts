@@ -5,11 +5,9 @@ import path from "node:path";
 import test from "node:test";
 import { isIgnoredScanPath, scanFile } from "../src/scanner";
 
-test("isIgnoredScanPath skips examples and sast fixture trees", () => {
+test("isIgnoredScanPath skips examples fixture trees", () => {
   const cwd = process.cwd();
   assert.ok(isIgnoredScanPath("examples/java/foo.java", cwd));
-  assert.ok(isIgnoredScanPath("tests/sast/foo.spec.ts", cwd));
-  assert.ok(isIgnoredScanPath("src/rules/sast/rule.ts", cwd));
   assert.equal(isIgnoredScanPath("src/app.ts", cwd), false);
 });
 

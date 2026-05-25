@@ -35,8 +35,8 @@ During development you can also run `node dist/src/cli.js scan --staged` before 
 ```text
 src/              TypeScript source
   scan/           Unified scan orchestrator
-    aspects/      code (local secure-coding rules)
-  rules/          Rule implementations (SAST, secrets, etc.)
+    aspects/      secrets and deps (security scanning aspects)
+  rules/          Rule implementations (secrets and dependency vulnerability checks)
 dist/             Compiled output (gitignored; included in npm tarball)
 tests/            Node test runner tests
 examples/         Sample hooks and vulnerable fixtures for consumer repos

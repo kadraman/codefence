@@ -1,5 +1,5 @@
-export const MARKER_START = "<!-- sast-guardrails:start -->";
-export const MARKER_END = "<!-- sast-guardrails:end -->";
+export const MARKER_START = "<!-- codefence-guardrails:start -->";
+export const MARKER_END = "<!-- codefence-guardrails:end -->";
 
 const LEGACY_MARKER_PAIRS: ReadonlyArray<{ start: string; end: string }> = [
   { start: "<!-- codefence:start -->", end: "<!-- codefence:end -->" }
@@ -31,11 +31,11 @@ export function extractMarkedBlock(content: string): string | null {
   return normalized.slice(start, end + MARKER_END.length);
 }
 
-/** Insert or replace the marked SAST guardrails block without touching other content. */
+/** Insert or replace the marked codefence guardrails block without touching other content. */
 export function mergeMarkedBlock(existing: string, fragment: string): { content: string; action: MergeAction } {
   const block = fragment.trim();
   if (!hasMarkedBlock(block)) {
-    throw new Error("Install fragment must include sast-guardrails markers");
+    throw new Error("Install fragment must include codefence-guardrails markers");
   }
 
   if (!existing.trim()) {

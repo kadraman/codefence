@@ -2,8 +2,8 @@
 
 Codefence guardrails provides:
 
-1. A **Git pre-commit hook** (like [Snyk’s secure-at-inception pre-commit](https://github.com/snyk/studio-recipes/blob/main/guardrail_directives/secure_at_inception/kiro_hooks/git/pre-commit)) that runs `codefence scan --staged` and blocks the commit on failure.
-2. A **TypeScript background scanner** (like [Snyk’s `background_scanner.py`](https://github.com/snyk/studio-recipes/blob/main/guardrail_directives/secure_at_inception/kiro_hooks/kiro/background_scanner.py)) that scans on save with debouncing and fills `.codefence/cache/` so pre-commit is faster.
+1. A **Git pre-commit hook** that runs `codefence scan --staged` and blocks the commit on failure.
+2. A **TypeScript background scanner** that scans on save with debouncing and fills `.codefence/cache/` so pre-commit is faster.
 
 These are **not** Kiro-specific for commits — only the optional `afterFileEdit` integration uses Kiro or Cursor hook config.
 
@@ -28,7 +28,7 @@ This installs:
 
 Existing `.kiro/hooks.json` / `.cursor/hooks.json` are **not** overwritten.
 
-From the guardrails repo:
+From the codefence repo:
 
 ```bash
 npm run build

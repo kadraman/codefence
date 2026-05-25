@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { rules } from "./rules";
-import { getMethodBlockLines } from "./rules/sast/methodBlock";
-import { DEFAULT_SQL_INJECTION_WINDOW } from "./rules/sast/sqlInjection";
-import { DEFAULT_HARDENING_LOOKAHEAD } from "./rules/sast/hardeningContext";
 import { GIT_SCAN_IGNORED_PREFIXES } from "./scan/ignorePaths";
 import { Finding, LineScanContext, Rule } from "./types";
+
+const DEFAULT_PRIOR_WINDOW = 15;
+const DEFAULT_FOLLOWING_WINDOW = 40;
 
 /** Shared slices for a line index; rule-specific views avoid re-scanning method blocks. */
 interface LineContextCache {
@@ -23,11 +23,11 @@ function ruleMatchesLine(rule: Rule, line: string, context: LineScanContext): bo
 }
 
 function priorWindowSize(rule: Rule): number {
-  return rule.windowSize ?? DEFAULT_SQL_INJECTION_WINDOW;
+  return rule.windowSize ?? DEFAULT_PRIOR_WINDOW;
 }
 
 function followingWindowSize(rule: Rule): number {
-  return rule.windowSize ?? DEFAULT_HARDENING_LOOKAHEAD;
+  return rule.windowSize ?? DEFAULT_FOLLOWING_WINDOW;
 }
 
 function maxWindowSizes(windowedRules: Rule[]): { maxPrior: number; maxLookahead: number } {
@@ -53,7 +53,7 @@ function buildLineContextCache(
   return {
     priorMax: lines.slice(priorStart, lineIndex),
     followingMax: lines.slice(lineIndex + 1, lineIndex + 1 + maxLookahead),
-    methodBlockLines: getMethodBlockLines(lines, lineIndex)
+    methodBlockLines: []
   };
 }
 

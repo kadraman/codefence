@@ -20,7 +20,7 @@ describe("installAssistantRules integration", () => {
     const content = fs.readFileSync(agents, "utf8");
     assert.match(content, /Do not delete me/);
     assert.ok(content.includes(MARKER_START));
-    assert.ok(fs.existsSync(path.join(tmp, ".cursor", "rules", "sast-guardrails.mdc")));
+    assert.ok(fs.existsSync(path.join(tmp, ".cursor", "rules", "codefence-guardrails.mdc")));
 
     fs.rmSync(tmp, { recursive: true, force: true });
   });

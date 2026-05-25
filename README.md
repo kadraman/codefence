@@ -1,3 +1,6 @@
+
+<p align="center"><img src="./media/logo.png" alt="Codefence" width="420"/></p>
+
 # Codefence
 
 **Codefence** — guardrails for AI-assisted coding.
@@ -7,7 +10,7 @@
 
 ## What this project provides
 
-- `codefence scan` — local secure-coding rules on git-changed or explicit paths (default: staged/unstaged source files)
+- `codefence scan` — local security scanning on git-changed or explicit paths (secrets and dependency vulnerabilities)
 - Integrations for Cursor, Claude Code, and GitHub Copilot
 - Cross-platform Git pre-commit hook and optional IDE background scanning (`codefence install-hooks`)
 
@@ -60,7 +63,7 @@ npm run codefence
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development and npm publish.
 
-## Using guardrails in another project
+## Using codefence in another project
 
 ### Recommended: npm package
 
@@ -115,10 +118,10 @@ codefence scan --help
 | ------ | ----------- |
 | `--staged` | Scan staged git files instead of unstaged changes |
 | `--paths <files…>` | Scan explicit paths (bypasses git-changed discovery) |
-| `--only code` | Run only the code aspect (default) |
-| `--skip code` | Skip aspects (unusual with a single aspect) |
+| `--only secrets,deps` | Run only listed aspects (for example secrets, deps) |
+| `--skip secrets` | Skip selected aspects |
 
-Git-based scans skip fixture trees such as `examples/`, `tests/sast/`, and `src/rules/sast/` (see `codefence scan --help`). Explicit `--paths` still scans those files.
+Git-based scans skip fixture trees such as `examples/` (see `codefence scan --help`). Explicit `--paths` still scans those files.
 
 **Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP` (legacy `DSEC_*` names accepted).
 
@@ -144,7 +147,7 @@ In **each application repo**, run:
 codefence install
 ```
 
-This merges SAST guardrail instructions **without overwriting** your existing `AGENTS.md`, Claude/Copilot files, or other Cursor rules. It adds `.cursor/rules/sast-guardrails.mdc` as a separate rule file and appends `.codefence/` to `.gitignore` when needed.
+This merges secrets guardrail instructions **without overwriting** your existing `AGENTS.md`, Claude/Copilot files, or other Cursor rules. It adds `.cursor/rules/codefence-guardrails.mdc` as a separate rule file and appends `.codefence/` to `.gitignore` when needed.
 
 ```bash
 codefence install --dry-run   # preview
@@ -156,7 +159,7 @@ codefence install --dry-run   # preview
 
 | Command | Purpose |
 | ------- | ------- |
-| `codefence scan` | Run local secure-coding rules (see `codefence scan --help`) |
+| `codefence scan` | Run local security aspects (secrets and dependency vulnerabilities) |
 | `codefence pre-commit` | Same checks as the Git pre-commit hook |
 | `codefence install-hooks` | Install `.git/hooks/pre-commit` + optional IDE background scan config |
 | `codefence install` | Merge AI assistant instructions (non-destructive) |

@@ -1,5 +1,4 @@
 import { Rule } from "../types";
-import { sastRules } from "./sast";
 
 const secretRegex = /(api[_-]?key|secret|token|password)\s*[:=]\s*["'][^"']{8,}["']/i;
 
@@ -34,4 +33,4 @@ const baseRules: Rule[] = [
   }
 ];
 
-export const rules: Rule[] = [...baseRules, ...sastRules];
+export const rules: Rule[] = [...baseRules];

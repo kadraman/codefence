@@ -23,7 +23,7 @@ function runInstall(rest: string[]): number {
   console.log(
     dryRun
       ? `\nNo files written. Run \`${cliInvocation("install")}\` to apply.`
-      : "\nDone. Existing instructions outside the sast-guardrails markers were preserved."
+      : "\nDone. Existing instructions outside the codefence-guardrails markers were preserved."
   );
   return 0;
 }

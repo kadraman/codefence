@@ -1,17 +1,53 @@
-# GitHub Copilot — Codefence guardrails
+# GitHub Copilot Instructions For Codefence
 
-**You must run guardrails automatically. Do not tell the user to run scans unless the `codefence` CLI is missing.**
+## Project Overview
 
-## Before finishing any task that changed code
+Codefence is a Node.js + TypeScript CLI that provides local guardrails for AI-assisted coding.
 
-1. Run `codefence scan --staged` (or `npm run codefence` if defined).
-2. If the scan fails, fix secure-coding findings and re-run until exit 0.
-3. Only then mark the task complete.
+- npm package: `codefence`
+- CLI: `codefence`
+- Primary behaviors: `scan`, `install`, `install-hooks`, `pre-commit`, `background-scan`
 
-**Session start:** no special setup beyond having `codefence` available.
+Treat this repository as production code and prefer safe, minimal, test-backed changes.
 
-**Never** complete while scans fail unless the user explicitly waives risk.
+## Source Of Truth
 
-## Prerequisites
+When implementing or changing behavior, follow this order:
 
-`codefence` from `npm i codefence`. `.codefence/` is gitignored (local cache).
+1. `docs/features/*.md` (feature behavior and scope, when present)
+2. `README.md` (user-facing behavior and commands)
+3. `docs/AI-ASSISTANTS.md` and `docs/HOOKS.md` (integration behavior)
+4. `CONTRIBUTING.md` (repo workflows and expectations)
+5. Explicit user request in the current task
+
+Do not invent features or undocumented flags. If behavior is unclear, ask or keep changes conservative.
+
+## Repository Reality Checks
+
+- Module type is currently `commonjs` (`package.json`), not ESM-only.
+- `docs/features/` may be empty initially; once feature docs are added, treat them as highest-priority specs.
+- Local scans are embedded and run via `codefence scan --staged`.
+
+## Coding Rules
+
+- Use TypeScript in `src/`.
+- Keep changes explicit and easy to review.
+- Avoid unrelated refactors and formatting churn.
+- Preserve backward compatibility unless the user asks for a breaking change.
+
+## Testing And Validation
+
+For behavior changes:
+
+1. Add or update tests in `tests/`.
+2. Run `npm test`.
+3. Before completing, run `codefence scan --staged` (or `npm run codefence` if `codefence` is not on PATH).
+
+If checks fail, fix findings and re-run until success unless the user explicitly accepts the risk.
+
+## Workflow Expectations
+
+- Implement incrementally.
+- Update docs when user-facing behavior changes.
+- Keep templates and installed artifacts consistent (for example under `templates/ai/` and `.cursor/rules/`).
+- Prioritize correctness and maintainability over speed.

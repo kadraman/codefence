@@ -16,17 +16,17 @@ export interface InstallOptions {
 
 const MARKDOWN_TARGETS = [
   { rel: "AGENTS.md", template: "AGENTS.md", useFragment: false },
-  { rel: path.join(".claude", "CLAUDE.md"), template: "sast-guardrails.fragment.md", useFragment: true },
+  { rel: path.join(".claude", "CLAUDE.md"), template: "codefence-guardrails.fragment.md", useFragment: true },
   {
     rel: path.join(".github", "copilot-instructions.md"),
-    template: "sast-guardrails.fragment.md",
+    template: "codefence-guardrails.fragment.md",
     useFragment: true
   }
 ] as const;
 
 const CURSOR_RULE = {
-  rel: path.join(".cursor", "rules", "sast-guardrails.mdc"),
-  template: "sast-guardrails.mdc"
+  rel: path.join(".cursor", "rules", "codefence-guardrails.mdc"),
+  template: "codefence-guardrails.mdc"
 } as const;
 
 function packageRoot(): string {
@@ -67,7 +67,7 @@ function installMarkdownMerge(
   dryRun: boolean
 ): InstallResult {
   const target = path.join(cwd, rel);
-  const fragment = useFragment ? readTemplate("sast-guardrails.fragment.md") : readTemplate(templateName);
+  const fragment = useFragment ? readTemplate("codefence-guardrails.fragment.md") : readTemplate(templateName);
   const existing = fs.existsSync(target) ? fs.readFileSync(target, "utf8") : "";
 
   let content: string;
@@ -145,10 +145,7 @@ function installGitignore(cwd: string, dryRun: boolean): InstallResult {
     content.split(/\r?\n/).some(
       (line) =>
         line.trim() === entry ||
-        line.trim() === ".codefence" ||
-        line.trim() === ".dsec/" ||
-        line.trim() === ".dsec" ||
-        line.trim() === ".fgr"
+        line.trim() === ".codefence"
     )
   ) {
     return { path: ".gitignore", action: "unchanged" };
@@ -189,10 +186,10 @@ Options:
 
 Behavior:
   - AGENTS.md / .claude/CLAUDE.md / .github/copilot-instructions.md
-      → If missing: create with SAST guardrails section
+      → If missing: create with codefence guardrails section
       → If present: append or update ONLY the block between
-        <!-- sast-guardrails:start --> ... <!-- sast-guardrails:end -->
-  - .cursor/rules/sast-guardrails.mdc
+        <!-- codefence-guardrails:start --> ... <!-- codefence-guardrails:end -->
+  - .cursor/rules/codefence-guardrails.mdc
       → Always its own file (never overwrites your other .mdc rules)
   - .gitignore → appends .codefence/ if not already listed
 

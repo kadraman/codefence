@@ -13,7 +13,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "npm run build && node --test dist/tests/*.test.js dist/tests/sast/*.test.js",
+    "test": "npm run build && node --test dist/tests/*.test.js",
     "build": "tsc -p tsconfig.json",
     "prepare": "npm run build",
     "prepack": "npm run build",
@@ -33,7 +33,7 @@
     "codefence",
     "guardrails",
     "security",
-    "sast",
+    "secrets",
     "ai",
     "cursor"
   ],

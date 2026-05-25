@@ -1,4 +1,4 @@
-# Wiring guardrails into Cursor, Claude Code, and GitHub Copilot
+# Wiring Codefence guardrails into Cursor, Claude Code, and GitHub Copilot
 
 Use **`codefence install`** in your application repository so assistants **automatically** run local scans — **without overwriting** your existing instructions.
 
@@ -39,7 +39,7 @@ Preview changes:
 codefence install --dry-run
 ```
 
-From the guardrails repo without a global `codefence`:
+From the codefence repo without a global `codefence`:
 
 ```bash
 # bash
@@ -53,32 +53,32 @@ From the guardrails repo without a global `codefence`:
 
 | Target | If missing | If you already have a file |
 | ------ | ---------- | --------------------------- |
-| `AGENTS.md` | Creates with SAST guardrails section | Appends or updates **only** the block between `<!-- sast-guardrails:start -->` and `<!-- sast-guardrails:end -->` |
+| `AGENTS.md` | Creates with codefence guardrails section | Appends or updates **only** the block between `<!-- codefence-guardrails:start -->` and `<!-- codefence-guardrails:end -->` |
 | `.claude/CLAUDE.md` | Same (merged section) | Same |
 | `.github/copilot-instructions.md` | Same (merged section) | Same |
-| `.cursor/rules/sast-guardrails.mdc` | Writes SAST guardrails rule | Updates **only** this file — **never** touches your other `.mdc` rules |
+| `.cursor/rules/codefence-guardrails.mdc` | Writes codefence guardrails rule | Updates **only** this file — **never** touches your other `.mdc` rules |
 | `.gitignore` | Adds `.codefence/` | Appends `.codefence/` if missing |
 
-Re-run `codefence install` after upgrading `codefence` to refresh the managed SAST block and `sast-guardrails.mdc`.
+Re-run `codefence install` after upgrading `codefence` to refresh the managed secrets block and `codefence-guardrails.mdc`.
 
 ---
 
 ## Cursor
 
-`codefence install` adds **`.cursor/rules/sast-guardrails.mdc`** with `alwaysApply: true`. Your existing rules stay untouched.
+`codefence install` adds **`.cursor/rules/codefence-guardrails.mdc`** with `alwaysApply: true`. Your existing rules stay untouched.
 
 With the rule loaded, the agent should **automatically**:
 
 - Run `codefence scan --staged` before completing tasks
-- Fix secure-coding findings and re-run until exit 0
+- Fix any findings and re-run until exit 0
 
-Optional nudge if it skips rules: "follow the sast-guardrails markers in AGENTS.md".
+Optional nudge if it skips rules: "follow the codefence-guardrails markers in AGENTS.md".
 
 ---
 
 ## Claude Code
 
-`codefence install` merges the SAST guardrails section into `.claude/CLAUDE.md` (or creates it). Content outside the `sast-guardrails` HTML markers is preserved.
+`codefence install` merges the codefence guardrails section into `.claude/CLAUDE.md` (or creates it). Content outside the `codefence-guardrails` HTML markers is preserved.
 
 ---
 
@@ -93,7 +93,7 @@ Optional nudge if it skips rules: "follow the sast-guardrails markers in AGENTS.
 ```mermaid
 flowchart TD
   A[codefence scan --staged] --> B{exit 0?}
-  B -->|no| C[Fix secure-coding findings]
+  B -->|no| C[Fix findings]
   C --> A
   B -->|yes| D[Task complete]
 ```
