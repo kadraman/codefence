@@ -5,7 +5,7 @@ import { loadSecretRules } from "./ruleLoader";
 import { SecretEngineInput, SecretRule } from "./types";
 
 function ruleRegex(pattern: string): RegExp {
-  return new RegExp(pattern, "g");
+  return new RegExp(pattern, "gi");
 }
 
 function summarizeMatch(match: string): string {

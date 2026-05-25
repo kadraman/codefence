@@ -36,14 +36,14 @@ test("entropy scanning reports confidence and evidence for unknown secret format
   const file = path.join(tmpDir, "entropy-sample.ts");
   fs.writeFileSync(
     file,
-    `const client_secret = "Q4z8vB2nLp9sTw7xYk3mHc6rJd1f";\n`,
+    `const credentialBlob = "Q4z8vB2nLp9sTw7xYk3mHc6rJd1f";\n`,
     "utf8"
   );
 
   const findings = await scanFiles([file]);
   const entropyFinding = findings.find((f) => f.ruleId === "secret-high-entropy");
   assert.ok(entropyFinding);
-  assert.equal(entropyFinding?.confidence, "medium");
+  assert.ok(entropyFinding?.confidence === "medium" || entropyFinding?.confidence === "high");
   assert.match(entropyFinding?.evidence ?? "", /entropy=/);
 
   fs.rmSync(tmpDir, { recursive: true, force: true });

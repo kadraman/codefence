@@ -35,7 +35,9 @@ export async function runScanWorker(options: ScanWorkerOptions): Promise<number>
   if (findings.length > 0) {
     console.error(`[scan-worker] code ${rel}: ${findings.length} finding(s)`);
     for (const f of findings) {
-      console.error(`  ${f.severity.toUpperCase()} ${f.ruleId} ${f.filePath}:${f.line}`);
+      const confidence = f.confidence ? ` confidence=${f.confidence}` : "";
+      const evidence = f.evidence ? ` evidence=${f.evidence}` : "";
+      console.error(`  ${f.severity.toUpperCase()} ${f.ruleId} ${f.filePath}:${f.line}${confidence}${evidence}`);
     }
     return 1;
   }

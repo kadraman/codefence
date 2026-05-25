@@ -2,7 +2,19 @@ import { Finding } from "../../types";
 import { SecretScanOptions } from "./types";
 
 const GENERIC_ASSIGNMENT_REGEX =
-  /\b(?:api[_-]?key|secret|token|access[_-]?token|client[_-]?secret|password)\b\s*[:=]\s*["']([^"'\\\n]{1,})["']/gi;
+  /\b([A-Za-z_][A-Za-z0-9_-]{1,64})\b\s*[:=]\s*["']([^"'\\\n]{1,})["']/g;
+const BENIGN_ASSIGNMENT_KEYS = new Set([
+  "name",
+  "version",
+  "path",
+  "url",
+  "host",
+  "port",
+  "image",
+  "sha",
+  "digest",
+  "color"
+]);
 
 function shannonEntropy(input: string): number {
   const counts = new Map<string, number>();
@@ -19,10 +31,10 @@ function shannonEntropy(input: string): number {
 }
 
 function inferEntropyConfidence(entropy: number, threshold: number): "low" | "medium" | "high" {
-  if (entropy >= threshold + 0.8) {
+  if (entropy >= threshold + 0.6) {
     return "high";
   }
-  if (entropy >= threshold + 0.3) {
+  if (entropy >= threshold) {
     return "medium";
   }
   return "low";
@@ -37,8 +49,12 @@ export function findEntropySecrets(
 
   lines.forEach((line, index) => {
     for (const match of line.matchAll(GENERIC_ASSIGNMENT_REGEX)) {
-      const value = match[1]?.trim();
+      const key = match[1]?.trim().toLowerCase();
+      const value = match[2]?.trim();
       if (!value || value.length < options.minLength) {
+        continue;
+      }
+      if (key && BENIGN_ASSIGNMENT_KEYS.has(key)) {
         continue;
       }
 

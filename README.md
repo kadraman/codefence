@@ -118,12 +118,34 @@ codefence scan --help
 | ------ | ----------- |
 | `--staged` | Scan staged git files instead of unstaged changes |
 | `--paths <files…>` | Scan explicit paths (bypasses git-changed discovery) |
-| `--only secrets,deps` | Run only listed aspects (for example secrets, deps) |
-| `--skip secrets` | Skip selected aspects |
+| `--only code` | Run only listed aspects (currently `code`) |
+| `--skip code` | Skip selected aspects |
+| `--secret-rules <path…>` | Load Semgrep-style YAML secret rules from files or directories |
+| `--secret-default-rules <on\|off>` | Enable or disable bundled secret rules |
+| `--secret-rules-update-url <url>` | Download and cache a remote YAML rule bundle |
+| `--secret-rules-refresh` | Force remote rule refresh before scanning |
+| `--secret-entropy-threshold <number>` | Tune entropy-based secret detection sensitivity |
+| `--secret-min-length <number>` | Ignore short candidates during entropy analysis |
+| `--secret-min-confidence <low\|medium\|high>` | Filter lower-confidence secret findings |
 
 Git-based scans skip fixture trees such as `examples/` (see `codefence scan --help`). Explicit `--paths` still scans those files.
 
-**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP` (legacy `DSEC_*` names accepted).
+Built-in secret scanning now combines:
+
+- bundled versioned rules for common tokens, private keys, password-like assignments, and URI credentials
+- Semgrep-style YAML rule loading from local files or directories
+- entropy-based detection for unknown secret formats
+- deduplicated findings with confidence and evidence summaries
+
+```bash
+codefence scan --staged --secret-rules .codefence/rules/secrets
+codefence scan --paths src config --secret-entropy-threshold 4.2 --secret-min-confidence medium
+codefence scan --staged --secret-rules-update-url https://example.com/codefence/secrets-rules.yml --secret-rules-refresh
+```
+
+Remote rule bundles are cached under `.codefence/cache/secret-rules/` for offline and low-latency scans.
+
+**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP`, `CODEFENCE_SECRET_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES_VERSION`, `CODEFENCE_SECRET_RULES_UPDATE_URL`, `CODEFENCE_SECRET_RULES_CACHE_TTL`, `CODEFENCE_SECRET_ENTROPY_THRESHOLD`, `CODEFENCE_SECRET_MIN_LENGTH`, `CODEFENCE_SECRET_MIN_CONFIDENCE` (legacy `DSEC_*` names still accepted for aspect selection).
 
 ## Git pre-commit and background scanning
 
