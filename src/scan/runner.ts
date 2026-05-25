@@ -2,11 +2,13 @@ import path from "node:path";
 import { getChangedFiles } from "../git";
 import { expandScanPaths } from "../scanner";
 import { codeAspect } from "./aspects/code";
+import { depsAspect } from "./aspects/deps";
 import { resolveAspects } from "./parseOptions";
 import { AspectId, AspectOutcome, ScanAspect, ScanContext, ScanOptions } from "./types";
 
 const ASPECT_REGISTRY: Record<AspectId, ScanAspect> = {
-  code: codeAspect
+  code: codeAspect,
+  deps: depsAspect
 };
 
 export function buildScanContext(options: ScanOptions): ScanContext {

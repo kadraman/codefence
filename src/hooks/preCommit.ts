@@ -1,5 +1,7 @@
 import { getChangedFiles } from "../git";
+import { hasDependencyFileChanges } from "../manifests";
 import { runScan } from "../scan/runner";
+import { defaultDepsScanOptions } from "../scan/deps/config";
 import { defaultSecretScanOptions } from "../scan/secret/config";
 import { shouldScanFile } from "../scanner";
 import { countCodeCacheHits } from "./cache";
@@ -19,9 +21,10 @@ export async function runPreCommit(): Promise<number> {
 
     const staged = getChangedFiles(true);
     const codeFiles = staged.filter((f) => shouldScanFile(f));
+    const hasDepChanges = hasDependencyFileChanges(staged);
 
-    if (codeFiles.length === 0) {
-      console.log("No scannable staged changes.");
+    if (codeFiles.length === 0 && !hasDepChanges) {
+      console.log("No scannable staged changes (code or dependency manifests).");
       return 0;
     }
 
@@ -44,7 +47,8 @@ export async function runPreCommit(): Promise<number> {
       paths: [],
       only: null,
       skip: [],
-      secret: defaultSecretScanOptions()
+      secret: defaultSecretScanOptions(),
+      deps: defaultDepsScanOptions()
     });
 
     const elapsed = ((Date.now() - start) / 1000).toFixed(1);

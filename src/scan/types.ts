@@ -1,6 +1,7 @@
 import { SecretScanOptions } from "./secret/types";
+import { DepsScanOptions } from "./deps/types";
 
-export const ASPECT_IDS = ["code"] as const;
+export const ASPECT_IDS = ["code", "deps"] as const;
 
 export type AspectId = (typeof ASPECT_IDS)[number];
 
@@ -23,6 +24,7 @@ export interface ScanOptions {
   only: AspectId[] | null;
   skip: AspectId[];
   secret: SecretScanOptions;
+  deps: DepsScanOptions;
 }
 
 export interface AspectOutcome {

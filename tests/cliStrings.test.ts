@@ -14,7 +14,7 @@ test("cliInvocation formats subcommands", () => {
   assert.equal(cliInvocation("scan", "--staged"), "codefence scan --staged");
 });
 
-test("compiled CLI help output describes local code scan only", () => {
+test("compiled CLI help output describes code and dependency scan options", () => {
   const result = spawnSync(process.execPath, [cliJs, "scan", "--help"], {
     encoding: "utf8"
   });
@@ -23,6 +23,8 @@ test("compiled CLI help output describes local code scan only", () => {
   const output = `${result.stdout}\n${result.stderr}`;
   assert.match(output, /codefence scan/);
   assert.match(output, /Local secure-coding/);
+  assert.match(output, /Dependency vulnerability/);
+  assert.match(output, /--deps-provider/);
   assert.match(output, /--secret-rules/);
   assert.match(output, /--secret-min-confidence/);
 });

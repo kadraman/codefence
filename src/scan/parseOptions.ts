@@ -1,5 +1,6 @@
 import { cliInvocation } from "../cliName";
 import { formatGitScanIgnoredPrefixes } from "./ignorePaths";
+import { defaultDepsScanOptions } from "./deps/config";
 import {
   defaultSecretScanOptions,
   parseConfidenceLevel,
@@ -10,7 +11,8 @@ import { SecretScanOptions } from "./secret/types";
 import { AspectId, DEFAULT_ASPECTS, ScanOptions } from "./types";
 
 const ASPECT_ALIASES: Record<string, AspectId> = {
-  code: "code"
+  code: "code",
+  deps: "deps"
 };
 
 export type ParseScanResult = ScanOptions | { help: true };
@@ -190,7 +192,8 @@ function parseSecretOptions(argv: string[]): { secret: SecretScanOptions; rest: 
 
 export function parseScanArgv(argv: string[]): ParseScanResult {
   const { paths, rest: afterPaths } = collectPaths(argv);
-  const { secret, rest: afterSecret } = parseSecretOptions(afterPaths);
+  const { deps, rest: afterDeps } = parseDepsOptions(afterPaths);
+  const { secret, rest: afterSecret } = parseSecretOptions(afterDeps);
 
   const onlyParsed = readFlagValue(afterSecret, "--only");
   const skipParsed = readFlagValue(onlyParsed.rest, "--skip");
@@ -224,7 +227,8 @@ export function parseScanArgv(argv: string[]): ParseScanResult {
     paths,
     only,
     skip,
-    secret
+    secret,
+    deps
   };
 }
 
@@ -254,6 +258,12 @@ Options:
   --paths <files...>                 Scan explicit paths (default: git-changed files)
   --only <aspects>                   Run only listed aspects (comma-separated; default: code)
   --skip <aspects>                   Skip aspects (applied after --only)
+  --deps-provider <osv|custom>       Dependency vulnerability provider (default: osv)
+  --deps-provider-url <url>          Override dependency provider API endpoint
+  --deps-refresh                     Force dependency provider refresh (ignore cache)
+  --deps-cache-ttl <dur>             Dependency scan cache TTL (for example 24h)
+  --deps-timeout <dur>               Dependency provider timeout (for example 15s)
+  --deps-http2 <auto|on|off>         Dependency transport preference (default: auto)
   --secret-rules <path...>           Load Semgrep-style secret rules from YAML files or directories
   --secret-default-rules <on|off>    Enable bundled secret rules (default: on)
   --secret-default-rules-version <v> Select bundled secret rules version
@@ -270,11 +280,18 @@ Git-based scans skip: ${formatGitScanIgnoredPrefixes()}
 
 Aspects (default: code):
   code          Local secure-coding rules on changed source files
+  deps          Dependency vulnerability scan for changed manifests
 
 Environment:
   CODEFENCE_ASPECTS                 Default aspect list (comma-separated)
   CODEFENCE_ONLY                    Same as --only
   CODEFENCE_SKIP                    Same as --skip
+  CODEFENCE_DEPS_PROVIDER           Same as --deps-provider
+  CODEFENCE_DEPS_PROVIDER_URL       Same as --deps-provider-url
+  CODEFENCE_DEPS_REFRESH            Same as --deps-refresh
+  CODEFENCE_DEPS_CACHE_TTL          Same as --deps-cache-ttl
+  CODEFENCE_DEPS_TIMEOUT            Same as --deps-timeout
+  CODEFENCE_DEPS_HTTP2              Same as --deps-http2
   CODEFENCE_SECRET_RULES            Default Semgrep-style secret rule paths
   CODEFENCE_SECRET_DEFAULT_RULES    Same as --secret-default-rules
   CODEFENCE_SECRET_DEFAULT_RULES_VERSION  Same as --secret-default-rules-version
@@ -287,7 +304,47 @@ Environment:
 
 Examples:
   ${cliInvocation("scan", "--staged")}
+  ${cliInvocation("scan", "--staged --only deps")}
   ${cliInvocation("scan", "--paths src/app.ts --secret-rules .codefence/rules")}
   ${cliInvocation("scan", "--paths src config --secret-entropy-threshold 4.2 --secret-min-confidence medium")}
 `);
+}
+
+function parseDepsProvider(value: string, flag: string): "osv" | "custom" {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "osv" || normalized === "custom") {
+    return normalized;
+  }
+  throw new Error(`${flag} must be osv or custom`);
+}
+
+function parseDepsHttp2(value: string): "auto" | "on" | "off" {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "auto" || normalized === "on" || normalized === "off") {
+    return normalized;
+  }
+  throw new Error("--deps-http2 must be auto, on, or off");
+}
+
+function parseDepsOptions(argv: string[]): { deps: ReturnType<typeof defaultDepsScanOptions>; rest: string[] } {
+  const defaults = defaultDepsScanOptions();
+  const provider = readFlagValue(argv, "--deps-provider");
+  const providerUrl = readFlagValue(provider.rest, "--deps-provider-url");
+  const cacheTtl = readFlagValue(providerUrl.rest, "--deps-cache-ttl");
+  const timeout = readFlagValue(cacheTtl.rest, "--deps-timeout");
+  const http2 = readFlagValue(timeout.rest, "--deps-http2");
+  const refresh = http2.rest.includes("--deps-refresh");
+
+  return {
+    deps: {
+      ...defaults,
+      provider: provider.value === null ? defaults.provider : parseDepsProvider(provider.value, "--deps-provider"),
+      providerUrl: providerUrl.value === null ? defaults.providerUrl : providerUrl.value,
+      refresh: refresh || defaults.refresh,
+      cacheTtlMs: cacheTtl.value === null ? defaults.cacheTtlMs : parseDurationMs(cacheTtl.value, defaults.cacheTtlMs),
+      timeoutMs: timeout.value === null ? defaults.timeoutMs : parseDurationMs(timeout.value, defaults.timeoutMs),
+      http2Mode: http2.value === null ? defaults.http2Mode : parseDepsHttp2(http2.value)
+    },
+    rest: http2.rest.filter((arg) => arg !== "--deps-refresh")
+  };
 }

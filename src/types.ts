@@ -7,7 +7,7 @@ export interface Finding {
   confidence?: ConfidenceLevel;
   evidence?: string;
   remediation?: string;
-  kind?: "code" | "secret";
+  kind?: "code" | "secret" | "dependency";
   detectionMethod?: "rule" | "entropy" | "rule+entropy";
 }
 

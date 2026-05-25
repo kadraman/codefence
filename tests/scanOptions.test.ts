@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { parseAspectList, parseScanArgv, resolveAspects } from "../src/scan/parseOptions";
+import { defaultDepsScanOptions } from "../src/scan/deps/config";
 import { BUILTIN_SECRET_RULES_VERSION } from "../src/scan/secret/types";
 
 test("parseScanArgv errors when value-taking flags are missing a value", () => {
@@ -20,6 +21,7 @@ test("parseScanArgv recognizes -h and --help", () => {
 
 test("parseAspectList accepts code only", () => {
   assert.deepEqual(parseAspectList("code"), ["code"]);
+  assert.deepEqual(parseAspectList("deps"), ["deps"]);
 });
 
 test("resolveAspects defaults to code", () => {
@@ -38,7 +40,8 @@ test("resolveAspects defaults to code", () => {
       entropyThreshold: 4.2,
       minLength: 12,
       minConfidence: "low"
-    }
+    },
+    deps: defaultDepsScanOptions()
   });
   assert.deepEqual(aspects, ["code"]);
 });
@@ -59,9 +62,34 @@ test("resolveAspects honors --only and --skip", () => {
       entropyThreshold: 4.2,
       minLength: 12,
       minConfidence: "low"
-    }
+    },
+    deps: defaultDepsScanOptions()
   });
   assert.deepEqual(aspects, []);
+});
+
+test("parseScanArgv parses dependency scanning flags", () => {
+  const parsed = parseScanArgv([
+    "--deps-provider",
+    "custom",
+    "--deps-provider-url",
+    "https://example.test/v1/querybatch",
+    "--deps-refresh",
+    "--deps-cache-ttl",
+    "12h",
+    "--deps-timeout",
+    "45s",
+    "--deps-http2",
+    "on"
+  ]);
+
+  assert.ok(!("help" in parsed));
+  assert.equal(parsed.deps.provider, "custom");
+  assert.equal(parsed.deps.providerUrl, "https://example.test/v1/querybatch");
+  assert.equal(parsed.deps.refresh, true);
+  assert.equal(parsed.deps.cacheTtlMs, 12 * 60 * 60 * 1000);
+  assert.equal(parsed.deps.timeoutMs, 45 * 1000);
+  assert.equal(parsed.deps.http2Mode, "on");
 });
 
 test("parseScanArgv parses secret engine flags", () => {
