@@ -38,20 +38,25 @@ export function readCachedSecretRules(workspace: string, url: string): CachedSec
   }
 }
 
-export function isSecretRulesCacheFresh(entry: CachedSecretRules, now = Date.now()): boolean {
-  return new Date(entry.fetchedAt).getTime() + entry.ttlMs > now;
+export function isSecretRulesCacheFresh(
+  entry: CachedSecretRules,
+  ttlMs: number,
+  now = Date.now()
+): boolean {
+  return new Date(entry.fetchedAt).getTime() + ttlMs > now;
 }
 
 export function writeCachedSecretRules(
   workspace: string,
   url: string,
   body: string,
-  ttlMs: number
+  ttlMs: number,
+  options?: { fetchedAt?: string }
 ): CachedSecretRules {
   const entry: CachedSecretRules = {
     version: 1,
     url,
-    fetchedAt: new Date().toISOString(),
+    fetchedAt: options?.fetchedAt ?? new Date().toISOString(),
     ttlMs,
     sha256: hashContent(body),
     body

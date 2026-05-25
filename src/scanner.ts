@@ -4,7 +4,8 @@ import { rules } from "./rules";
 import { GIT_SCAN_IGNORED_PREFIXES } from "./scan/ignorePaths";
 import { defaultSecretScanOptions } from "./scan/secret/config";
 import { scanSecretFindings } from "./scan/secret/engine";
-import { SecretScanOptions } from "./scan/secret/types";
+import { loadSecretRulesForScan } from "./scan/secret/rulesCache";
+import { SecretRule, SecretScanOptions } from "./scan/secret/types";
 import { Finding, LineScanContext, Rule } from "./types";
 
 const DEFAULT_PRIOR_WINDOW = 15;
@@ -214,6 +215,8 @@ function scanLegacyRules(filePath: string, lines: string[]): Finding[] {
 export interface ScanFileOptions {
   workspace?: string;
   secret?: SecretScanOptions;
+  /** Pre-loaded secret rules; when omitted, loaded once per scanFiles batch (or per scanFile). */
+  secretRules?: SecretRule[];
 }
 
 export async function scanFile(filePath: string, options: ScanFileOptions = {}): Promise<Finding[]> {
@@ -225,17 +228,31 @@ export async function scanFile(filePath: string, options: ScanFileOptions = {}):
   const lines = content.split(/\r?\n/);
   const workspace = path.resolve(options.workspace ?? process.cwd());
   const secretOptions = options.secret ?? defaultSecretScanOptions();
+  const secretRules =
+    options.secretRules ?? (await loadSecretRulesForScan(workspace, secretOptions));
 
   const secretFindings = await scanSecretFindings({
     filePath,
     content,
     workspace,
-    options: secretOptions
+    options: secretOptions,
+    rules: secretRules
   });
   return [...scanLegacyRules(filePath, lines), ...secretFindings];
 }
 
 export async function scanFiles(filePaths: string[], options: ScanFileOptions = {}): Promise<Finding[]> {
-  const findings = await Promise.all(filePaths.map((filePath) => scanFile(filePath, options)));
+  const workspace = path.resolve(options.workspace ?? process.cwd());
+  const secretOptions = options.secret ?? defaultSecretScanOptions();
+  const secretRules =
+    options.secretRules ?? (await loadSecretRulesForScan(workspace, secretOptions));
+  const batchOptions: ScanFileOptions = {
+    ...options,
+    workspace,
+    secret: secretOptions,
+    secretRules
+  };
+
+  const findings = await Promise.all(filePaths.map((filePath) => scanFile(filePath, batchOptions)));
   return findings.flat();
 }
