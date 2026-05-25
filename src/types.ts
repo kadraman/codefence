@@ -4,7 +4,14 @@ export interface Finding {
   filePath: string;
   line: number;
   severity: "low" | "medium" | "high";
+  confidence?: ConfidenceLevel;
+  evidence?: string;
+  remediation?: string;
+  kind?: "code" | "secret";
+  detectionMethod?: "rule" | "entropy" | "rule+entropy";
 }
+
+export type ConfidenceLevel = "low" | "medium" | "high";
 
 export interface LineScanContext {
   priorLines: string[];

@@ -23,4 +23,6 @@ test("compiled CLI help output describes local code scan only", () => {
   const output = `${result.stdout}\n${result.stderr}`;
   assert.match(output, /codefence scan/);
   assert.match(output, /Local secure-coding/);
+  assert.match(output, /--secret-rules/);
+  assert.match(output, /--secret-min-confidence/);
 });

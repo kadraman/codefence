@@ -1,15 +1,6 @@
 import { Rule } from "../types";
 
-const secretRegex = /(api[_-]?key|secret|token|password)\s*[:=]\s*["'][^"']{8,}["']/i;
-
 const baseRules: Rule[] = [
-  {
-    id: "no-hardcoded-secret",
-    description: "Flags likely hardcoded secrets",
-    severity: "high",
-    test: (line) => secretRegex.test(line),
-    message: "Potential hardcoded secret detected"
-  },
   {
     id: "no-eval",
     description: "Disallow dynamic code execution",

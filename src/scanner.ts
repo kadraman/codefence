@@ -2,6 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { rules } from "./rules";
 import { GIT_SCAN_IGNORED_PREFIXES } from "./scan/ignorePaths";
+import { defaultSecretScanOptions } from "./scan/secret/config";
+import { scanSecretFindings } from "./scan/secret/engine";
+import { SecretScanOptions } from "./scan/secret/types";
 import { Finding, LineScanContext, Rule } from "./types";
 
 const DEFAULT_PRIOR_WINDOW = 15;
@@ -84,7 +87,13 @@ const supportedExtensions = new Set([
   ".java",
   ".cs",
   ".go",
-  ".rb"
+  ".rb",
+  ".json",
+  ".yaml",
+  ".yml",
+  ".env",
+  ".ini",
+  ".conf"
 ]);
 
 function normalizeRelativePath(filePath: string, cwd: string): string {
@@ -98,7 +107,10 @@ export function isIgnoredScanPath(filePath: string, cwd: string): boolean {
 }
 
 export function shouldScanFile(filePath: string, options?: { cwd?: string; allowIgnored?: boolean }): boolean {
-  if (!supportedExtensions.has(path.extname(filePath).toLowerCase())) {
+  const ext = path.extname(filePath).toLowerCase();
+  const baseName = path.basename(filePath).toLowerCase();
+  const hasSupportedType = supportedExtensions.has(ext) || baseName === ".env";
+  if (!hasSupportedType) {
     return false;
   }
 
@@ -146,14 +158,8 @@ export function expandScanPaths(paths: string[], cwd: string): string[] {
   return [...resolved].sort();
 }
 
-export function scanFile(filePath: string): Finding[] {
-  if (!shouldScanFile(filePath) || !fs.existsSync(filePath)) {
-    return [];
-  }
-
+function scanLegacyRules(filePath: string, lines: string[]): Finding[] {
   const findings: Finding[] = [];
-  const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
-
   const windowedRules: Rule[] = [];
   const plainRules: Rule[] = [];
 
@@ -178,7 +184,8 @@ export function scanFile(filePath: string): Finding[] {
           message: rule.message,
           filePath,
           line: index + 1,
-          severity: rule.severity
+          severity: rule.severity,
+          kind: "code"
         });
       }
     }
@@ -194,7 +201,8 @@ export function scanFile(filePath: string): Finding[] {
           message: rule.message,
           filePath,
           line: index + 1,
-          severity: rule.severity
+          severity: rule.severity,
+          kind: "code"
         });
       }
     }
@@ -203,6 +211,31 @@ export function scanFile(filePath: string): Finding[] {
   return findings;
 }
 
-export function scanFiles(filePaths: string[]): Finding[] {
-  return filePaths.flatMap((filePath) => scanFile(filePath));
+export interface ScanFileOptions {
+  workspace?: string;
+  secret?: SecretScanOptions;
+}
+
+export async function scanFile(filePath: string, options: ScanFileOptions = {}): Promise<Finding[]> {
+  if (!shouldScanFile(filePath) || !fs.existsSync(filePath)) {
+    return [];
+  }
+
+  const content = fs.readFileSync(filePath, "utf8");
+  const lines = content.split(/\r?\n/);
+  const workspace = path.resolve(options.workspace ?? process.cwd());
+  const secretOptions = options.secret ?? defaultSecretScanOptions();
+
+  const secretFindings = await scanSecretFindings({
+    filePath,
+    content,
+    workspace,
+    options: secretOptions
+  });
+  return [...scanLegacyRules(filePath, lines), ...secretFindings];
+}
+
+export async function scanFiles(filePaths: string[], options: ScanFileOptions = {}): Promise<Finding[]> {
+  const findings = await Promise.all(filePaths.map((filePath) => scanFile(filePath, options)));
+  return findings.flat();
 }

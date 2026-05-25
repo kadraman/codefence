@@ -20,11 +20,12 @@ export function buildScanContext(options: ScanOptions): ScanContext {
     cwd,
     files,
     staged: options.staged,
-    explicitPaths: options.paths.length > 0
+    explicitPaths: options.paths.length > 0,
+    options
   };
 }
 
-export function runScan(options: ScanOptions): number {
+export async function runScan(options: ScanOptions): Promise<number> {
   const aspects = resolveAspects(options);
 
   if (aspects.length === 0) {
@@ -42,7 +43,7 @@ export function runScan(options: ScanOptions): number {
   for (const aspectId of aspects) {
     const aspect = ASPECT_REGISTRY[aspectId];
     console.log(`\n--- ${aspect.label} (${aspect.id}) ---`);
-    const outcome = aspect.run(context);
+    const outcome = await aspect.run(context);
     outcomes.push(outcome);
 
     const statusLabel = outcome.status.toUpperCase();

@@ -5,7 +5,7 @@ import { AspectOutcome, ScanAspect, ScanContext } from "../types";
 export const codeAspect: ScanAspect = {
   id: "code",
   label: "Local secure-coding rules",
-  run(context: ScanContext): AspectOutcome {
+  async run(context: ScanContext): Promise<AspectOutcome> {
     const sourceFiles = context.files
       .filter((file) =>
         shouldScanFile(file, { cwd: context.cwd, allowIgnored: context.explicitPaths })
@@ -21,7 +21,10 @@ export const codeAspect: ScanAspect = {
       };
     }
 
-    const findings = scanFiles(sourceFiles);
+    const findings = await scanFiles(sourceFiles, {
+      workspace: context.cwd,
+      secret: context.options.secret
+    });
 
     if (findings.length === 0) {
       console.log(`[code] No findings in ${sourceFiles.length} file(s).`);
@@ -30,8 +33,10 @@ export const codeAspect: ScanAspect = {
 
     console.error(`[code] ${findings.length} finding(s):`);
     for (const finding of findings) {
+      const confidence = finding.confidence ? ` confidence=${finding.confidence}` : "";
+      const evidence = finding.evidence ? ` evidence=${finding.evidence}` : "";
       console.error(
-        `  ${finding.severity.toUpperCase()} ${finding.ruleId} ${finding.filePath}:${finding.line} - ${finding.message}`
+        `  ${finding.severity.toUpperCase()} ${finding.ruleId} ${finding.filePath}:${finding.line}${confidence} - ${finding.message}${evidence}`
       );
     }
 

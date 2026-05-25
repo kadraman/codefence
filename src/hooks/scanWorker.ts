@@ -9,7 +9,7 @@ export interface ScanWorkerOptions {
   target: string;
 }
 
-export function runScanWorker(options: ScanWorkerOptions): number {
+export async function runScanWorker(options: ScanWorkerOptions): Promise<number> {
   const workspace = path.resolve(options.workspace);
   const target = options.target;
 
@@ -29,7 +29,7 @@ export function runScanWorker(options: ScanWorkerOptions): number {
     return 1;
   }
 
-  const findings = scanFile(absPath);
+  const findings = await scanFile(absPath, { workspace });
   writeCodeCache(workspace, rel, findings);
 
   if (findings.length > 0) {

@@ -1,5 +1,6 @@
 import { getChangedFiles } from "../git";
 import { runScan } from "../scan/runner";
+import { defaultSecretScanOptions } from "../scan/secret/config";
 import { shouldScanFile } from "../scanner";
 import { countCodeCacheHits } from "./cache";
 
@@ -10,7 +11,7 @@ function header(title: string): void {
   console.log(`\n=== ${title} ===\n`);
 }
 
-export function runPreCommit(): number {
+export async function runPreCommit(): Promise<number> {
   const start = Date.now();
 
   try {
@@ -38,11 +39,12 @@ export function runPreCommit(): number {
       console.log(`Staged code files: ${codeFiles.length}`);
     }
 
-    const exitCode = runScan({
+    const exitCode = await runScan({
       staged: true,
       paths: [],
       only: null,
-      skip: []
+      skip: [],
+      secret: defaultSecretScanOptions()
     });
 
     const elapsed = ((Date.now() - start) / 1000).toFixed(1);
