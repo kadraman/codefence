@@ -54,10 +54,13 @@ test("examples secret fixtures produce secret findings", async () => {
   const fixtureDir = path.join(workspace, "examples", "secrets");
   const fixtureFiles = [
     path.join(fixtureDir, "fake-secrets.ts"),
-    path.join(fixtureDir, "fake-uri-credentials.txt")
+    path.join(fixtureDir, "fake-uri-credentials.conf"),
+    path.join(fixtureDir, "fake-private-key-block.conf")
   ];
 
   const findings = await scanFiles(fixtureFiles, { workspace });
   assert.ok(findings.length > 0);
-  assert.ok(findings.some((f) => f.ruleId.startsWith("secret-") || f.ruleId === "no-hardcoded-secret"));
+  assert.ok(findings.some((f) => f.ruleId === "secret-uri-credentials"));
+  assert.ok(findings.some((f) => f.ruleId === "secret-private-key"));
+  assert.ok(findings.some((f) => f.ruleId === "no-hardcoded-secret" || f.ruleId === "secret-bearer-token"));
 });

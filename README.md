@@ -132,20 +132,29 @@ Git-based scans skip fixture trees such as `examples/` (see `codefence scan --he
 
 Built-in secret scanning now combines:
 
-- bundled versioned rules for common tokens, private keys, password-like assignments, and URI credentials
+- a bundled Semgrep-style YAML pack at `rules/secret/builtin.yml` (version `2026-05-25`) for common tokens, private keys, password-like assignments, and URI credentials
 - Semgrep-style YAML rule loading from local files or directories
 - entropy-based detection for unknown secret formats
 - deduplicated findings with confidence and evidence summaries
 
+Sample fixtures and a downloadable example rule bundle are in [`examples/`](examples/README.md).
+
 ```bash
 codefence scan --staged --secret-rules .codefence/rules/secrets
+codefence scan --paths examples/secrets
 codefence scan --paths src config --secret-entropy-threshold 4.2 --secret-min-confidence medium
-codefence scan --staged --secret-rules-update-url https://example.com/codefence/secrets-rules.yml --secret-rules-refresh
+codefence scan --paths examples/secrets --secret-rules-update-url http://127.0.0.1:8765/extra-secrets-bundle.yml --secret-rules-refresh
+```
+
+Serve the example remote bundle locally (`examples/rules/README.md`):
+
+```bash
+npx --yes serve examples/rules -l 8765
 ```
 
 Remote rule bundles are cached under `.codefence/cache/secret-rules/` for offline and low-latency scans.
 
-**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP`, `CODEFENCE_SECRET_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES_VERSION`, `CODEFENCE_SECRET_RULES_UPDATE_URL`, `CODEFENCE_SECRET_RULES_CACHE_TTL`, `CODEFENCE_SECRET_ENTROPY_THRESHOLD`, `CODEFENCE_SECRET_MIN_LENGTH`, `CODEFENCE_SECRET_MIN_CONFIDENCE` (legacy `DSEC_*` names still accepted for aspect selection).
+**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP`, `CODEFENCE_SECRET_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES_VERSION`, `CODEFENCE_SECRET_RULES_UPDATE_URL`, `CODEFENCE_SECRET_RULES_CACHE_TTL`, `CODEFENCE_SECRET_ENTROPY_THRESHOLD`, `CODEFENCE_SECRET_MIN_LENGTH`, `CODEFENCE_SECRET_MIN_CONFIDENCE`.
 
 ## Git pre-commit and background scanning
 

@@ -118,18 +118,13 @@ function collectFlagValues(argv: string[], flag: string): { values: string[]; re
   return { values, rest };
 }
 
-function envTrim(...keys: string[]): string | undefined {
-  for (const key of keys) {
-    const value = process.env[key]?.trim();
-    if (value) {
-      return value;
-    }
-  }
-  return undefined;
+function envTrim(key: string): string | undefined {
+  const value = process.env[key]?.trim();
+  return value ? value : undefined;
 }
 
 function defaultAspectsFromEnv(): AspectId[] {
-  const raw = envTrim("CODEFENCE_ASPECTS", "DSEC_ASPECTS");
+  const raw = envTrim("CODEFENCE_ASPECTS");
   if (!raw) {
     return [...DEFAULT_ASPECTS];
   }
@@ -205,7 +200,7 @@ export function parseScanArgv(argv: string[]): ParseScanResult {
   }
 
   const onlyParsedValue = onlyParsed.value;
-  const onlyEnv = envTrim("CODEFENCE_ONLY", "DSEC_ONLY");
+  const onlyEnv = envTrim("CODEFENCE_ONLY");
   let only: AspectId[] | null = null;
 
   if (onlyParsedValue !== null) {
@@ -218,7 +213,7 @@ export function parseScanArgv(argv: string[]): ParseScanResult {
   if (skipParsed.value !== null) {
     skip = parseAspectList(skipParsed.value);
   } else {
-    const skipEnv = envTrim("CODEFENCE_SKIP", "DSEC_SKIP");
+    const skipEnv = envTrim("CODEFENCE_SKIP");
     if (skipEnv) {
       skip = parseAspectList(skipEnv);
     }
@@ -277,9 +272,9 @@ Aspects (default: code):
   code          Local secure-coding rules on changed source files
 
 Environment:
-  CODEFENCE_ASPECTS                 Default aspect list (comma-separated; DSEC_ASPECTS accepted)
-  CODEFENCE_ONLY                    Same as --only (DSEC_ONLY accepted)
-  CODEFENCE_SKIP                    Same as --skip (DSEC_SKIP accepted)
+  CODEFENCE_ASPECTS                 Default aspect list (comma-separated)
+  CODEFENCE_ONLY                    Same as --only
+  CODEFENCE_SKIP                    Same as --skip
   CODEFENCE_SECRET_RULES            Default Semgrep-style secret rule paths
   CODEFENCE_SECRET_DEFAULT_RULES    Same as --secret-default-rules
   CODEFENCE_SECRET_DEFAULT_RULES_VERSION  Same as --secret-default-rules-version

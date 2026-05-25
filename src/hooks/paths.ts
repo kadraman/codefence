@@ -3,10 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 
 export const CODEFENCE_OUTPUT_DIR = ".codefence";
-/** @deprecated Use {@link CODEFENCE_OUTPUT_DIR}. */
-export const DSEC_OUTPUT_DIR = CODEFENCE_OUTPUT_DIR;
-/** @deprecated Use {@link CODEFENCE_OUTPUT_DIR}. */
-export const FGR_OUTPUT_DIR = CODEFENCE_OUTPUT_DIR;
 
 export const CACHE_VERSION = 1;
 export const DEFAULT_DEBOUNCE_SECONDS = 2;
@@ -18,9 +14,6 @@ export function workspaceHash(workspace: string): string {
 export function codefenceDir(workspace: string): string {
   return path.join(path.resolve(workspace), CODEFENCE_OUTPUT_DIR);
 }
-
-/** @deprecated Use {@link codefenceDir}. */
-export const dsecDir = codefenceDir;
 
 export function cacheDir(workspace: string): string {
   return path.join(codefenceDir(workspace), "cache");

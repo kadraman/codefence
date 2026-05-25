@@ -5,6 +5,7 @@
   "main": "dist/src/index.js",
   "files": [
     "dist",
+    "rules",
     "templates",
     "hooks",
     "scripts/install-ai-rules.sh",

@@ -124,11 +124,13 @@ async function main() {
     process.exit(0);
   }
 
-  process.exit(await runScan(parsed));
+  // Avoid process.exit() after network I/O — on Windows, abrupt exit can trip libuv
+  // (UV_HANDLE_CLOSING) while undici/http handles are still closing.
+  process.exitCode = await runScan(parsed);
 }
 
 void main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
   console.error(message);
-  process.exit(1);
+  process.exitCode = 1;
 });

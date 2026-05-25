@@ -11,8 +11,7 @@ const FILE_ENV_KEYS = [
   "KIRO_FILE_PATH",
   "FILE_PATH",
   "EDITED_FILE",
-  "CODEFENCE_EDITED_FILE",
-  "DSEC_EDITED_FILE"
+  "CODEFENCE_EDITED_FILE"
 ];
 
 export interface BackgroundScanOptions {
@@ -124,7 +123,7 @@ function resolveEditedFile(options: BackgroundScanOptions, workspace: string): s
 export function runBackgroundScan(options: BackgroundScanOptions = {}): number {
   const workspace = path.resolve(options.workspace ?? process.cwd());
   const parsedDebounce = Number.parseFloat(
-    process.env.CODEFENCE_DEBOUNCE_SECONDS ?? process.env.DSEC_DEBOUNCE_SECONDS ?? ""
+    process.env.CODEFENCE_DEBOUNCE_SECONDS ?? ""
   );
   const debounceSeconds =
     options.debounceSeconds ??

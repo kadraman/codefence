@@ -29,7 +29,7 @@ export async function runScan(options: ScanOptions): Promise<number> {
   const aspects = resolveAspects(options);
 
   if (aspects.length === 0) {
-    console.error("No scan aspects selected. Use --only or adjust CODEFENCE_ASPECTS (or DSEC_ASPECTS) / --skip.");
+    console.error("No scan aspects selected. Use --only or adjust CODEFENCE_ASPECTS / --skip.");
     return 1;
   }
 
