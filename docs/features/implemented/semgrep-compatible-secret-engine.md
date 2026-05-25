@@ -1,6 +1,6 @@
 ---
 title: "Semgrep-Compatible Secret Engine"
-status: proposed
+status: implemented
 owners: ["@kadraman"]
 created: 2026-05-25
 updated: 2026-05-25
