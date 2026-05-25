@@ -3,7 +3,7 @@
 
 # Codefence
 
-**Codefence** — guardrails for AI-assisted coding.
+**Codefence** - guardrails for AI-assisted coding.
 
 - **npm:** [`codefence`](https://www.npmjs.com/package/codefence)
 - **CLI:** `codefence`
@@ -215,4 +215,4 @@ npm publish --access public
 
 ## License
 
-ISC — see [LICENSE](LICENSE).
+See [LICENSE](LICENSE).

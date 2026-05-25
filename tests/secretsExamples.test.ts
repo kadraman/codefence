@@ -48,3 +48,16 @@ test("entropy scanning reports confidence and evidence for unknown secret format
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
+
+test("examples secret fixtures produce secret findings", async () => {
+  const workspace = process.cwd();
+  const fixtureDir = path.join(workspace, "examples", "secrets");
+  const fixtureFiles = [
+    path.join(fixtureDir, "fake-secrets.ts"),
+    path.join(fixtureDir, "fake-uri-credentials.txt")
+  ];
+
+  const findings = await scanFiles(fixtureFiles, { workspace });
+  assert.ok(findings.length > 0);
+  assert.ok(findings.some((f) => f.ruleId.startsWith("secret-") || f.ruleId === "no-hardcoded-secret"));
+});
