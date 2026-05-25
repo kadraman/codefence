@@ -5,7 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { scanFiles } from "../src/scanner";
 
-test("secret scanning flags likely hardcoded secrets", () => {
+test("secret scanning flags likely hardcoded secrets", async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-secrets-"));
   const file = path.join(tmpDir, "secrets-sample.ts");
   fs.writeFileSync(
@@ -14,19 +14,53 @@ test("secret scanning flags likely hardcoded secrets", () => {
     "utf8"
   );
 
-  const findings = scanFiles([file]);
+  const findings = await scanFiles([file]);
   assert.ok(findings.some((f) => f.ruleId === "no-hardcoded-secret"));
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-test("scan output includes secrets-focused rule ids only", () => {
+test("scan output includes secrets-focused rule ids only", async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-secrets-"));
   const file = path.join(tmpDir, "sample.ts");
   fs.writeFileSync(file, "const token = \"abcdef1234567890\";\n", "utf8");
 
-  const findings = scanFiles([file]);
+  const findings = await scanFiles([file]);
   assert.equal(findings.some((f) => f.ruleId === "no-hardcoded-secret"), true);
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("entropy scanning reports confidence and evidence for unknown secret formats", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-secrets-"));
+  const file = path.join(tmpDir, "entropy-sample.ts");
+  fs.writeFileSync(
+    file,
+    `const credentialBlob = "Q4z8vB2nLp9sTw7xYk3mHc6rJd1f";\n`,
+    "utf8"
+  );
+
+  const findings = await scanFiles([file]);
+  const entropyFinding = findings.find((f) => f.ruleId === "secret-high-entropy");
+  assert.ok(entropyFinding);
+  assert.ok(entropyFinding?.confidence === "medium" || entropyFinding?.confidence === "high");
+  assert.match(entropyFinding?.evidence ?? "", /entropy=/);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("examples secret fixtures produce secret findings", async () => {
+  const workspace = process.cwd();
+  const fixtureDir = path.join(workspace, "examples", "secrets");
+  const fixtureFiles = [
+    path.join(fixtureDir, "fake-secrets.ts"),
+    path.join(fixtureDir, "fake-uri-credentials.conf"),
+    path.join(fixtureDir, "fake-private-key-block.conf")
+  ];
+
+  const findings = await scanFiles(fixtureFiles, { workspace });
+  assert.ok(findings.length > 0);
+  assert.ok(findings.some((f) => f.ruleId === "secret-uri-credentials"));
+  assert.ok(findings.some((f) => f.ruleId === "secret-private-key"));
+  assert.ok(findings.some((f) => f.ruleId === "no-hardcoded-secret" || f.ruleId === "secret-bearer-token"));
 });

@@ -5,6 +5,8 @@ Codefence guardrails provides:
 1. A **Git pre-commit hook** that runs `codefence scan --staged` and blocks the commit on failure.
 2. A **TypeScript background scanner** that scans on save with debouncing and fills `.codefence/cache/` so pre-commit is faster.
 
+Both flows use the same secret engine as `codefence scan`, including bundled rules, optional Semgrep-style YAML rules, and entropy-based secret detection.
+
 These are **not** Kiro-specific for commits — only the optional `afterFileEdit` integration uses Kiro or Cursor hook config.
 
 Hooks are **Node.js scripts** (`.cjs`), not Bash-only — they run on **Windows, macOS, and Linux** as long as Node is on `PATH` (same requirement as `codefence`). Shell scripts (`.sh`) are optional wrappers for Git Bash.
@@ -129,6 +131,7 @@ codefence background-scan --check-pending
 ```text
 .codefence/
   cache/code/<file>.json   # per-file code scan results (mtime-checked)
+  cache/secret-rules/*.json # cached remote secret rule bundles
   debounce.json            # pending background scans
 ```
 

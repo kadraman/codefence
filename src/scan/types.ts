@@ -1,3 +1,5 @@
+import { SecretScanOptions } from "./secret/types";
+
 export const ASPECT_IDS = ["code"] as const;
 
 export type AspectId = (typeof ASPECT_IDS)[number];
@@ -12,6 +14,7 @@ export interface ScanContext {
   staged: boolean;
   /** True when the user passed explicit --paths (demo/test ignore lists are bypassed). */
   explicitPaths: boolean;
+  options: ScanOptions;
 }
 
 export interface ScanOptions {
@@ -19,6 +22,7 @@ export interface ScanOptions {
   paths: string[];
   only: AspectId[] | null;
   skip: AspectId[];
+  secret: SecretScanOptions;
 }
 
 export interface AspectOutcome {
@@ -31,5 +35,5 @@ export interface AspectOutcome {
 export interface ScanAspect {
   id: AspectId;
   label: string;
-  run(context: ScanContext): AspectOutcome;
+  run(context: ScanContext): Promise<AspectOutcome> | AspectOutcome;
 }

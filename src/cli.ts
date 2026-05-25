@@ -67,7 +67,7 @@ Run \`${cliInvocation("scan", "--help")}\` for scan options.
 `);
 }
 
-function main() {
+async function main() {
   const [command, ...rest] = process.argv.slice(2);
 
   if (command === "install") {
@@ -79,7 +79,7 @@ function main() {
   }
 
   if (command === "pre-commit") {
-    process.exit(runPreCommit());
+    process.exit(await runPreCommit());
   }
 
   if (command === "background-scan") {
@@ -97,7 +97,7 @@ function main() {
       console.error(`Usage: ${cliInvocation("scan-worker", "--target <path> [--workspace <dir>]")}`);
       process.exit(1);
     }
-    process.exit(runScanWorker(options));
+    process.exit(await runScanWorker(options));
   }
 
   if (command === "check-deps") {
@@ -124,7 +124,13 @@ function main() {
     process.exit(0);
   }
 
-  process.exit(runScan(parsed));
+  // Avoid process.exit() after network I/O — on Windows, abrupt exit can trip libuv
+  // (UV_HANDLE_CLOSING) while undici/http handles are still closing.
+  process.exitCode = await runScan(parsed);
 }
 
-main();
+void main().catch((error) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(message);
+  process.exitCode = 1;
+});

@@ -14,7 +14,6 @@ const packageJson = JSON.parse(
 test("package.json publishes codefence with codefence binary", () => {
   assert.equal(packageJson.name, "codefence");
   assert.deepEqual(packageJson.bin, { codefence: "dist/src/cli.js" });
-  assert.equal("fgr" in (packageJson.bin ?? {}), false);
   assert.match(packageJson.scripts?.codefence ?? "", /scan --staged/);
   assert.equal(packageJson.scripts?.guardrails, undefined);
 });

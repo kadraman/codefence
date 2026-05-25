@@ -5,6 +5,7 @@
   "main": "dist/src/index.js",
   "files": [
     "dist",
+    "rules",
     "templates",
     "hooks",
     "scripts/install-ai-rules.sh",
@@ -53,5 +54,8 @@
   },
   "bin": {
     "codefence": "dist/src/cli.js"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
   }
 }
