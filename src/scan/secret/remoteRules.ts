@@ -29,6 +29,12 @@ function requestRuleBundle(
     return Promise.reject(new Error("Too many redirects while downloading secret rules"));
   }
 
+  try {
+    validateRulesUrl(url);
+  } catch (error) {
+    return Promise.reject(error);
+  }
+
   return new Promise((resolve, reject) => {
     const parsed = new URL(url);
     const lib = parsed.protocol === "https:" ? https : http;
@@ -42,7 +48,7 @@ function requestRuleBundle(
         if (statusCode >= 300 && statusCode < 400 && res.headers.location) {
           res.resume();
           const nextUrl = new URL(res.headers.location, url).href;
-          resolve(requestRuleBundle(nextUrl, redirectDepth + 1));
+          requestRuleBundle(nextUrl, redirectDepth + 1).then(resolve, reject);
           return;
         }
 
@@ -72,7 +78,10 @@ export async function loadRemoteRuleBundle(
   validateRulesUrl(url);
 
   const cached = readCachedSecretRules(workspace, url);
-  if (!refresh && cached && isSecretRulesCacheFresh(cached)) {
+  if (!refresh && cached && isSecretRulesCacheFresh(cached, ttlMs)) {
+    if (cached.ttlMs !== ttlMs) {
+      writeCachedSecretRules(workspace, url, cached.body, ttlMs, { fetchedAt: cached.fetchedAt });
+    }
     return cached.body;
   }
 

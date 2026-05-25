@@ -24,7 +24,25 @@ function normalizeConfidence(value: unknown): ConfidenceLevel {
   return "medium";
 }
 
-function collectPatterns(node: unknown): SecretRulePattern[] {
+function parseCaseInsensitiveFlag(value: unknown): boolean {
+  return value === true || value === "true";
+}
+
+function ruleCaseInsensitive(rule: Record<string, unknown>, metadata: Record<string, unknown>): boolean {
+  const options = (rule.options ?? {}) as Record<string, unknown>;
+  if (parseCaseInsensitiveFlag(options.generic_caseless)) {
+    return true;
+  }
+  if (options.case_sensitive === false) {
+    return true;
+  }
+  return (
+    parseCaseInsensitiveFlag(metadata["case-insensitive"]) ||
+    parseCaseInsensitiveFlag(metadata.case_insensitive)
+  );
+}
+
+function collectPatterns(node: unknown, caseInsensitive = false): SecretRulePattern[] {
   if (!node || typeof node !== "object") {
     return [];
   }
@@ -33,7 +51,7 @@ function collectPatterns(node: unknown): SecretRulePattern[] {
   const patterns: SecretRulePattern[] = [];
 
   if (typeof entry["pattern-regex"] === "string") {
-    patterns.push({ type: "regex", value: entry["pattern-regex"] });
+    patterns.push({ type: "regex", value: entry["pattern-regex"], caseInsensitive });
   }
 
   if (typeof entry.pattern === "string") {
@@ -42,13 +60,13 @@ function collectPatterns(node: unknown): SecretRulePattern[] {
 
   if (Array.isArray(entry.patterns)) {
     for (const child of entry.patterns) {
-      patterns.push(...collectPatterns(child));
+      patterns.push(...collectPatterns(child, caseInsensitive));
     }
   }
 
   if (Array.isArray(entry["pattern-either"])) {
     for (const child of entry["pattern-either"]) {
-      patterns.push(...collectPatterns(child));
+      patterns.push(...collectPatterns(child, caseInsensitive));
     }
   }
 
@@ -72,7 +90,7 @@ function parseRuleObject(
   }
 
   const metadata = (rule.metadata ?? {}) as Record<string, unknown>;
-  const patterns = collectPatterns(rule);
+  const patterns = collectPatterns(rule, ruleCaseInsensitive(rule, metadata));
   if (patterns.length === 0) {
     return null;
   }

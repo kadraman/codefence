@@ -279,6 +279,7 @@ Environment:
   CODEFENCE_SECRET_DEFAULT_RULES    Same as --secret-default-rules
   CODEFENCE_SECRET_DEFAULT_RULES_VERSION  Same as --secret-default-rules-version
   CODEFENCE_SECRET_RULES_UPDATE_URL Same as --secret-rules-update-url
+  CODEFENCE_SECRET_RULES_REFRESH    Same as --secret-rules-refresh
   CODEFENCE_SECRET_RULES_CACHE_TTL  Same as --secret-rules-cache-ttl
   CODEFENCE_SECRET_ENTROPY_THRESHOLD Same as --secret-entropy-threshold
   CODEFENCE_SECRET_MIN_LENGTH       Same as --secret-min-length

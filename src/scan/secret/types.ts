@@ -20,6 +20,8 @@ export interface SecretScanOptions {
 export interface SecretRulePattern {
   type: "regex" | "literal";
   value: string;
+  /** When true, compile pattern-regex with case-insensitive matching (Semgrep default is sensitive). */
+  caseInsensitive?: boolean;
 }
 
 export interface SecretRule {
@@ -39,4 +41,6 @@ export interface SecretEngineInput {
   content: string;
   workspace: string;
   options: SecretScanOptions;
+  /** When set, skips reloading rule bundles for each file in a batch scan. */
+  rules?: SecretRule[];
 }
