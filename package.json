@@ -1,0 +1,57 @@
+{
+  "name": "codefence",
+  "version": "0.1.0",
+  "description": "Codefence: guardrails for AI-assisted coding",
+  "main": "dist/src/index.js",
+  "files": [
+    "dist",
+    "templates",
+    "hooks",
+    "scripts/install-ai-rules.sh",
+    "scripts/install-ai-rules.ps1",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "npm run build && node --test dist/tests/*.test.js dist/tests/sast/*.test.js",
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
+    "prepack": "npm run build",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "codefence": "npm run build && node dist/src/cli.js scan --staged",
+    "install:ai": "npm run build && node dist/src/cli.js install",
+    "install:hooks": "npm run build && node dist/src/cli.js install-hooks"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kadraman/codefence.git"
+  },
+  "keywords": [
+    "codefence",
+    "guardrails",
+    "security",
+    "sast",
+    "ai",
+    "cursor"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/kadraman/codefence/issues"
+  },
+  "homepage": "https://github.com/kadraman/codefence#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "typescript": "^6.0.3"
+  },
+  "bin": {
+    "codefence": "dist/src/cli.js"
+  }
+}

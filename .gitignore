@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Yarn Berry artifacts (repo uses npm — do not commit if yarn was run locally)
+.pnp.cjs
+.pnp.loader.mjs
+.yarn/
+
+# Build output (built on npm install/publish via prepack)
+dist/
+
+# codefence local state (cache, debounce)
+.codefence/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Logs and coverage
+*.log
+npm-debug.log*
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db

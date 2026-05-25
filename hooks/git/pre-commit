@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+"use strict";
+
+// Repo-local entry (run via: node hooks/git/pre-commit.cjs)
+require("./pre-commit.cjs");

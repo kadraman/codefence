@@ -1,0 +1,2 @@
+const apiKey = "super-secret-12345";
+const output = eval(userInput);
