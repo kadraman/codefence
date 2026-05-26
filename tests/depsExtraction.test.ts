@@ -34,6 +34,7 @@ test("extractPackageJsonDependencies returns exact npm versions only", () => {
     deps.map((dep) => `${dep.name}@${dep.version}`).sort(),
     ["lodash@4.17.21", "typescript@5.9.0", "yaml@2.9.0"]
   );
+  assert.equal(deps.find((dep) => dep.name === "lodash")?.manifestLine, 3);
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });

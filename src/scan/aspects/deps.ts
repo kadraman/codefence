@@ -1,11 +1,13 @@
 import path from "node:path";
 import { filterDependencyManifests } from "../../manifests";
+import type { Finding } from "../../types";
 import { AspectOutcome, ScanAspect, ScanContext } from "../types";
 import { isDepsCacheFresh, readDepsCache, writeDepsCache } from "../deps/cache";
 import { resolveDepsProviderUrl } from "../deps/config";
 import { extractDependenciesForManifest } from "../deps/extract";
 import { queryOsvForDependencies } from "../deps/provider";
-import { DepsFinding, DependencyCoordinate } from "../deps/types";
+import { DepsFinding, DependencyCoordinate, DEPS_FINDING_RULE_ID } from "../deps/types";
+import { printUnifiedFindings } from "../output";
 
 function collectDependencies(context: ScanContext, manifests: string[]): DependencyCoordinate[] {
   const all: DependencyCoordinate[] = [];
@@ -24,19 +26,6 @@ function collectDependencies(context: ScanContext, manifests: string[]): Depende
     }
   }
   return deduped;
-}
-
-function printFindings(findings: DepsFinding[]): void {
-  console.error(`[deps] ${findings.length} finding(s):`);
-  for (const finding of findings) {
-    const filePath = path.relative(process.cwd(), finding.manifestPath).replace(/\\/g, "/");
-    console.error(`  ${finding.severity.toUpperCase()} vulnerable-dependency file=${filePath}`);
-    console.error(
-      `    package=${finding.packageName} version=${finding.version} advisory=${finding.advisoryId}`
-    );
-    console.error(`    message=${finding.summary}`);
-    console.error(`    remediation=${finding.remediation}`);
-  }
 }
 
 export const depsAspect: ScanAspect = {
@@ -85,7 +74,27 @@ export const depsAspect: ScanAspect = {
         return { aspect: "deps", status: "ok", exitCode: 0 };
       }
 
-      printFindings(findings);
+      const unified: Finding[] = findings.map((depFinding) => ({
+        ruleId: DEPS_FINDING_RULE_ID,
+        message: depFinding.summary,
+        filePath: depFinding.manifestPath,
+        line: depFinding.manifestLine,
+        severity: depFinding.severity,
+        packageName: depFinding.packageName,
+        packageVersion: depFinding.version,
+        advisoryId: depFinding.advisoryId,
+        cveId: depFinding.cveId ?? undefined,
+        fixedVersion: depFinding.fixedVersion ?? undefined,
+        evidence: depFinding.cveId ?? depFinding.advisoryId,
+        remediation: depFinding.remediation,
+        kind: "dependency"
+      }));
+
+      const packageCount = new Set(unified.map((finding) => `${finding.packageName}@${finding.packageVersion}`)).size;
+      console.error(
+        `[deps] ${findings.length} advisory finding(s) across ${packageCount} vulnerable package version(s) from ${manifests.length} manifest file(s):`
+      );
+      printUnifiedFindings("deps", unified, context.options.outputFormat, context.cwd);
       return {
         aspect: "deps",
         status: "failed",

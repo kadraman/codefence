@@ -8,7 +8,7 @@ import {
   parsePositiveNumber
 } from "./secret/config";
 import { SecretScanOptions } from "./secret/types";
-import { AspectId, DEFAULT_ASPECTS, ScanOptions } from "./types";
+import { AspectId, DEFAULT_ASPECTS, ScanOptions, ScanOutputFormat } from "./types";
 
 const ASPECT_ALIASES: Record<string, AspectId> = {
   code: "code",
@@ -133,6 +133,17 @@ function defaultAspectsFromEnv(): AspectId[] {
   return parseAspectList(raw);
 }
 
+function parseOutputFormat(value: string | undefined): ScanOutputFormat {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (!normalized || normalized === "table") {
+    return "table";
+  }
+  if (normalized === "json") {
+    return "json";
+  }
+  throw new Error("--format must be table or json");
+}
+
 function parseOnOff(value: string, flag: string): boolean {
   const normalized = value.trim().toLowerCase();
   if (normalized === "on") {
@@ -195,7 +206,8 @@ export function parseScanArgv(argv: string[]): ParseScanResult {
   const { deps, rest: afterDeps } = parseDepsOptions(afterPaths);
   const { secret, rest: afterSecret } = parseSecretOptions(afterDeps);
 
-  const onlyParsed = readFlagValue(afterSecret, "--only");
+  const formatParsed = readFlagValue(afterSecret, "--format");
+  const onlyParsed = readFlagValue(formatParsed.rest, "--only");
   const skipParsed = readFlagValue(onlyParsed.rest, "--skip");
 
   if (skipParsed.rest.some((a) => a === "--help" || a === "-h")) {
@@ -222,13 +234,18 @@ export function parseScanArgv(argv: string[]): ParseScanResult {
     }
   }
 
+  const outputFormat: ScanOutputFormat = parseOutputFormat(
+    formatParsed.value ?? envTrim("CODEFENCE_FORMAT")
+  );
+
   return {
     staged: skipParsed.rest.includes("--staged"),
     paths,
     only,
     skip,
     secret,
-    deps
+    deps,
+    outputFormat
   };
 }
 
@@ -256,8 +273,9 @@ Run local secure-coding guardrails on changed or explicit paths.
 Options:
   --staged                           Use staged git files instead of unstaged changes
   --paths <files...>                 Scan explicit paths (default: git-changed files)
-  --only <aspects>                   Run only listed aspects (comma-separated; default: code)
+  --only <aspects>                   Run only listed aspects (comma-separated; default: code,deps)
   --skip <aspects>                   Skip aspects (applied after --only)
+  --format <table|json>              Output format for findings (default: table)
   --deps-provider <osv|custom>       Dependency vulnerability provider (default: osv)
   --deps-provider-url <url>          Override dependency provider API endpoint
   --deps-refresh                     Force dependency provider refresh (ignore cache)
@@ -278,7 +296,7 @@ Options:
 Git-based scans skip: ${formatGitScanIgnoredPrefixes()}
   (explicit --paths still scans those files)
 
-Aspects (default: code):
+Aspects (default: code,deps):
   code          Local secure-coding rules on changed source files
   deps          Dependency vulnerability scan for changed manifests
 
@@ -286,6 +304,7 @@ Environment:
   CODEFENCE_ASPECTS                 Default aspect list (comma-separated)
   CODEFENCE_ONLY                    Same as --only
   CODEFENCE_SKIP                    Same as --skip
+  CODEFENCE_FORMAT                  Default output format (table or json)
   CODEFENCE_DEPS_PROVIDER           Same as --deps-provider
   CODEFENCE_DEPS_PROVIDER_URL       Same as --deps-provider-url
   CODEFENCE_DEPS_REFRESH            Same as --deps-refresh

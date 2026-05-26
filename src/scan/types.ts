@@ -5,9 +5,11 @@ export const ASPECT_IDS = ["code", "deps"] as const;
 
 export type AspectId = (typeof ASPECT_IDS)[number];
 
-export const DEFAULT_ASPECTS: AspectId[] = ["code"];
+export const DEFAULT_ASPECTS: AspectId[] = ["code", "deps"];
 
 export type AspectStatus = "ok" | "skipped" | "failed";
+
+export type ScanOutputFormat = "table" | "json";
 
 export interface ScanContext {
   cwd: string;
@@ -25,6 +27,7 @@ export interface ScanOptions {
   skip: AspectId[];
   secret: SecretScanOptions;
   deps: DepsScanOptions;
+  outputFormat: ScanOutputFormat;
 }
 
 export interface AspectOutcome {

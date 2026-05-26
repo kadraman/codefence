@@ -34,6 +34,18 @@ Note: git-changed scans ignore `examples/` by default. Explicit `--paths` includ
 
 Scans against these fixtures are expected to **exit with code 1** (findings are intentional). Use them to verify rules, not as a clean baseline.
 
+## Dependency-scanning fixtures
+
+Path: `examples/deps/`
+
+Sample `package.json` manifests pin exact versions of packages with known OSV advisories. See [`examples/deps/README.md`](deps/README.md) for the fixture list and commands.
+
+```bash
+node dist/src/cli.js scan --only deps --paths examples/deps
+```
+
+Scans against these fixtures are expected to **exit with code 1** (findings are intentional).
+
 ## Secret rule bundles
 
 Built-in Semgrep-style rules live at [`rules/secret/builtin.yml`](../rules/secret/builtin.yml).

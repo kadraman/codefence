@@ -24,15 +24,32 @@ function normalizeExactVersion(raw: string): string | null {
   return null;
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function findDependencyLine(source: string, packageName: string): number {
+  const lines = source.split(/\r?\n/);
+  const pattern = new RegExp(`"${escapeRegExp(packageName)}"\\s*:`);
+  for (let index = 0; index < lines.length; index++) {
+    if (pattern.test(lines[index])) {
+      return index + 1;
+    }
+  }
+  return 0;
+}
+
 export function extractPackageJsonDependencies(manifestPath: string): DependencyCoordinate[] {
   const absolute = path.resolve(manifestPath);
   if (!fs.existsSync(absolute)) {
     return [];
   }
 
+  let source: string;
   let parsed: PackageJsonShape;
   try {
-    parsed = JSON.parse(fs.readFileSync(absolute, "utf8")) as PackageJsonShape;
+    source = fs.readFileSync(absolute, "utf8");
+    parsed = JSON.parse(source) as PackageJsonShape;
   } catch {
     return [];
   }
@@ -54,7 +71,8 @@ export function extractPackageJsonDependencies(manifestPath: string): Dependency
       ecosystem: NPM_ECOSYSTEM,
       name,
       version,
-      manifestPath: absolute
+      manifestPath: absolute,
+      manifestLine: findDependencyLine(source, name)
     });
   }
 
@@ -68,4 +86,3 @@ export function extractDependenciesForManifest(manifestPath: string): Dependency
   }
   return [];
 }
-

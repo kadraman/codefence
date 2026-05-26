@@ -35,7 +35,8 @@ test("queryOsvForDependencies normalizes findings from OSV batch response", asyn
           ecosystem: "npm",
           name: "lodash",
           version: "4.17.20",
-          manifestPath: "/tmp/workspace/package.json"
+          manifestPath: "/tmp/workspace/package.json",
+          manifestLine: 6
         }
       ],
       { providerUrl: "https://api.osv.dev/v1/querybatch", timeoutMs: 1000 }
@@ -46,6 +47,7 @@ test("queryOsvForDependencies normalizes findings from OSV batch response", asyn
     assert.equal(findings[0].version, "4.17.20");
     assert.equal(findings[0].advisoryId, "GHSA-xxxx-yyyy-zzzz");
     assert.equal(findings[0].severity, "high");
+    assert.equal(findings[0].fixedVersion, "4.17.21");
     assert.match(findings[0].remediation, /4\.17\.21/);
   } finally {
     globalThis.fetch = originalFetch;

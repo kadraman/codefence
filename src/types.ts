@@ -9,6 +9,11 @@ export interface Finding {
   remediation?: string;
   kind?: "code" | "secret" | "dependency";
   detectionMethod?: "rule" | "entropy" | "rule+entropy";
+  packageName?: string;
+  packageVersion?: string;
+  advisoryId?: string;
+  cveId?: string;
+  fixedVersion?: string;
 }
 
 export type ConfidenceLevel = "low" | "medium" | "high";

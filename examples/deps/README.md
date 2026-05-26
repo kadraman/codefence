@@ -1,0 +1,36 @@
+# Dependency-scanning fixtures
+
+Path: `examples/deps/`
+
+These manifests pin **exact versions** of packages with known [OSV](https://osv.dev/) advisories and CVEs. They are fake projects for local testing only — do not install or publish them.
+
+| Fixture | Section | Package | Version | Example CVE | Fixed |
+| ------- | ------- | ------- | ------- | ----------- | ----- |
+| `npm/runtime-app/package.json` | `dependencies` | `lodash` | `4.17.20` | `CVE-2020-28500` | `>= 4.17.21` |
+| `npm/runtime-app/package.json` | `dependencies` | `minimist` | `1.2.5` | `CVE-2021-44906` | `>= 1.2.6` |
+| `npm/dev-tooling/package.json` | `devDependencies` | `ws` | `7.3.0` | `CVE-2024-37890` | `>= 5.2.4` |
+| `npm/dev-tooling/package.json` | `devDependencies` | `jsonwebtoken` | `8.5.1` | `CVE-2022-23539` | `>= 9.0.0` |
+| `npm/library/package.json` | `optionalDependencies` | `node-fetch` | `2.6.0` | `CVE-2022-0235` | `>= 3.1.1` |
+
+Run against the full fixture tree:
+
+```bash
+npm run build
+node dist/src/cli.js scan --only deps --paths examples/deps
+```
+
+JSON output for LLM/tooling use:
+
+```bash
+node dist/src/cli.js scan --only deps --paths examples/deps --format json --deps-refresh
+```
+
+Force a fresh OSV lookup (ignore cache):
+
+```bash
+node dist/src/cli.js scan --only deps --paths examples/deps --deps-refresh
+```
+
+Note: git-changed scans ignore `examples/` by default. Explicit `--paths` includes these files.
+
+Scans against these fixtures are expected to **exit with code 1** (findings are intentional). Table output aggregates multiple advisories per package version into one row; JSON output lists each advisory separately.

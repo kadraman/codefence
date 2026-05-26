@@ -1,0 +1,9 @@
+{
+  "name": "codefence-example-runtime-app",
+  "private": true,
+  "description": "Fixture: runtime dependencies with known CVEs (fake project, not installable).",
+  "dependencies": {
+    "lodash": "4.17.20",
+    "minimist": "1.2.5"
+  }
+}

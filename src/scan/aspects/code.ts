@@ -1,5 +1,6 @@
 import path from "node:path";
 import { scanFiles, shouldScanFile } from "../../scanner";
+import { printUnifiedFindings } from "../output";
 import { AspectOutcome, ScanAspect, ScanContext } from "../types";
 
 export const codeAspect: ScanAspect = {
@@ -32,13 +33,7 @@ export const codeAspect: ScanAspect = {
     }
 
     console.error(`[code] ${findings.length} finding(s):`);
-    for (const finding of findings) {
-      const confidence = finding.confidence ? ` confidence=${finding.confidence}` : "";
-      const evidence = finding.evidence ? ` evidence=${finding.evidence}` : "";
-      console.error(
-        `  ${finding.severity.toUpperCase()} ${finding.ruleId} ${finding.filePath}:${finding.line}${confidence} - ${finding.message}${evidence}`
-      );
-    }
+    printUnifiedFindings("code", findings, context.options.outputFormat, context.cwd);
 
     return {
       aspect: "code",

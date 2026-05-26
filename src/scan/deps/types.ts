@@ -22,15 +22,19 @@ export interface DependencyCoordinate {
   name: string;
   version: string;
   manifestPath: string;
+  manifestLine: number;
 }
 
 export interface DepsFinding {
   packageName: string;
   version: string;
   advisoryId: string;
+  cveId: string | null;
   summary: string;
   severity: Finding["severity"];
   remediation: string;
+  fixedVersion: string | null;
   manifestPath: string;
+  manifestLine: number;
 }
 

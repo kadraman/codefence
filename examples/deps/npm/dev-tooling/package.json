@@ -1,0 +1,9 @@
+{
+  "name": "codefence-example-dev-tooling",
+  "private": true,
+  "description": "Fixture: devDependencies with known CVEs (fake project, not installable).",
+  "devDependencies": {
+    "jsonwebtoken": "8.5.1",
+    "ws": "7.3.0"
+  }
+}

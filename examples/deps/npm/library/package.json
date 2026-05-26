@@ -1,0 +1,8 @@
+{
+  "name": "codefence-example-library",
+  "private": true,
+  "description": "Fixture: optional dependency with a known CVE (fake project, not installable).",
+  "optionalDependencies": {
+    "node-fetch": "2.6.0"
+  }
+}

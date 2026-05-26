@@ -31,6 +31,7 @@ interface OsvVulnerability {
   id?: string;
   summary?: string;
   details?: string;
+  aliases?: string[];
   severity?: Array<{
     type?: string;
     score?: string;
@@ -100,15 +101,32 @@ function pickSeverity(vuln: OsvVulnerability): DepsFinding["severity"] {
   return "medium";
 }
 
-function pickRemediation(vuln: OsvVulnerability): string {
+function pickFixedVersion(vuln: OsvVulnerability): string | null {
   for (const affected of vuln.affected ?? []) {
     for (const range of affected.ranges ?? []) {
       for (const event of range.events ?? []) {
         if (event.fixed?.trim()) {
-          return `Upgrade to >= ${event.fixed.trim()}`;
+          return event.fixed.trim();
         }
       }
     }
+  }
+
+  return null;
+}
+
+function pickCveId(vuln: OsvVulnerability): string | null {
+  for (const alias of vuln.aliases ?? []) {
+    if (alias.startsWith("CVE-")) {
+      return alias;
+    }
+  }
+  return null;
+}
+
+function pickRemediation(fixedVersion: string | null): string {
+  if (fixedVersion) {
+    return `Upgrade to >= ${fixedVersion}`;
   }
 
   return "Upgrade to a patched version";
@@ -119,15 +137,89 @@ function normalizeVulnerability(
   vuln: OsvVulnerability
 ): DepsFinding {
   const advisoryId = vuln.id?.trim() || "OSV-UNKNOWN";
+  const fixedVersion = pickFixedVersion(vuln);
   return {
     packageName: dep.name,
     version: dep.version,
     advisoryId,
+    cveId: pickCveId(vuln),
     summary: vuln.summary?.trim() || vuln.details?.trim() || "Known vulnerability detected in dependency version",
     severity: pickSeverity(vuln),
-    remediation: pickRemediation(vuln),
-    manifestPath: dep.manifestPath
+    remediation: pickRemediation(fixedVersion),
+    fixedVersion,
+    manifestPath: dep.manifestPath,
+    manifestLine: dep.manifestLine
   };
+}
+
+function providerBaseUrl(providerUrl: string): string {
+  return providerUrl.replace(/\/querybatch\/?$/, "");
+}
+
+function mergeVulnerability(stub: OsvVulnerability, details: OsvVulnerability | null): OsvVulnerability {
+  if (!details) {
+    return stub;
+  }
+  return {
+    ...stub,
+    ...details,
+    id: stub.id ?? details.id
+  };
+}
+
+async function fetchGetWithRetry<T>(url: string, timeoutMs: number): Promise<T | null> {
+  let lastError: unknown;
+
+  for (const delayMs of RETRY_DELAYS_MS) {
+    if (delayMs > 0) {
+      await sleep(delayMs);
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: { accept: "application/json" },
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        throw new Error(`Provider request failed: ${response.status}`);
+      }
+
+      return (await response.json()) as T;
+    } catch (error) {
+      lastError = error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  if (lastError instanceof Error) {
+    throw lastError;
+  }
+  return null;
+}
+
+async function loadVulnerabilityDetails(
+  advisoryIds: string[],
+  options: { providerUrl: string; timeoutMs: number }
+): Promise<Map<string, OsvVulnerability>> {
+  const baseUrl = providerBaseUrl(options.providerUrl);
+  const details = new Map<string, OsvVulnerability>();
+
+  await Promise.all(
+    advisoryIds.map(async (advisoryId) => {
+      const url = `${baseUrl}/vulns/${encodeURIComponent(advisoryId)}`;
+      const vuln = await fetchGetWithRetry<OsvVulnerability>(url, options.timeoutMs);
+      if (vuln) {
+        details.set(advisoryId, vuln);
+      }
+    })
+  );
+
+  return details;
 }
 
 async function fetchJsonWithRetry(url: string, body: unknown, timeoutMs: number): Promise<OsvBatchResponse> {
@@ -186,11 +278,28 @@ export async function queryOsvForDependencies(
 
     const response = await fetchJsonWithRetry(options.providerUrl, payload, options.timeoutMs);
     const results = response.results ?? [];
+
+    const advisoryIds = new Set<string>();
+    for (const result of results) {
+      for (const vuln of result.vulns ?? []) {
+        const advisoryId = vuln.id?.trim();
+        if (advisoryId) {
+          advisoryIds.add(advisoryId);
+        }
+      }
+    }
+
+    const detailsById = advisoryIds.size > 0
+      ? await loadVulnerabilityDetails([...advisoryIds], options)
+      : new Map<string, OsvVulnerability>();
+
     for (let index = 0; index < batch.length; index++) {
       const dep = batch[index];
       const vulns = results[index]?.vulns ?? [];
       for (const vuln of vulns) {
-        findings.push(normalizeVulnerability(dep, vuln));
+        const advisoryId = vuln.id?.trim();
+        const enriched = advisoryId ? mergeVulnerability(vuln, detailsById.get(advisoryId) ?? null) : vuln;
+        findings.push(normalizeVulnerability(dep, enriched));
       }
     }
   }

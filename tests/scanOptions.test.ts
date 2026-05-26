@@ -24,7 +24,7 @@ test("parseAspectList accepts code only", () => {
   assert.deepEqual(parseAspectList("deps"), ["deps"]);
 });
 
-test("resolveAspects defaults to code", () => {
+test("resolveAspects defaults to code and deps", () => {
   const aspects = resolveAspects({
     staged: false,
     paths: [],
@@ -41,9 +41,10 @@ test("resolveAspects defaults to code", () => {
       minLength: 12,
       minConfidence: "low"
     },
-    deps: defaultDepsScanOptions()
+    deps: defaultDepsScanOptions(),
+    outputFormat: "table"
   });
-  assert.deepEqual(aspects, ["code"]);
+  assert.deepEqual(aspects, ["code", "deps"]);
 });
 
 test("resolveAspects honors --only and --skip", () => {
@@ -63,7 +64,8 @@ test("resolveAspects honors --only and --skip", () => {
       minLength: 12,
       minConfidence: "low"
     },
-    deps: defaultDepsScanOptions()
+    deps: defaultDepsScanOptions(),
+    outputFormat: "table"
   });
   assert.deepEqual(aspects, []);
 });
