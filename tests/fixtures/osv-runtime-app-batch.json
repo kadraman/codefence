@@ -1,0 +1,34 @@
+{
+  "results": [
+    {
+      "vulns": [
+        {
+          "id": "GHSA-xxjr-mmjv-4gpg",
+          "summary": "Lodash has Prototype Pollution Vulnerability in `_.unset` and `_.omit` functions",
+          "aliases": ["CVE-2021-23337"],
+          "severity": [{ "type": "CVSS_V3", "score": "7.5" }],
+          "affected": [
+            {
+              "ranges": [{ "events": [{ "fixed": "4.17.21" }] }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "vulns": [
+        {
+          "id": "GHSA-xvch-5gv4-984h",
+          "summary": "Prototype Pollution in minimist",
+          "aliases": ["CVE-2021-44906"],
+          "severity": [{ "type": "CVSS_V3", "score": "9.8" }],
+          "affected": [
+            {
+              "ranges": [{ "events": [{ "fixed": "1.2.6" }] }]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

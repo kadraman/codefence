@@ -32,7 +32,7 @@ The engine should:
 2. Run pattern-based matching on candidate files selected by existing scan orchestration.
 3. Run entropy-based analysis to detect likely secrets that do not match known patterns.
 4. Correlate and deduplicate findings from rule and entropy passes.
-5. Emit normalized findings with severity, confidence, evidence summary, and remediation guidance.
+5. Emit normalized findings with severity (`critical` \| `high` \| `medium` \| `low`), confidence, evidence summary, and remediation guidance.
 6. Respect existing scan controls (`--paths`, `--staged`, `--only`, `--skip`) and ignored path behavior.
 7. Support updating local rule packs from a remote source and reuse cached copies for offline and low-latency scans.
 
@@ -113,6 +113,16 @@ Tune entropy sensitivity for CI:
 ```bash
 codefence scan --paths src config --secret-entropy-threshold 4.2 --secret-min-confidence medium
 ```
+
+### Severity mapping (implemented)
+
+| Rule YAML / Semgrep | Unified severity |
+| ------------------- | ---------------- |
+| `severity: critical` \| `high` \| `medium` \| `low` | Used as-is |
+| `severity: ERROR` | `critical` |
+| `severity: WARNING` | `medium` |
+| `severity: INFO` | `low` |
+| Entropy (no rule match) | ≥ threshold + 1.0 → `critical`; ≥ threshold + 0.6 → `high`; else `medium` |
 
 Example finding (normalized):
 

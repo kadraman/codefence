@@ -118,8 +118,17 @@ codefence scan --help
 | ------ | ----------- |
 | `--staged` | Scan staged git files instead of unstaged changes |
 | `--paths <files…>` | Scan explicit paths (bypasses git-changed discovery) |
-| `--only code` | Run only listed aspects (currently `code`) |
-| `--skip code` | Skip selected aspects |
+| `--only code,deps` | Run only listed aspects (default: `code`; `deps` auto-runs when dependency manifests are in scope) |
+| `--skip code,deps` | Skip selected aspects |
+| `--format <table\|json>` | Output findings as a table (default) or NDJSON (one JSON object per line on stdout) |
+| `--quiet` | Suppress progress and human messages (default with `--format json`) |
+| `--verbose` | Show progress on stderr even with `--format json` |
+| `--deps-provider <osv\|custom>` | Select dependency vulnerability provider (default: `osv`) |
+| `--deps-provider-url <url>` | Override dependency provider API endpoint |
+| `--deps-refresh` | Ignore dependency cache and query provider again |
+| `--deps-cache-ttl <duration>` | Set dependency result cache TTL |
+| `--deps-timeout <duration>` | Set dependency provider request timeout |
+| `--deps-http2 <auto\|on\|off>` | HTTP/2 for deps API (`auto`: Node default fetch; `on`/`off`: undici) |
 | `--secret-rules <path…>` | Load Semgrep-style YAML secret rules from files or directories |
 | `--secret-default-rules <on\|off>` | Enable or disable bundled secret rules |
 | `--secret-rules-update-url <url>` | Download and cache a remote YAML rule bundle |
@@ -129,6 +138,17 @@ codefence scan --help
 | `--secret-min-confidence <low\|medium\|high>` | Filter lower-confidence secret findings |
 
 Git-based scans skip fixture trees such as `examples/` (see `codefence scan --help`). Explicit `--paths` still scans those files.
+
+### Finding severity
+
+All aspects emit findings with one of four severity levels: `critical`, `high`, `medium`, `low` (table output and `--format json`).
+
+| Source | How severity is chosen |
+| ------ | ---------------------- |
+| **Dependencies (OSV)** | Provider labels when present; otherwise CVSS base score: ≥9 critical, ≥7 high, ≥4 medium, &lt;4 low |
+| **Secrets (YAML rules)** | Rule `severity: critical\|high\|medium\|low`, or Semgrep `ERROR` → critical, `WARNING` → medium, `INFO` → low |
+| **Secrets (entropy)** | Relative to `--secret-entropy-threshold`: +1.0 → critical, +0.6 → high, else medium |
+| **Code rules** | Per rule in `src/rules/index.ts` (typically `high` or `medium`) |
 
 Built-in secret scanning now combines:
 
@@ -154,7 +174,7 @@ npx --yes serve examples/rules -l 8765
 
 Remote rule bundles are cached under `.codefence/cache/secret-rules/` for offline and low-latency scans. Use `--secret-rules-refresh` or `CODEFENCE_SECRET_RULES_REFRESH=1` to force a re-download before scanning.
 
-**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP`, `CODEFENCE_SECRET_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES_VERSION`, `CODEFENCE_SECRET_RULES_UPDATE_URL`, `CODEFENCE_SECRET_RULES_REFRESH`, `CODEFENCE_SECRET_RULES_CACHE_TTL`, `CODEFENCE_SECRET_ENTROPY_THRESHOLD`, `CODEFENCE_SECRET_MIN_LENGTH`, `CODEFENCE_SECRET_MIN_CONFIDENCE`.
+**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP`, `CODEFENCE_FORMAT`, `CODEFENCE_DEPS_PROVIDER`, `CODEFENCE_DEPS_PROVIDER_URL`, `CODEFENCE_DEPS_REFRESH`, `CODEFENCE_DEPS_CACHE_TTL`, `CODEFENCE_DEPS_TIMEOUT`, `CODEFENCE_DEPS_HTTP2`, `CODEFENCE_SECRET_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES_VERSION`, `CODEFENCE_SECRET_RULES_UPDATE_URL`, `CODEFENCE_SECRET_RULES_REFRESH`, `CODEFENCE_SECRET_RULES_CACHE_TTL`, `CODEFENCE_SECRET_ENTROPY_THRESHOLD`, `CODEFENCE_SECRET_MIN_LENGTH`, `CODEFENCE_SECRET_MIN_CONFIDENCE`.
 
 ## Git pre-commit and background scanning
 

@@ -29,7 +29,13 @@ export function manifestBaseName(filePath: string): string {
 }
 
 export function isDependencyManifest(filePath: string): boolean {
-  return dependencyManifestNames.has(manifestBaseName(filePath));
+  const baseName = manifestBaseName(filePath);
+  if (dependencyManifestNames.has(baseName)) {
+    return true;
+  }
+
+  const lowered = baseName.toLowerCase();
+  return lowered.endsWith(".sln") || lowered.endsWith(".csproj");
 }
 
 export function filterDependencyManifests(files: string[]): string[] {

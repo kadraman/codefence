@@ -1,5 +1,7 @@
 import { cliInvocation } from "../cliName";
+import { hasDependencyFileChanges } from "../manifests";
 import { formatGitScanIgnoredPrefixes } from "./ignorePaths";
+import { defaultDepsScanOptions } from "./deps/config";
 import {
   defaultSecretScanOptions,
   parseConfidenceLevel,
@@ -7,10 +9,11 @@ import {
   parsePositiveNumber
 } from "./secret/config";
 import { SecretScanOptions } from "./secret/types";
-import { AspectId, DEFAULT_ASPECTS, ScanOptions } from "./types";
+import { ASPECT_IDS, AspectId, DEFAULT_ASPECTS, ScanOptions, ScanOutputFormat } from "./types";
 
 const ASPECT_ALIASES: Record<string, AspectId> = {
-  code: "code"
+  code: "code",
+  deps: "deps"
 };
 
 export type ParseScanResult = ScanOptions | { help: true };
@@ -131,6 +134,25 @@ function defaultAspectsFromEnv(): AspectId[] {
   return parseAspectList(raw);
 }
 
+function parseOutputFormat(value: string | undefined): ScanOutputFormat {
+  const normalized = (value ?? "").trim().toLowerCase();
+  if (!normalized || normalized === "table") {
+    return "table";
+  }
+  if (normalized === "json") {
+    return "json";
+  }
+  throw new Error("--format must be table or json");
+}
+
+function parseBooleanEnv(value: string | undefined): boolean {
+  if (!value) {
+    return false;
+  }
+  const normalized = value.trim().toLowerCase();
+  return ["1", "true", "on", "yes"].includes(normalized);
+}
+
 function parseOnOff(value: string, flag: string): boolean {
   const normalized = value.trim().toLowerCase();
   if (normalized === "on") {
@@ -190,9 +212,11 @@ function parseSecretOptions(argv: string[]): { secret: SecretScanOptions; rest: 
 
 export function parseScanArgv(argv: string[]): ParseScanResult {
   const { paths, rest: afterPaths } = collectPaths(argv);
-  const { secret, rest: afterSecret } = parseSecretOptions(afterPaths);
+  const { deps, rest: afterDeps } = parseDepsOptions(afterPaths);
+  const { secret, rest: afterSecret } = parseSecretOptions(afterDeps);
 
-  const onlyParsed = readFlagValue(afterSecret, "--only");
+  const formatParsed = readFlagValue(afterSecret, "--format");
+  const onlyParsed = readFlagValue(formatParsed.rest, "--only");
   const skipParsed = readFlagValue(onlyParsed.rest, "--skip");
 
   if (skipParsed.rest.some((a) => a === "--help" || a === "-h")) {
@@ -219,16 +243,54 @@ export function parseScanArgv(argv: string[]): ParseScanResult {
     }
   }
 
+  const outputFormat: ScanOutputFormat = parseOutputFormat(
+    formatParsed.value ?? envTrim("CODEFENCE_FORMAT")
+  );
+
+  const verbose =
+    skipParsed.rest.includes("--verbose") || parseBooleanEnv(envTrim("CODEFENCE_VERBOSE"));
+  const quiet =
+    skipParsed.rest.includes("--quiet") || parseBooleanEnv(envTrim("CODEFENCE_QUIET"));
+
   return {
     staged: skipParsed.rest.includes("--staged"),
     paths,
     only,
     skip,
-    secret
+    secret,
+    deps,
+    outputFormat,
+    quiet,
+    verbose
   };
 }
 
-export function resolveAspects(options: ScanOptions): AspectId[] {
+function sortAspects(aspects: AspectId[]): AspectId[] {
+  return [...aspects].sort((left, right) => ASPECT_IDS.indexOf(left) - ASPECT_IDS.indexOf(right));
+}
+
+/** When dependency manifests are in scope, include deps unless the user narrowed aspects with --only. */
+function applyManifestTriggeredDeps(
+  aspects: AspectId[],
+  options: ScanOptions,
+  filesInScope: string[]
+): AspectId[] {
+  if (options.skip.includes("deps")) {
+    return aspects;
+  }
+  if (options.only && options.only.length > 0) {
+    return aspects;
+  }
+  if (aspects.includes("deps")) {
+    return aspects;
+  }
+  if (!hasDependencyFileChanges(filesInScope)) {
+    return aspects;
+  }
+  return sortAspects([...aspects, "deps"]);
+}
+
+export function resolveAspects(options: ScanOptions, filesInScope: string[] = []): AspectId[] {
   let aspects: AspectId[];
 
   if (options.only && options.only.length > 0) {
@@ -241,7 +303,7 @@ export function resolveAspects(options: ScanOptions): AspectId[] {
     aspects = aspects.filter((id) => id !== skip);
   }
 
-  return aspects;
+  return applyManifestTriggeredDeps(aspects, options, filesInScope);
 }
 
 export function printScanHelp(): void {
@@ -254,6 +316,15 @@ Options:
   --paths <files...>                 Scan explicit paths (default: git-changed files)
   --only <aspects>                   Run only listed aspects (comma-separated; default: code)
   --skip <aspects>                   Skip aspects (applied after --only)
+  --format <table|json>              Findings as table (stdout) or NDJSON (stdout; progress on stderr)
+  --quiet                            Suppress progress and human messages (default with --format json)
+  --verbose                          Show progress on stderr even with --format json
+  --deps-provider <osv|custom>       Dependency vulnerability provider (default: osv; custom not yet supported)
+  --deps-provider-url <url>          Override dependency provider API endpoint
+  --deps-refresh                     Force dependency provider refresh (ignore cache)
+  --deps-cache-ttl <dur>             Dependency scan cache TTL (for example 24h)
+  --deps-timeout <dur>               Dependency provider timeout (for example 15s)
+  --deps-http2 <auto|on|off>         HTTP/2 for deps API: auto (Node default), on/off (undici)
   --secret-rules <path...>           Load Semgrep-style secret rules from YAML files or directories
   --secret-default-rules <on|off>    Enable bundled secret rules (default: on)
   --secret-default-rules-version <v> Select bundled secret rules version
@@ -268,13 +339,21 @@ Options:
 Git-based scans skip: ${formatGitScanIgnoredPrefixes()}
   (explicit --paths still scans those files)
 
-Aspects (default: code):
+Aspects (default: code; deps runs automatically when dependency manifests are in scope):
   code          Local secure-coding rules on changed source files
+  deps          Dependency vulnerability scan for changed manifests
 
 Environment:
   CODEFENCE_ASPECTS                 Default aspect list (comma-separated)
   CODEFENCE_ONLY                    Same as --only
   CODEFENCE_SKIP                    Same as --skip
+  CODEFENCE_FORMAT                  Default output format (table or json)
+  CODEFENCE_DEPS_PROVIDER           Same as --deps-provider
+  CODEFENCE_DEPS_PROVIDER_URL       Same as --deps-provider-url
+  CODEFENCE_DEPS_REFRESH            Same as --deps-refresh
+  CODEFENCE_DEPS_CACHE_TTL          Same as --deps-cache-ttl
+  CODEFENCE_DEPS_TIMEOUT            Same as --deps-timeout
+  CODEFENCE_DEPS_HTTP2              Same as --deps-http2
   CODEFENCE_SECRET_RULES            Default Semgrep-style secret rule paths
   CODEFENCE_SECRET_DEFAULT_RULES    Same as --secret-default-rules
   CODEFENCE_SECRET_DEFAULT_RULES_VERSION  Same as --secret-default-rules-version
@@ -287,7 +366,47 @@ Environment:
 
 Examples:
   ${cliInvocation("scan", "--staged")}
+  ${cliInvocation("scan", "--staged --only deps")}
   ${cliInvocation("scan", "--paths src/app.ts --secret-rules .codefence/rules")}
   ${cliInvocation("scan", "--paths src config --secret-entropy-threshold 4.2 --secret-min-confidence medium")}
 `);
+}
+
+function parseDepsProvider(value: string, flag: string): "osv" | "custom" {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "osv" || normalized === "custom") {
+    return normalized;
+  }
+  throw new Error(`${flag} must be osv or custom`);
+}
+
+function parseDepsHttp2(value: string): "auto" | "on" | "off" {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "auto" || normalized === "on" || normalized === "off") {
+    return normalized;
+  }
+  throw new Error("--deps-http2 must be auto, on, or off");
+}
+
+function parseDepsOptions(argv: string[]): { deps: ReturnType<typeof defaultDepsScanOptions>; rest: string[] } {
+  const defaults = defaultDepsScanOptions();
+  const provider = readFlagValue(argv, "--deps-provider");
+  const providerUrl = readFlagValue(provider.rest, "--deps-provider-url");
+  const cacheTtl = readFlagValue(providerUrl.rest, "--deps-cache-ttl");
+  const timeout = readFlagValue(cacheTtl.rest, "--deps-timeout");
+  const http2 = readFlagValue(timeout.rest, "--deps-http2");
+  const refresh = http2.rest.includes("--deps-refresh");
+
+  return {
+    deps: {
+      ...defaults,
+      provider: provider.value === null ? defaults.provider : parseDepsProvider(provider.value, "--deps-provider"),
+      providerUrl: providerUrl.value === null ? defaults.providerUrl : providerUrl.value,
+      refresh: refresh || defaults.refresh,
+      cacheTtlMs: cacheTtl.value === null ? defaults.cacheTtlMs : parseDurationMs(cacheTtl.value, defaults.cacheTtlMs),
+      timeoutMs: timeout.value === null ? defaults.timeoutMs : parseDurationMs(timeout.value, defaults.timeoutMs),
+      http2Mode: http2.value === null ? defaults.http2Mode : parseDepsHttp2(http2.value)
+    },
+    rest: http2.rest.filter((arg) => arg !== "--deps-refresh")
+  };
 }

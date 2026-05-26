@@ -1,5 +1,6 @@
 import path from "node:path";
 import { scanFiles, shouldScanFile } from "../../scanner";
+import { printUnifiedFindings, writeScanLog, writeScanStatus } from "../output";
 import { AspectOutcome, ScanAspect, ScanContext } from "../types";
 
 export const codeAspect: ScanAspect = {
@@ -27,18 +28,12 @@ export const codeAspect: ScanAspect = {
     });
 
     if (findings.length === 0) {
-      console.log(`[code] No findings in ${sourceFiles.length} file(s).`);
+      writeScanStatus(`[code] No findings in ${sourceFiles.length} file(s).`, context.options);
       return { aspect: "code", status: "ok", exitCode: 0 };
     }
 
-    console.error(`[code] ${findings.length} finding(s):`);
-    for (const finding of findings) {
-      const confidence = finding.confidence ? ` confidence=${finding.confidence}` : "";
-      const evidence = finding.evidence ? ` evidence=${finding.evidence}` : "";
-      console.error(
-        `  ${finding.severity.toUpperCase()} ${finding.ruleId} ${finding.filePath}:${finding.line}${confidence} - ${finding.message}${evidence}`
-      );
-    }
+    writeScanLog(`[code] ${findings.length} finding(s):`, context.options);
+    printUnifiedFindings("code", findings, context.options.outputFormat, context.cwd);
 
     return {
       aspect: "code",

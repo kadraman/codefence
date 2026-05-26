@@ -1,12 +1,15 @@
 import { SecretScanOptions } from "./secret/types";
+import { DepsScanOptions } from "./deps/types";
 
-export const ASPECT_IDS = ["code"] as const;
+export const ASPECT_IDS = ["code", "deps"] as const;
 
 export type AspectId = (typeof ASPECT_IDS)[number];
 
 export const DEFAULT_ASPECTS: AspectId[] = ["code"];
 
 export type AspectStatus = "ok" | "skipped" | "failed";
+
+export type ScanOutputFormat = "table" | "json";
 
 export interface ScanContext {
   cwd: string;
@@ -23,7 +26,15 @@ export interface ScanOptions {
   only: AspectId[] | null;
   skip: AspectId[];
   secret: SecretScanOptions;
+  deps: DepsScanOptions;
+  outputFormat: ScanOutputFormat;
+  /** Suppress progress and human-oriented messages (auto-enabled for --format json unless --verbose). */
+  quiet: boolean;
+  /** Emit progress to stderr even when --format json would otherwise be quiet. */
+  verbose: boolean;
 }
+
+export type ScanOutputControl = Pick<ScanOptions, "outputFormat" | "quiet" | "verbose">;
 
 export interface AspectOutcome {
   aspect: AspectId;
