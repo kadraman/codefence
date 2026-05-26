@@ -5,9 +5,9 @@ import { AspectOutcome, ScanAspect, ScanContext } from "../types";
 import { isDepsCacheFresh, readDepsCache, writeDepsCache } from "../deps/cache";
 import { resolveDepsProviderUrl } from "../deps/config";
 import { extractDependenciesForManifest } from "../deps/extract";
-import { queryOsvForDependencies } from "../deps/provider";
+import { queryDependencies } from "../deps/query";
 import { DepsFinding, DependencyCoordinate, DEPS_FINDING_RULE_ID } from "../deps/types";
-import { printUnifiedFindings } from "../output";
+import { printUnifiedFindings, writeScanLog, writeScanStatus } from "../output";
 
 function collectDependencies(context: ScanContext, manifests: string[]): DependencyCoordinate[] {
   const all: DependencyCoordinate[] = [];
@@ -60,16 +60,14 @@ export const depsAspect: ScanAspect = {
       if (!context.options.deps.refresh && cached && isDepsCacheFresh(cached, context.options.deps.cacheTtlMs)) {
         findings = cached.findings;
       } else {
-        findings = await queryOsvForDependencies(dependencies, {
-          providerUrl,
-          timeoutMs: context.options.deps.timeoutMs
-        });
+        findings = await queryDependencies(dependencies, context.options.deps);
         writeDepsCache(context.cwd, providerUrl, dependencies, context.options.deps, findings);
       }
 
       if (findings.length === 0) {
-        console.log(
-          `[deps] No vulnerabilities across ${dependencies.length} dependency version(s) from ${manifests.length} manifest file(s).`
+        writeScanStatus(
+          `[deps] No vulnerabilities across ${dependencies.length} dependency version(s) from ${manifests.length} manifest file(s).`,
+          context.options
         );
         return { aspect: "deps", status: "ok", exitCode: 0 };
       }
@@ -91,8 +89,9 @@ export const depsAspect: ScanAspect = {
       }));
 
       const packageCount = new Set(unified.map((finding) => `${finding.packageName}@${finding.packageVersion}`)).size;
-      console.error(
-        `[deps] ${findings.length} advisory finding(s) across ${packageCount} vulnerable package version(s) from ${manifests.length} manifest file(s):`
+      writeScanLog(
+        `[deps] ${findings.length} advisory finding(s) across ${packageCount} vulnerable package version(s) from ${manifests.length} manifest file(s):`,
+        context.options
       );
       printUnifiedFindings("deps", unified, context.options.outputFormat, context.cwd);
       return {

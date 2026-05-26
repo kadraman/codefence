@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { extractPackageJsonDependencies } from "../src/scan/deps/extract";
 import { queryOsvForDependencies } from "../src/scan/deps/provider";
 
 const FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "npm");
+const OSV_RUNTIME_APP_BATCH = path.join(
+  process.cwd(),
+  "tests",
+  "fixtures",
+  "osv-runtime-app-batch.json"
+);
 
 test("examples deps fixtures expose exact npm coordinates", () => {
   const manifests = [
@@ -25,18 +32,38 @@ test("examples deps fixtures expose exact npm coordinates", () => {
   ]);
 });
 
-test("examples deps fixtures return OSV findings with CVE ids for pinned vulnerable versions", async () => {
+test("examples deps fixtures normalize stubbed OSV batch into findings with CVE ids", async () => {
   const manifestPath = path.join(FIXTURE_ROOT, "runtime-app", "package.json");
   const coordinates = extractPackageJsonDependencies(manifestPath);
+  const batchResponse = JSON.parse(fs.readFileSync(OSV_RUNTIME_APP_BATCH, "utf8"));
 
-  const findings = await queryOsvForDependencies(coordinates, {
-    providerUrl: "https://api.osv.dev/v1/querybatch",
-    timeoutMs: 15_000
-  });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = typeof input === "string" ? input : input.toString();
+    assert.match(url, /\/querybatch$/);
+    return {
+      ok: true,
+      json: async () => batchResponse
+    } as Response;
+  }) as typeof fetch;
 
-  assert.ok(findings.length > 0);
-  assert.ok(findings.some((finding) => finding.packageName === "lodash" && finding.version === "4.17.20"));
-  assert.ok(findings.some((finding) => finding.packageName === "minimist" && finding.version === "1.2.5"));
-  assert.ok(findings.some((finding) => finding.cveId?.startsWith("CVE-")));
-  assert.ok(coordinates.every((coordinate) => coordinate.manifestLine > 0));
+  try {
+    const findings = await queryOsvForDependencies(coordinates, {
+      providerUrl: "https://api.osv.dev/v1/querybatch",
+      timeoutMs: 1000,
+      http2Mode: "auto"
+    });
+
+    assert.equal(findings.length, 2);
+    const lodash = findings.find((finding) => finding.packageName === "lodash" && finding.version === "4.17.20");
+    const minimist = findings.find((finding) => finding.packageName === "minimist" && finding.version === "1.2.5");
+    assert.ok(lodash);
+    assert.ok(minimist);
+    assert.equal(lodash.severity, "high");
+    assert.equal(minimist.severity, "critical");
+    assert.ok(findings.every((finding) => finding.cveId?.startsWith("CVE-")));
+    assert.ok(coordinates.every((coordinate) => coordinate.manifestLine > 0));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

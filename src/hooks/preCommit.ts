@@ -49,7 +49,9 @@ export async function runPreCommit(): Promise<number> {
       skip: [],
       secret: defaultSecretScanOptions(),
       deps: defaultDepsScanOptions(),
-      outputFormat: "table"
+      outputFormat: "table",
+      quiet: false,
+      verbose: false
     });
 
     const elapsed = ((Date.now() - start) / 1000).toFixed(1);

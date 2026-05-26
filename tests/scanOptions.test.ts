@@ -24,7 +24,7 @@ test("parseAspectList accepts code only", () => {
   assert.deepEqual(parseAspectList("deps"), ["deps"]);
 });
 
-test("resolveAspects defaults to code and deps", () => {
+test("resolveAspects defaults to code", () => {
   const aspects = resolveAspects({
     staged: false,
     paths: [],
@@ -42,9 +42,95 @@ test("resolveAspects defaults to code and deps", () => {
       minConfidence: "low"
     },
     deps: defaultDepsScanOptions(),
-    outputFormat: "table"
+    outputFormat: "table",
+    quiet: false,
+    verbose: false
   });
-  assert.deepEqual(aspects, ["code", "deps"]);
+  assert.deepEqual(aspects, ["code"]);
+});
+
+test("resolveAspects adds deps when dependency manifests are in scope", () => {
+  const baseOptions = {
+    staged: false,
+    paths: [],
+    only: null,
+    skip: [],
+    secret: {
+      rulePaths: [],
+      defaultRules: true,
+      defaultRulesVersion: null,
+      rulesUpdateUrl: null,
+      rulesRefresh: false,
+      rulesCacheTtlMs: 86400000,
+      entropyThreshold: 4.2,
+      minLength: 12,
+      minConfidence: "low" as const
+    },
+    deps: defaultDepsScanOptions(),
+    outputFormat: "table" as const,
+    quiet: false,
+    verbose: false
+  };
+
+  assert.deepEqual(resolveAspects(baseOptions, ["src/app.ts"]), ["code"]);
+  assert.deepEqual(resolveAspects(baseOptions, ["package.json"]), ["code", "deps"]);
+  assert.deepEqual(resolveAspects(baseOptions, ["src/app.ts", "package-lock.json"]), ["code", "deps"]);
+});
+
+test("resolveAspects does not auto-add deps when --only code is set", () => {
+  const aspects = resolveAspects(
+    {
+      staged: false,
+      paths: [],
+      only: ["code"],
+      skip: [],
+      secret: {
+        rulePaths: [],
+        defaultRules: true,
+        defaultRulesVersion: null,
+        rulesUpdateUrl: null,
+        rulesRefresh: false,
+        rulesCacheTtlMs: 86400000,
+        entropyThreshold: 4.2,
+        minLength: 12,
+        minConfidence: "low"
+      },
+      deps: defaultDepsScanOptions(),
+      outputFormat: "table",
+    quiet: false,
+    verbose: false
+    },
+    ["package.json"]
+  );
+  assert.deepEqual(aspects, ["code"]);
+});
+
+test("resolveAspects does not auto-add deps when --skip deps is set", () => {
+  const aspects = resolveAspects(
+    {
+      staged: false,
+      paths: [],
+      only: null,
+      skip: ["deps"],
+      secret: {
+        rulePaths: [],
+        defaultRules: true,
+        defaultRulesVersion: null,
+        rulesUpdateUrl: null,
+        rulesRefresh: false,
+        rulesCacheTtlMs: 86400000,
+        entropyThreshold: 4.2,
+        minLength: 12,
+        minConfidence: "low"
+      },
+      deps: defaultDepsScanOptions(),
+      outputFormat: "table",
+    quiet: false,
+    verbose: false
+    },
+    ["package.json"]
+  );
+  assert.deepEqual(aspects, ["code"]);
 });
 
 test("resolveAspects honors --only and --skip", () => {
@@ -65,9 +151,27 @@ test("resolveAspects honors --only and --skip", () => {
       minConfidence: "low"
     },
     deps: defaultDepsScanOptions(),
-    outputFormat: "table"
+    outputFormat: "table",
+    quiet: false,
+    verbose: false
   });
   assert.deepEqual(aspects, []);
+});
+
+test("parseScanArgv enables quiet json output by default and verbose override", () => {
+  const jsonDefault = parseScanArgv(["--format", "json"]);
+  assert.ok(!("help" in jsonDefault));
+  assert.equal(jsonDefault.outputFormat, "json");
+  assert.equal(jsonDefault.quiet, false);
+  assert.equal(jsonDefault.verbose, false);
+
+  const jsonVerbose = parseScanArgv(["--format", "json", "--verbose"]);
+  assert.ok(!("help" in jsonVerbose));
+  assert.equal(jsonVerbose.verbose, true);
+
+  const tableQuiet = parseScanArgv(["--quiet"]);
+  assert.ok(!("help" in tableQuiet));
+  assert.equal(tableQuiet.quiet, true);
 });
 
 test("parseScanArgv parses dependency scanning flags", () => {

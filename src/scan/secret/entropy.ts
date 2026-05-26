@@ -1,3 +1,4 @@
+import { severityFromEntropy } from "../../severity";
 import { Finding } from "../../types";
 import { SecretScanOptions } from "./types";
 
@@ -68,7 +69,7 @@ export function findEntropySecrets(
         message: "Potential hardcoded secret detected via entropy heuristic",
         filePath,
         line: index + 1,
-        severity: entropy >= options.entropyThreshold + 0.6 ? "high" : "medium",
+        severity: severityFromEntropy(entropy, options.entropyThreshold),
         confidence: inferEntropyConfidence(entropy, options.entropyThreshold),
         evidence: `token-like string length=${value.length} entropy=${entropy.toFixed(2)}`,
         remediation: "Move secret-like values into environment variables or a secret manager.",

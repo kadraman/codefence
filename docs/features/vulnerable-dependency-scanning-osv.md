@@ -26,7 +26,7 @@ The dependency scanner should:
 2. Support a configurable external vulnerability provider.
 3. Use OSV as the default provider when no custom provider is configured.
 4. Query provider APIs for dependency/version pairs derived from manifest inputs.
-5. Return normalized findings with package, version, advisory IDs, severity (if available), and remediation guidance.
+5. Return normalized findings with package, version, advisory IDs, severity (`critical` \| `high` \| `medium` \| `low`), and remediation guidance.
 6. Integrate with existing scan entry points (`scan`, `pre-commit`, `background-scan`) and existing scope controls (`--staged`, `--paths`, `--only`, `--skip`).
 7. Cache query results for performance while allowing refresh when manifests or lockfiles change.
 
@@ -84,7 +84,7 @@ Proposed updates to `codefence scan`:
    - `--deps-cache-ttl <duration>`
    - `--deps-timeout <duration>`
 4. Transport preferences:
-   - `--deps-http2 <auto|on|off>` (default: `auto`, prefer HTTP/2)
+   - `--deps-http2 <auto|on|off>` (default: `auto` uses Node fetch; `on`/`off` use undici `Agent.allowH2`)
 
 No direct behavior change expected for:
 
@@ -265,7 +265,21 @@ Feature is not complete until both commands pass.
 2. Which lockfiles are in scope for initial implementation?
 3. What is the exact timeout/retry policy for provider calls?
 4. Should provider responses be persisted as raw cache artifacts for debugging?
-5. How should severity be mapped when provider metadata is incomplete?
+5. ~~How should severity be mapped when provider metadata is incomplete?~~ **Resolved:** OSV text labels map directly; numeric CVSS uses ≥9 critical, ≥7 high, ≥4 medium, &lt;4 low; unknown metadata defaults to `medium`.
+
+### Severity mapping (implemented)
+
+| Input | Unified severity |
+| ----- | ---------------- |
+| Label contains `critical` | `critical` |
+| Label contains `high` | `high` |
+| Label contains `medium` | `medium` |
+| Label contains `low` | `low` |
+| CVSS base score ≥ 9.0 | `critical` |
+| CVSS base score 7.0–8.9 | `high` |
+| CVSS base score 4.0–6.9 | `medium` |
+| CVSS base score &lt; 4.0 | `low` |
+| No usable metadata | `medium` (default) |
 
 ## References
 

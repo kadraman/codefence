@@ -1,9 +1,13 @@
+import type { Severity } from "./severity";
+
+export type { Severity };
+
 export interface Finding {
   ruleId: string;
   message: string;
   filePath: string;
   line: number;
-  severity: "low" | "medium" | "high";
+  severity: Severity;
   confidence?: ConfidenceLevel;
   evidence?: string;
   remediation?: string;

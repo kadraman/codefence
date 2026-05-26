@@ -1,20 +1,7 @@
 import { parseAllDocuments } from "yaml";
+import { normalizeRuleSeverity } from "../../severity";
 import { ConfidenceLevel } from "../../types";
 import { SecretRule, SecretRulePattern } from "./types";
-
-function normalizeSeverity(value: unknown): "low" | "medium" | "high" {
-  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "medium";
-  if (normalized === "low" || normalized === "medium" || normalized === "high") {
-    return normalized;
-  }
-  if (normalized === "warning") {
-    return "medium";
-  }
-  if (normalized === "error") {
-    return "high";
-  }
-  return "medium";
-}
 
 function normalizeConfidence(value: unknown): ConfidenceLevel {
   const normalized = typeof value === "string" ? value.trim().toLowerCase() : "medium";
@@ -110,7 +97,7 @@ function parseRuleObject(
     id,
     description: typeof rule.description === "string" ? rule.description : id,
     message,
-    severity: normalizeSeverity(rule.severity),
+    severity: normalizeRuleSeverity(rule.severity),
     confidence: normalizeConfidence(metadata.confidence),
     remediation:
       typeof metadata.remediation === "string"

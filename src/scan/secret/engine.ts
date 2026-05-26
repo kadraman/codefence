@@ -1,3 +1,4 @@
+import { strongerSeverity } from "../../severity";
 import { ConfidenceLevel, Finding } from "../../types";
 import { confidenceWeight } from "./config";
 import { findEntropySecrets } from "./entropy";
@@ -82,14 +83,6 @@ function strongerConfidence(a: ConfidenceLevel | undefined, b: ConfidenceLevel |
   const left = a ?? "low";
   const right = b ?? "low";
   return confidenceWeight(left) >= confidenceWeight(right) ? left : right;
-}
-
-function strongerSeverity(
-  left: Finding["severity"],
-  right: Finding["severity"]
-): Finding["severity"] {
-  const weights: Record<Finding["severity"], number> = { low: 1, medium: 2, high: 3 };
-  return weights[left] >= weights[right] ? left : right;
 }
 
 function combineEvidence(left?: string, right?: string): string | undefined {

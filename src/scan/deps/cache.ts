@@ -24,7 +24,6 @@ function makeCacheKey(
   const payload = JSON.stringify({
     provider: options.provider,
     providerUrl,
-    http2Mode: options.http2Mode,
     dependencies: stableDeps
   });
   return crypto.createHash("sha256").update(payload).digest("hex");

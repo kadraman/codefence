@@ -1,15 +1,9 @@
 import path from "node:path";
+import { SEVERITY_RANK, type Severity } from "../severity";
 import type { Finding } from "../types";
-import type { ScanOutputFormat } from "./types";
+import type { ScanOutputControl, ScanOutputFormat } from "./types";
 
 type UnifiedCategory = "code" | "dependency";
-type Severity = Finding["severity"];
-
-const SEVERITY_RANK: Record<Severity, number> = {
-  low: 1,
-  medium: 2,
-  high: 3
-};
 
 interface CodeTableRow {
   severity: string;
@@ -68,18 +62,84 @@ const DEPS_TABLE_HEADERS: Record<keyof DepsTableRow, string> = {
   message: "Message"
 };
 
-function colorSeverity(value: string): string {
+const ANSI = {
+  reset: "\u001b[0m",
+  bold: "\u001b[1m",
+  dim: "\u001b[2m",
+  brightRed: "\u001b[91m",
+  red: "\u001b[31m",
+  orange: "\u001b[38;5;208m",
+  amber: "\u001b[38;5;220m",
+  yellow: "\u001b[93m",
+  green: "\u001b[32m"
+} as const;
+
+/** Severity colors: bright red (critical) fading through red/orange to amber (low). */
+export function colorSeverity(value: string): string {
   const upper = value.toUpperCase();
-  if (upper === "HIGH") {
-    return `\u001b[31m${upper}\u001b[0m`;
+  switch (upper) {
+    case "CRITICAL":
+      return `${ANSI.bold}${ANSI.brightRed}${upper}${ANSI.reset}`;
+    case "HIGH":
+      return `${ANSI.red}${upper}${ANSI.reset}`;
+    case "MEDIUM":
+      return `${ANSI.orange}${upper}${ANSI.reset}`;
+    case "LOW":
+      return `${ANSI.amber}${upper}${ANSI.reset}`;
+    default:
+      return upper;
   }
-  if (upper === "MEDIUM") {
-    return `\u001b[33m${upper}\u001b[0m`;
+}
+
+function colorTableHeader(line: string): string {
+  return `${ANSI.yellow}${line}${ANSI.reset}`;
+}
+
+function colorSectionTitle(line: string): string {
+  return `${ANSI.bold}${ANSI.yellow}${line}${ANSI.reset}`;
+}
+
+function formatHumanStatus(message: string): string {
+  const section = message.match(/(---\s+.+?\s+---)/);
+  if (section) {
+    return message.replace(section[1], colorSectionTitle(section[1]));
   }
-  if (upper === "LOW") {
-    return `\u001b[32m${upper}\u001b[0m`;
+
+  if (message.startsWith("Running scan aspects:")) {
+    return `${ANSI.dim}${message}${ANSI.reset}`;
   }
-  return upper;
+
+  if (message === "Scan completed successfully.") {
+    return `${ANSI.green}${message}${ANSI.reset}`;
+  }
+
+  const aspectOutcome = message.match(/^(\[[\w-]+\]\s+)(OK|SKIPPED|FAILED)(.*)$/);
+  if (aspectOutcome) {
+    const [, prefix, status, rest] = aspectOutcome;
+    const statusColor =
+      status === "OK" ? ANSI.green : status === "FAILED" ? ANSI.brightRed : ANSI.amber;
+    return `${prefix}${statusColor}${status}${ANSI.reset}${rest}`;
+  }
+
+  const aspectNote = message.match(/^(\[[\w-]+\]\s+)(.+)$/);
+  if (aspectNote && !aspectNote[2].includes("finding(s)")) {
+    return `${ANSI.yellow}${aspectNote[1]}${ANSI.reset}${aspectNote[2]}`;
+  }
+
+  return message;
+}
+
+function formatHumanLog(message: string): string {
+  if (message.startsWith("Scan failed:")) {
+    return `${ANSI.bold}${ANSI.brightRed}${message}${ANSI.reset}`;
+  }
+
+  const findingBanner = message.match(/^(\[[\w-]+\]\s+.+finding\(s\).*:)/);
+  if (findingBanner) {
+    return colorSectionTitle(findingBanner[1]);
+  }
+
+  return message;
 }
 
 function visibleLength(value: string): number {
@@ -240,8 +300,8 @@ function printTable<Row extends object>(
   const headerLine = columns.map((key) => headers[key].padEnd(widths[key])).join("  ");
   const underline = columns.map((key) => "-".repeat(widths[key])).join("  ");
 
-  console.error(`${headerPrefix}${headerLine}`);
-  console.error(`${headerPrefix}${underline}`);
+  console.error(`${headerPrefix}${colorTableHeader(headerLine)}`);
+  console.error(`${headerPrefix}${ANSI.dim}${underline}${ANSI.reset}`);
 
   for (const row of rows) {
     const cells = columns.map((key) => {
@@ -278,6 +338,39 @@ function printJson(findings: Finding[], category: UnifiedCategory, cwd: string):
     };
     console.log(JSON.stringify(payload));
   }
+}
+
+export function isScanQuiet(control: ScanOutputControl): boolean {
+  if (control.verbose) {
+    return false;
+  }
+  if (control.quiet) {
+    return true;
+  }
+  return control.outputFormat === "json";
+}
+
+/** Runner progress and aspect summaries. Table → stdout; JSON → stderr when not quiet. */
+export function writeScanStatus(message: string, control: ScanOutputControl): void {
+  if (!message || isScanQuiet(control)) {
+    return;
+  }
+  const formatted =
+    control.outputFormat === "table" ? formatHumanStatus(message) : message;
+  if (control.outputFormat === "json") {
+    console.error(formatted);
+  } else {
+    console.log(formatted);
+  }
+}
+
+/** Supplemental human detail (finding counts, failure summary). Always stderr when not quiet. */
+export function writeScanLog(message: string, control: ScanOutputControl): void {
+  if (!message || isScanQuiet(control)) {
+    return;
+  }
+  const formatted = control.outputFormat === "table" ? formatHumanLog(message) : message;
+  console.error(formatted);
 }
 
 export function printUnifiedFindings(

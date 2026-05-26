@@ -34,3 +34,5 @@ node dist/src/cli.js scan --only deps --paths examples/deps --deps-refresh
 Note: git-changed scans ignore `examples/` by default. Explicit `--paths` includes these files.
 
 Scans against these fixtures are expected to **exit with code 1** (findings are intentional). Table output aggregates multiple advisories per package version into one row; JSON output lists each advisory separately.
+
+Severity follows OSV/CVSS mapping (`critical` / `high` / `medium` / `low`). For example, `minimist@1.2.5` (CVSS 9.8) is **critical**; `lodash@4.17.20` (CVSS 7.5) is **high**.

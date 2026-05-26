@@ -8,7 +8,7 @@
 ### Before finishing any task that changed code
 
 1. Run in the terminal: `codefence scan --staged` (or `npm run codefence`).
-2. Fix any findings reported by the scan.
+2. Fix any findings reported by the scan (dependency manifests in the change set also trigger vulnerability checks).
 3. Repeat until `codefence scan --staged` exits 0.
 
 **Do not** complete the task while scans fail unless the user explicitly waives risk.

@@ -1,4 +1,5 @@
 import { cliInvocation } from "../cliName";
+import { hasDependencyFileChanges } from "../manifests";
 import { formatGitScanIgnoredPrefixes } from "./ignorePaths";
 import { defaultDepsScanOptions } from "./deps/config";
 import {
@@ -8,7 +9,7 @@ import {
   parsePositiveNumber
 } from "./secret/config";
 import { SecretScanOptions } from "./secret/types";
-import { AspectId, DEFAULT_ASPECTS, ScanOptions, ScanOutputFormat } from "./types";
+import { ASPECT_IDS, AspectId, DEFAULT_ASPECTS, ScanOptions, ScanOutputFormat } from "./types";
 
 const ASPECT_ALIASES: Record<string, AspectId> = {
   code: "code",
@@ -144,6 +145,14 @@ function parseOutputFormat(value: string | undefined): ScanOutputFormat {
   throw new Error("--format must be table or json");
 }
 
+function parseBooleanEnv(value: string | undefined): boolean {
+  if (!value) {
+    return false;
+  }
+  const normalized = value.trim().toLowerCase();
+  return ["1", "true", "on", "yes"].includes(normalized);
+}
+
 function parseOnOff(value: string, flag: string): boolean {
   const normalized = value.trim().toLowerCase();
   if (normalized === "on") {
@@ -238,6 +247,11 @@ export function parseScanArgv(argv: string[]): ParseScanResult {
     formatParsed.value ?? envTrim("CODEFENCE_FORMAT")
   );
 
+  const verbose =
+    skipParsed.rest.includes("--verbose") || parseBooleanEnv(envTrim("CODEFENCE_VERBOSE"));
+  const quiet =
+    skipParsed.rest.includes("--quiet") || parseBooleanEnv(envTrim("CODEFENCE_QUIET"));
+
   return {
     staged: skipParsed.rest.includes("--staged"),
     paths,
@@ -245,11 +259,38 @@ export function parseScanArgv(argv: string[]): ParseScanResult {
     skip,
     secret,
     deps,
-    outputFormat
+    outputFormat,
+    quiet,
+    verbose
   };
 }
 
-export function resolveAspects(options: ScanOptions): AspectId[] {
+function sortAspects(aspects: AspectId[]): AspectId[] {
+  return [...aspects].sort((left, right) => ASPECT_IDS.indexOf(left) - ASPECT_IDS.indexOf(right));
+}
+
+/** When dependency manifests are in scope, include deps unless the user narrowed aspects with --only. */
+function applyManifestTriggeredDeps(
+  aspects: AspectId[],
+  options: ScanOptions,
+  filesInScope: string[]
+): AspectId[] {
+  if (options.skip.includes("deps")) {
+    return aspects;
+  }
+  if (options.only && options.only.length > 0) {
+    return aspects;
+  }
+  if (aspects.includes("deps")) {
+    return aspects;
+  }
+  if (!hasDependencyFileChanges(filesInScope)) {
+    return aspects;
+  }
+  return sortAspects([...aspects, "deps"]);
+}
+
+export function resolveAspects(options: ScanOptions, filesInScope: string[] = []): AspectId[] {
   let aspects: AspectId[];
 
   if (options.only && options.only.length > 0) {
@@ -262,7 +303,7 @@ export function resolveAspects(options: ScanOptions): AspectId[] {
     aspects = aspects.filter((id) => id !== skip);
   }
 
-  return aspects;
+  return applyManifestTriggeredDeps(aspects, options, filesInScope);
 }
 
 export function printScanHelp(): void {
@@ -273,15 +314,17 @@ Run local secure-coding guardrails on changed or explicit paths.
 Options:
   --staged                           Use staged git files instead of unstaged changes
   --paths <files...>                 Scan explicit paths (default: git-changed files)
-  --only <aspects>                   Run only listed aspects (comma-separated; default: code,deps)
+  --only <aspects>                   Run only listed aspects (comma-separated; default: code)
   --skip <aspects>                   Skip aspects (applied after --only)
-  --format <table|json>              Output format for findings (default: table)
-  --deps-provider <osv|custom>       Dependency vulnerability provider (default: osv)
+  --format <table|json>              Findings as table (stdout) or NDJSON (stdout; progress on stderr)
+  --quiet                            Suppress progress and human messages (default with --format json)
+  --verbose                          Show progress on stderr even with --format json
+  --deps-provider <osv|custom>       Dependency vulnerability provider (default: osv; custom not yet supported)
   --deps-provider-url <url>          Override dependency provider API endpoint
   --deps-refresh                     Force dependency provider refresh (ignore cache)
   --deps-cache-ttl <dur>             Dependency scan cache TTL (for example 24h)
   --deps-timeout <dur>               Dependency provider timeout (for example 15s)
-  --deps-http2 <auto|on|off>         Dependency transport preference (default: auto)
+  --deps-http2 <auto|on|off>         HTTP/2 for deps API: auto (Node default), on/off (undici)
   --secret-rules <path...>           Load Semgrep-style secret rules from YAML files or directories
   --secret-default-rules <on|off>    Enable bundled secret rules (default: on)
   --secret-default-rules-version <v> Select bundled secret rules version
@@ -296,7 +339,7 @@ Options:
 Git-based scans skip: ${formatGitScanIgnoredPrefixes()}
   (explicit --paths still scans those files)
 
-Aspects (default: code,deps):
+Aspects (default: code; deps runs automatically when dependency manifests are in scope):
   code          Local secure-coding rules on changed source files
   deps          Dependency vulnerability scan for changed manifests
 

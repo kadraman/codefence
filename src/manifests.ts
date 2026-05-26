@@ -16,8 +16,6 @@ export const dependencyManifestNames = new Set([
   "Gemfile",
   "Gemfile.lock",
   "composer.json",
-  ".sln",
-  ".csproj",
   "packages.config",
   "Package.swift"
 ]);
