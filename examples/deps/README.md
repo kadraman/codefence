@@ -2,15 +2,15 @@
 
 Path: `examples/deps/`
 
-These manifests pin **exact versions** of packages with known [OSV](https://osv.dev/) advisories and CVEs. They are fake projects for local testing only — do not install or publish them.
+These manifests pin **exact versions** of packages with known [OSV](https://osv.dev/) advisories and CVEs. Each npm example now also includes a sibling `package-lock.json` so dependency scans can resolve lockfile-backed versions the same way real projects do. They are fake projects for local testing only — do not install or publish them.
 
 | Fixture | Section | Package | Version | Example CVE | Fixed |
 | ------- | ------- | ------- | ------- | ----------- | ----- |
-| `npm/runtime-app/package.json` | `dependencies` | `lodash` | `4.17.20` | `CVE-2020-28500` | `>= 4.17.21` |
-| `npm/runtime-app/package.json` | `dependencies` | `minimist` | `1.2.5` | `CVE-2021-44906` | `>= 1.2.6` |
-| `npm/dev-tooling/package.json` | `devDependencies` | `ws` | `7.3.0` | `CVE-2024-37890` | `>= 5.2.4` |
-| `npm/dev-tooling/package.json` | `devDependencies` | `jsonwebtoken` | `8.5.1` | `CVE-2022-23539` | `>= 9.0.0` |
-| `npm/library/package.json` | `optionalDependencies` | `node-fetch` | `2.6.0` | `CVE-2022-0235` | `>= 3.1.1` |
+| `npm/runtime-app/package.json` / `package-lock.json` | `dependencies` | `lodash` | `4.17.20` | `CVE-2020-28500` | `>= 4.17.21` |
+| `npm/runtime-app/package.json` / `package-lock.json` | `dependencies` | `minimist` | `1.2.5` | `CVE-2021-44906` | `>= 1.2.6` |
+| `npm/dev-tooling/package.json` / `package-lock.json` | `devDependencies` | `ws` | `7.3.0` | `CVE-2024-37890` | `>= 5.2.4` |
+| `npm/dev-tooling/package.json` / `package-lock.json` | `devDependencies` | `jsonwebtoken` | `8.5.1` | `CVE-2022-23539` | `>= 9.0.0` |
+| `npm/library/package.json` / `package-lock.json` | `optionalDependencies` | `node-fetch` | `2.6.0` | `CVE-2022-0235` | `>= 3.1.1` |
 
 Run against the full fixture tree:
 

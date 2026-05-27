@@ -140,6 +140,8 @@ codefence scan --help
 
 Git-based scans skip fixture trees such as `examples/` (see `codefence scan --help`). Explicit `--paths` still scans those files.
 
+Dependency extraction prefers resolved npm versions from sibling `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml` files when those lockfiles are in scope. If only `package.json` is in scope, Codefence keeps the existing exact-version-only behavior for manifest pins.
+
 ### Full-repository dependency scan (`--deps-scope tree`)
 
 By default, dependency scanning only considers manifests that appear in the **git change set** or in explicit `--paths`. That matches pre-commit and PR workflows but skips unchanged lockfiles and does not walk `yarn.lock` when you only pass `--paths .` (code scans use source extensions, not all manifest types).
