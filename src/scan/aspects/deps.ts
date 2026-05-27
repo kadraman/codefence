@@ -32,14 +32,13 @@ function selectDependencyManifests(manifests: string[], context: ScanContext): s
 
   for (const [root, rootManifests] of npmRoots) {
     const availableLockfiles = LOCKFILE_PREFERENCE.filter((lockfile) => rootManifests.has(lockfile));
-    if (availableLockfiles.length > 1) {
+    const preferred = availableLockfiles[0];
+    if (availableLockfiles.length > 1 && preferred) {
       writeScanLog(
-        `[deps] Warning: multiple lockfiles in ${path.relative(context.cwd, root) || "."}; using ${availableLockfiles[0]}.`,
+        `[deps] Warning: multiple lockfiles in ${path.relative(context.cwd, root) || "."}; using ${preferred} for extraction.`,
         context.options
       );
     }
-
-    const preferred = availableLockfiles[0];
     if (preferred) {
       selected.push(rootManifests.get(preferred)!);
       continue;

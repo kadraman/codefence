@@ -46,7 +46,7 @@ export function extractYarnLockDependencies(manifestPath: string): DependencyExt
   }
 
   const lines = readResult.source.split(/\r?\n/);
-  if (lines.some((line) => line.trim() === "__metadata:")) {
+  if (lines.slice(0, 50).some((line) => line.trim() === "__metadata:")) {
     return emptyExtractionResult("Unsupported yarn.lock format: Yarn Berry lockfiles are not supported yet.");
   }
 

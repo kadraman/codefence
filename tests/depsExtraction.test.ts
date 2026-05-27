@@ -213,7 +213,10 @@ test("collectDependencies prefers sibling lockfiles over ranged package.json man
 
 test("collectDependencies prefers pnpm-lock.yaml when multiple lockfiles are present", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-lockfile-priority-"));
-  fs.writeFileSync(path.join(tmpDir, "package.json"), JSON.stringify({ dependencies: { lodash: "^4.17.0" } }, null, 2));
+  fs.writeFileSync(
+    path.join(tmpDir, "package.json"),
+    JSON.stringify({ dependencies: { lodash: "^4.17.0" } }, null, 2)
+  );
   fs.writeFileSync(path.join(tmpDir, "package-lock.json"), fs.readFileSync(path.join(LOCK_FIXTURE_ROOT, "package-lock-v3-minimal.json"), "utf8"));
   fs.writeFileSync(path.join(tmpDir, "yarn.lock"), fs.readFileSync(path.join(LOCK_FIXTURE_ROOT, "yarn-classic-minimal.lock"), "utf8"));
   fs.writeFileSync(path.join(tmpDir, "pnpm-lock.yaml"), fs.readFileSync(path.join(LOCK_FIXTURE_ROOT, "pnpm-minimal.yaml"), "utf8"));
