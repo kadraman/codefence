@@ -25,6 +25,7 @@ test("compiled CLI help output describes code and dependency scan options", () =
   assert.match(output, /Local secure-coding/);
   assert.match(output, /Dependency vulnerability/);
   assert.match(output, /--deps-provider/);
+  assert.match(output, /--deps-scope/);
   assert.match(output, /--secret-rules/);
   assert.match(output, /--secret-min-confidence/);
 });

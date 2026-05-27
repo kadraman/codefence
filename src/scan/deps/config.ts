@@ -4,6 +4,7 @@ import {
   DEFAULT_DEPS_TIMEOUT_MS,
   DEFAULT_OSV_PROVIDER_URL,
   DepsHttp2Mode,
+  DepsScope,
   DepsScanOptions
 } from "./types";
 
@@ -21,6 +22,17 @@ function parseProvider(raw: string | undefined): DepsScanOptions["provider"] {
     return "custom";
   }
   throw new Error(`Invalid dependency provider: ${raw}`);
+}
+
+function parseDepsScope(raw: string | undefined): DepsScope {
+  const value = raw?.toLowerCase();
+  if (!value || value === "changed") {
+    return "changed";
+  }
+  if (value === "tree") {
+    return "tree";
+  }
+  throw new Error(`Invalid deps scope: ${raw}`);
 }
 
 function parseHttp2Mode(raw: string | undefined): DepsHttp2Mode {
@@ -55,7 +67,8 @@ export function defaultDepsScanOptions(): DepsScanOptions {
     refresh: parseBooleanSetting(envTrim("CODEFENCE_DEPS_REFRESH"), false),
     cacheTtlMs: parseDurationMs(envTrim("CODEFENCE_DEPS_CACHE_TTL"), DEFAULT_DEPS_CACHE_TTL_MS),
     timeoutMs: parseDurationMs(envTrim("CODEFENCE_DEPS_TIMEOUT"), DEFAULT_DEPS_TIMEOUT_MS),
-    http2Mode: parseHttp2Mode(envTrim("CODEFENCE_DEPS_HTTP2"))
+    http2Mode: parseHttp2Mode(envTrim("CODEFENCE_DEPS_HTTP2")),
+    scope: parseDepsScope(envTrim("CODEFENCE_DEPS_SCOPE"))
   };
 }
 

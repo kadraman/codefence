@@ -28,17 +28,28 @@ function collectDependencies(context: ScanContext, manifests: string[]): Depende
   return deduped;
 }
 
+function resolveDepsManifests(context: ScanContext): string[] {
+  if (context.depsManifestPaths !== null) {
+    return context.depsManifestPaths;
+  }
+  return filterDependencyManifests(context.files);
+}
+
 export const depsAspect: ScanAspect = {
   id: "deps",
   label: "Dependency vulnerability checks",
   async run(context: ScanContext): Promise<AspectOutcome> {
-    const manifests = filterDependencyManifests(context.files);
+    const manifests = resolveDepsManifests(context);
     if (manifests.length === 0) {
+      const message =
+        context.depsManifestPaths !== null
+          ? "No dependency manifests found under scan roots."
+          : "No dependency manifests changed.";
       return {
         aspect: "deps",
         status: "skipped",
         exitCode: 0,
-        message: "No dependency manifests changed."
+        message
       };
     }
 

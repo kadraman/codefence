@@ -1,9 +1,9 @@
 ---
 title: "Vulnerable Dependency Scanning With OSV Default"
-status: proposed
+status: partial
 owners: ["@kadraman"]
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-05-27
 issue: "TBD"
 scope: "scan|cli|hooks|docs"
 ---
@@ -11,6 +11,8 @@ scope: "scan|cli|hooks|docs"
 ## Summary
 
 This feature adds dependency vulnerability scanning to Codefence using an external vulnerability source, with OSV as the default provider. The scanner should detect when dependency manifests change, resolve affected packages, and query the provider API for known vulnerabilities. The provider integration must be configurable, but work out of the box against OSV.
+
+**Implementation status (2026-05-27):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, and npm `package.json` extraction (exact versions) are **shipped**. Lockfile parsing, non-npm ecosystems, and custom providers remain **open** (see checklist below).
 
 ## Problem Statement
 
@@ -85,6 +87,8 @@ Proposed updates to `codefence scan`:
    - `--deps-timeout <duration>`
 4. Transport preferences:
    - `--deps-http2 <auto|on|off>` (default: `auto` uses Node fetch; `on`/`off` use undici `Agent.allowH2`)
+5. Manifest scope:
+   - `--deps-scope <changed|tree>` (default: `changed` = git/`--paths` manifests only; `tree` = discover all manifests under repo or `--paths` roots)
 
 No direct behavior change expected for:
 
@@ -102,8 +106,9 @@ Proposed environment variables:
 3. `CODEFENCE_DEPS_CACHE_TTL`
 4. `CODEFENCE_DEPS_TIMEOUT`
 5. `CODEFENCE_DEPS_HTTP2`
+6. `CODEFENCE_DEPS_SCOPE` (same as `--deps-scope`)
 
-Cache should live under `.codefence/` with metadata (provider, request key, timestamp, TTL, checksum/version where applicable).
+Cache should live under `.codefence/` with metadata (provider, request key, timestamp, TTL, checksum/version where applicable). **Implemented** under `.codefence/cache/deps/`.
 
 ### Examples
 
@@ -153,16 +158,16 @@ Expected implementation areas:
 
 ### Step-by-Step Plan
 
-1. Add dependency scanning aspect identifier and registry wiring.
-2. Implement manifest detection and changed-file trigger logic.
-3. Implement dependency extraction per manifest type (initial set: npm, Gradle, .NET project/solution).
-4. Define provider abstraction and normalized finding schema.
-5. Implement OSV provider client with HTTP/2 preference and HTTP/1.1 size-limit-safe behavior.
-6. Implement caching with TTL and refresh controls.
-7. Add retries/timeouts/error handling policy.
-8. Wire new CLI flags and environment variable support.
-9. Add documentation and usage examples.
-10. Add end-to-end tests for manifest change scenarios.
+1. [x] Add dependency scanning aspect identifier and registry wiring.
+2. [x] Implement manifest detection and changed-file trigger logic.
+3. [ ] Implement dependency extraction per manifest type — **partial:** `package.json` (npm, exact semver) only; see [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md).
+4. [x] Define provider abstraction and normalized finding schema.
+5. [x] Implement OSV provider client with HTTP/2 preference and HTTP/1.1 size-limit-safe behavior.
+6. [x] Implement caching with TTL and refresh controls.
+7. [x] Add retries/timeouts/error handling policy — timeouts + limited GET retry (`RETRY_DELAYS_MS`); batch POST has no retry loop.
+8. [x] Wire new CLI flags and environment variable support (including `--deps-scope tree`).
+9. [x] Add documentation and usage examples.
+10. [x] Add end-to-end tests for manifest change scenarios — npm fixtures + stubbed/live OSV tests; not every manifest type.
 
 ### Backward Compatibility
 
@@ -205,21 +210,28 @@ Add or update tests for:
 5. CLI argument parsing for new flags
 6. HTTP/2 preference and fallback behavior
 
-Suggested files:
+Suggested files (actual):
 
-1. `tests/depsManifestDetection.test.ts`
-2. `tests/depsExtraction.test.ts`
-3. `tests/depsProviderOsv.test.ts`
-4. `tests/depsCache.test.ts`
-5. `tests/scanOptions.test.ts` (extend)
+| File | Status |
+| ---- | ------ |
+| `tests/manifests.test.ts` | [x] Manifest name detection |
+| `tests/depsExtraction.test.ts` | [x] `package.json` extraction |
+| `tests/depsProviderOsv.test.ts` | [x] OSV batch/normalization/enrichment |
+| `tests/depsHttpClient.test.ts` | [x] HTTP/2 transport |
+| `tests/depsQuery.test.ts` | [x] Provider dispatch; custom rejected |
+| `tests/depsExamples.test.ts` | [x] Fixture integration (stubbed fetch) |
+| `tests/depsDiscoverManifests.test.ts` | [x] `--deps-scope tree` discovery |
+| `tests/scanOptions.test.ts` | [x] CLI flags including deps |
+| `tests/depsCache.test.ts` | [ ] Not added (cache covered indirectly via aspect runs) |
 
 ### CLI/Integration Tests
 
-1. Staged `package.json` change triggers OSV query flow.
-2. Staged changes in each initial manifest type trigger OSV query flow (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `requirements.txt`, `Pipfile`, `pyproject.toml`, `pom.xml`, `build.gradle`, `Gemfile`, `composer.json`, `.sln`, `.csproj`).
-3. `--deps-refresh` bypasses cache.
-4. `--deps-http2 on` uses HTTP/2 transport path.
-5. Provider errors produce deterministic, actionable output.
+1. [x] Staged / explicit `package.json` paths trigger OSV query flow (`examples/deps`, `runScan` json test).
+2. [ ] Staged changes in each initial manifest type trigger OSV query flow — **trigger only** for listed names in `src/manifests.ts`; extraction/OSV query only for `package.json` today.
+3. [x] `--deps-refresh` bypasses cache (wired in `deps` aspect).
+4. [x] `--deps-http2 on` uses HTTP/2 transport path (`tests/depsHttpClient.test.ts`).
+5. [x] Provider errors produce deterministic, actionable output (failed aspect + message).
+6. [x] `--deps-scope tree` discovers manifests without git changes (`tests/depsDiscoverManifests.test.ts`).
 
 ### Required Validation Commands
 
@@ -239,32 +251,50 @@ Feature is not complete until both commands pass.
 
 ## Implementation Checklist
 
-- [ ] Behavior is documented and unambiguous
-- [ ] Manifest trigger detection implemented
-- [ ] Dependency extraction implemented for initial manifest set (`package.json`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `requirements.txt`, `Pipfile`, `pyproject.toml`, `pom.xml`, `build.gradle`, `Gemfile`, `composer.json`, `.sln`, `.csproj`)
-- [ ] OSV provider integration implemented
-- [ ] HTTP/2 preference and transport controls implemented
-- [ ] Cache and refresh behavior implemented
-- [ ] Findings normalized with remediation guidance
-- [ ] Tests added/updated
-- [ ] `npm test` passes
-- [ ] `npm run codefence` passes
-- [ ] User-facing docs updated
+### Done
+
+- [x] Behavior is documented and unambiguous (`README.md`, `codefence scan --help`, this doc)
+- [x] Manifest trigger detection implemented (`src/manifests.ts`, auto-add `deps` when manifests in scope or `--deps-scope tree`)
+- [x] OSV provider integration implemented (`src/scan/deps/provider.ts`, `querybatch` + conditional per-advisory GET)
+- [x] HTTP/2 preference and transport controls implemented (`--deps-http2`, `src/scan/deps/httpClient.ts`)
+- [x] Cache and refresh behavior implemented (`src/scan/deps/cache.ts`, `--deps-refresh`, `--deps-cache-ttl`)
+- [x] Timeouts and limited retry on provider GETs (`--deps-timeout`, `RETRY_DELAYS_MS` in provider)
+- [x] Bounded concurrency for per-advisory enrichment (`VULN_DETAIL_CONCURRENCY`)
+- [x] Findings normalized with remediation guidance (`DepsFinding`, table/json output, four severity levels)
+- [x] CLI and environment variables (`--only`/`--skip deps`, provider URL, cache, HTTP/2, `--deps-scope`)
+- [x] Full-repo manifest discovery (`--deps-scope tree`, `src/scan/deps/discoverManifests.ts`)
+- [x] Hook integration (`pre-commit` / `runScan` with default deps options)
+- [x] Tests added/updated (see [Testing Strategy](#testing-strategy))
+- [x] `npm test` passes
+- [x] `npm run codefence` passes
+- [x] User-facing docs updated
+
+### Open / partial
+
+- [ ] **Dependency extraction** beyond npm `package.json` (exact semver only in `src/scan/deps/extract.ts`):
+  - [ ] `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` — planned in [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md)
+  - [ ] Non-npm manifests — [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md) (`requirements.txt`, `go.mod`, `pom.xml`, …)
+- [ ] **Custom provider** (`--deps-provider custom`) — CLI flag exists; `queryDependencies` throws until a provider API ships
+- [ ] **Provider authentication** for custom/private endpoints
+- [ ] **Dedicated deps cache unit tests** (`tests/depsCache.test.ts`)
+- [ ] **Integration tests** per manifest type (extraction + OSV) for non–`package.json` ecosystems
+- [ ] **Retry/backoff on batch POST** (GET enrichment retries once after 300ms today)
+- [ ] **Raw provider response artifacts** in cache for debugging (optional; see open questions)
 
 ## Future Enhancements
 
-1. Lockfile-aware resolution for higher precision
-2. Additional ecosystems (for example Python, Ruby, Go)
+1. Lockfile-aware resolution for higher precision — see [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md)
+2. Additional ecosystems (Python, Go, JVM, .NET, …) — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md)
 3. Multi-provider aggregation with deduplication
 4. Authenticated provider support with secret-safe credential handling
 5. Baseline/suppressions for accepted dependency risk
 
 ## Open Questions
 
-1. Should dependency scanning be included in default scan aspects or opt-in initially?
-2. Which lockfiles are in scope for initial implementation?
-3. What is the exact timeout/retry policy for provider calls?
-4. Should provider responses be persisted as raw cache artifacts for debugging?
+1. ~~Should dependency scanning be included in default scan aspects or opt-in initially?~~ **Resolved:** Default aspect is `code` only; `deps` auto-runs when dependency manifests are in the git/`--paths` scope, or when `--deps-scope tree` is set (unless `--only` / `--skip deps`).
+2. ~~Which lockfiles are in scope for initial implementation?~~ **Resolved for triggers, open for extraction:** All names in [Manifest Triggers](#manifest-triggers) are recognized for scan triggering and tree discovery; version resolution from lockfiles is tracked in [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md).
+3. ~~What is the exact timeout/retry policy for provider calls?~~ **Resolved (v1):** Configurable timeout via `--deps-timeout` (default 15s); GET retries once after 300ms; batch query uses single attempt with abort timeout; enrichment concurrency capped at 8.
+4. Should provider responses be persisted as raw cache artifacts for debugging? **Open.**
 5. ~~How should severity be mapped when provider metadata is incomplete?~~ **Resolved:** OSV text labels map directly; numeric CVSS uses ≥9 critical, ≥7 high, ≥4 medium, &lt;4 low; unknown metadata defaults to `medium`.
 
 ### Severity mapping (implemented)

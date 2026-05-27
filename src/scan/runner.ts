@@ -3,6 +3,7 @@ import { getChangedFiles } from "../git";
 import { expandScanPaths } from "../scanner";
 import { codeAspect } from "./aspects/code";
 import { depsAspect } from "./aspects/deps";
+import { discoverDependencyManifests } from "./deps/discoverManifests";
 import { writeScanLog, writeScanStatus } from "./output";
 import { resolveAspects } from "./parseOptions";
 import { AspectId, AspectOutcome, ScanAspect, ScanContext, ScanOptions } from "./types";
@@ -19,11 +20,17 @@ export function buildScanContext(options: ScanOptions): ScanContext {
       ? expandScanPaths(options.paths, cwd).map((file) => path.relative(cwd, file))
       : getChangedFiles(options.staged);
 
+  const depsManifestPaths =
+    options.deps.scope === "tree"
+      ? discoverDependencyManifests(cwd, options.paths.length > 0 ? options.paths : undefined)
+      : null;
+
   return {
     cwd,
     files,
     staged: options.staged,
     explicitPaths: options.paths.length > 0,
+    depsManifestPaths,
     options
   };
 }
@@ -39,10 +46,11 @@ export async function runScan(options: ScanOptions): Promise<number> {
   const outcomes: AspectOutcome[] = [];
   const output = options;
 
-  writeScanStatus(
-    `Running scan aspects: ${aspects.join(", ")} (${context.files.length} file(s) in scope)`,
-    output
-  );
+  const scopeSummary =
+    context.depsManifestPaths !== null
+      ? `${context.files.length} file(s) in scope; ${context.depsManifestPaths.length} dependency manifest(s) for tree deps scan`
+      : `${context.files.length} file(s) in scope`;
+  writeScanStatus(`Running scan aspects: ${aspects.join(", ")} (${scopeSummary})`, output);
 
   for (const aspectId of aspects) {
     const aspect = ASPECT_REGISTRY[aspectId];

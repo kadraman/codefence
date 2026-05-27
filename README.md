@@ -129,6 +129,7 @@ codefence scan --help
 | `--deps-cache-ttl <duration>` | Set dependency result cache TTL |
 | `--deps-timeout <duration>` | Set dependency provider request timeout |
 | `--deps-http2 <auto\|on\|off>` | HTTP/2 for deps API (`auto`: Node default fetch; `on`/`off`: undici) |
+| `--deps-scope <changed\|tree>` | Dependency manifest scope: `changed` (git/`--paths`, default) or `tree` (discover all manifests under repo or `--paths` roots) |
 | `--secret-rules <path…>` | Load Semgrep-style YAML secret rules from files or directories |
 | `--secret-default-rules <on\|off>` | Enable or disable bundled secret rules |
 | `--secret-rules-update-url <url>` | Download and cache a remote YAML rule bundle |
@@ -138,6 +139,25 @@ codefence scan --help
 | `--secret-min-confidence <low\|medium\|high>` | Filter lower-confidence secret findings |
 
 Git-based scans skip fixture trees such as `examples/` (see `codefence scan --help`). Explicit `--paths` still scans those files.
+
+### Full-repository dependency scan (`--deps-scope tree`)
+
+By default, dependency scanning only considers manifests that appear in the **git change set** or in explicit `--paths`. That matches pre-commit and PR workflows but skips unchanged lockfiles and does not walk `yarn.lock` when you only pass `--paths .` (code scans use source extensions, not all manifest types).
+
+Use **`--deps-scope tree`** to discover every dependency manifest under the repository (or under each `--paths` directory), including `package.json`, `package-lock.json`, `yarn.lock`, and `pnpm-lock.yaml`. Common vendor directories (`node_modules`, `.git`, `.codefence`, etc.) are skipped.
+
+```bash
+# Audit all npm manifests in the repo (deps aspect only)
+codefence scan --only deps --deps-scope tree
+
+# Same, force a fresh OSV lookup
+codefence scan --only deps --deps-scope tree --deps-refresh
+
+# Limit tree walk to a subtree
+codefence scan --only deps --deps-scope tree --paths examples/deps
+```
+
+With `--deps-scope tree` and no `--only`, Codefence still runs **code** on git-changed files and **deps** on every discovered manifest. Set `CODEFENCE_DEPS_SCOPE=tree` to make tree scope the default for deps.
 
 ### Finding severity
 
@@ -149,6 +169,29 @@ All aspects emit findings with one of four severity levels: `critical`, `high`, 
 | **Secrets (YAML rules)** | Rule `severity: critical\|high\|medium\|low`, or Semgrep `ERROR` → critical, `WARNING` → medium, `INFO` → low |
 | **Secrets (entropy)** | Relative to `--secret-entropy-threshold`: +1.0 → critical, +0.6 → high, else medium |
 | **Code rules** | Per rule in `src/rules/index.ts` (typically `high` or `medium`) |
+
+### Terminal colors (table output)
+
+ANSI colors apply when `--format table` (the default). They make severity and scan structure easier to scan in a terminal. `--format json` writes plain NDJSON on stdout; progress and summaries on stderr are uncolored. For scripts and log files that must not contain escape codes, use `--format json` (or default json with `--quiet`).
+
+| Element | Color | When |
+| ------- | ----- | ---- |
+| **CRITICAL** | Bold bright red | Severity column and labels |
+| **HIGH** | Red | Severity column |
+| **MEDIUM** | Orange | Severity column |
+| **LOW** | Amber | Severity column (lowest band; warm end of the gradient) |
+| Section titles | Bold yellow | Lines like `--- Local secure-coding rules (code) ---` |
+| Finding count banners | Bold yellow | Lines like `[deps] 2 finding(s):` |
+| Table column headers | Yellow | `Severity`, `Package`, `Filename`, … |
+| Table header underline | Dim | Separator row under headers |
+| Aspect **OK** | Green | `[code] OK`, successful completion |
+| Aspect **FAILED** | Bright red | Failed aspect |
+| Aspect **SKIPPED** | Amber | Skipped aspect (e.g. no files in scope) |
+| Scan progress | Dim | `Running scan aspects: …` |
+| Scan failure | Bold bright red | `Scan failed: …` |
+| Success footer | Green | `Scan completed successfully.` |
+
+Findings tables are sorted by severity (critical first). JSON output uses lowercase severity strings (`critical`, `high`, `medium`, `low`) with no color codes.
 
 Built-in secret scanning now combines:
 
@@ -174,7 +217,7 @@ npx --yes serve examples/rules -l 8765
 
 Remote rule bundles are cached under `.codefence/cache/secret-rules/` for offline and low-latency scans. Use `--secret-rules-refresh` or `CODEFENCE_SECRET_RULES_REFRESH=1` to force a re-download before scanning.
 
-**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP`, `CODEFENCE_FORMAT`, `CODEFENCE_DEPS_PROVIDER`, `CODEFENCE_DEPS_PROVIDER_URL`, `CODEFENCE_DEPS_REFRESH`, `CODEFENCE_DEPS_CACHE_TTL`, `CODEFENCE_DEPS_TIMEOUT`, `CODEFENCE_DEPS_HTTP2`, `CODEFENCE_SECRET_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES_VERSION`, `CODEFENCE_SECRET_RULES_UPDATE_URL`, `CODEFENCE_SECRET_RULES_REFRESH`, `CODEFENCE_SECRET_RULES_CACHE_TTL`, `CODEFENCE_SECRET_ENTROPY_THRESHOLD`, `CODEFENCE_SECRET_MIN_LENGTH`, `CODEFENCE_SECRET_MIN_CONFIDENCE`.
+**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP`, `CODEFENCE_FORMAT`, `CODEFENCE_DEPS_PROVIDER`, `CODEFENCE_DEPS_PROVIDER_URL`, `CODEFENCE_DEPS_REFRESH`, `CODEFENCE_DEPS_CACHE_TTL`, `CODEFENCE_DEPS_TIMEOUT`, `CODEFENCE_DEPS_HTTP2`, `CODEFENCE_DEPS_SCOPE`, `CODEFENCE_SECRET_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES_VERSION`, `CODEFENCE_SECRET_RULES_UPDATE_URL`, `CODEFENCE_SECRET_RULES_REFRESH`, `CODEFENCE_SECRET_RULES_CACHE_TTL`, `CODEFENCE_SECRET_ENTROPY_THRESHOLD`, `CODEFENCE_SECRET_MIN_LENGTH`, `CODEFENCE_SECRET_MIN_CONFIDENCE`.
 
 ## Git pre-commit and background scanning
 

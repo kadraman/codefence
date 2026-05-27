@@ -270,6 +270,13 @@ function sortAspects(aspects: AspectId[]): AspectId[] {
 }
 
 /** When dependency manifests are in scope, include deps unless the user narrowed aspects with --only. */
+function shouldAutoIncludeDeps(options: ScanOptions, filesInScope: string[]): boolean {
+  if (options.deps.scope === "tree") {
+    return true;
+  }
+  return hasDependencyFileChanges(filesInScope);
+}
+
 function applyManifestTriggeredDeps(
   aspects: AspectId[],
   options: ScanOptions,
@@ -284,7 +291,7 @@ function applyManifestTriggeredDeps(
   if (aspects.includes("deps")) {
     return aspects;
   }
-  if (!hasDependencyFileChanges(filesInScope)) {
+  if (!shouldAutoIncludeDeps(options, filesInScope)) {
     return aspects;
   }
   return sortAspects([...aspects, "deps"]);
@@ -325,6 +332,7 @@ Options:
   --deps-cache-ttl <dur>             Dependency scan cache TTL (for example 24h)
   --deps-timeout <dur>               Dependency provider timeout (for example 15s)
   --deps-http2 <auto|on|off>         HTTP/2 for deps API: auto (Node default), on/off (undici)
+  --deps-scope <changed|tree>        Deps file scope: changed (git/paths, default) or tree (all manifests)
   --secret-rules <path...>           Load Semgrep-style secret rules from YAML files or directories
   --secret-default-rules <on|off>    Enable bundled secret rules (default: on)
   --secret-default-rules-version <v> Select bundled secret rules version
@@ -354,6 +362,7 @@ Environment:
   CODEFENCE_DEPS_CACHE_TTL          Same as --deps-cache-ttl
   CODEFENCE_DEPS_TIMEOUT            Same as --deps-timeout
   CODEFENCE_DEPS_HTTP2              Same as --deps-http2
+  CODEFENCE_DEPS_SCOPE              Same as --deps-scope (changed or tree)
   CODEFENCE_SECRET_RULES            Default Semgrep-style secret rule paths
   CODEFENCE_SECRET_DEFAULT_RULES    Same as --secret-default-rules
   CODEFENCE_SECRET_DEFAULT_RULES_VERSION  Same as --secret-default-rules-version
@@ -367,6 +376,7 @@ Environment:
 Examples:
   ${cliInvocation("scan", "--staged")}
   ${cliInvocation("scan", "--staged --only deps")}
+  ${cliInvocation("scan", "--only deps --deps-scope tree")}
   ${cliInvocation("scan", "--paths src/app.ts --secret-rules .codefence/rules")}
   ${cliInvocation("scan", "--paths src config --secret-entropy-threshold 4.2 --secret-min-confidence medium")}
 `);
@@ -388,6 +398,14 @@ function parseDepsHttp2(value: string): "auto" | "on" | "off" {
   throw new Error("--deps-http2 must be auto, on, or off");
 }
 
+function parseDepsScopeFlag(value: string): "changed" | "tree" {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "changed" || normalized === "tree") {
+    return normalized;
+  }
+  throw new Error("--deps-scope must be changed or tree");
+}
+
 function parseDepsOptions(argv: string[]): { deps: ReturnType<typeof defaultDepsScanOptions>; rest: string[] } {
   const defaults = defaultDepsScanOptions();
   const provider = readFlagValue(argv, "--deps-provider");
@@ -395,7 +413,8 @@ function parseDepsOptions(argv: string[]): { deps: ReturnType<typeof defaultDeps
   const cacheTtl = readFlagValue(providerUrl.rest, "--deps-cache-ttl");
   const timeout = readFlagValue(cacheTtl.rest, "--deps-timeout");
   const http2 = readFlagValue(timeout.rest, "--deps-http2");
-  const refresh = http2.rest.includes("--deps-refresh");
+  const scope = readFlagValue(http2.rest, "--deps-scope");
+  const refresh = scope.rest.includes("--deps-refresh");
 
   return {
     deps: {
@@ -405,8 +424,9 @@ function parseDepsOptions(argv: string[]): { deps: ReturnType<typeof defaultDeps
       refresh: refresh || defaults.refresh,
       cacheTtlMs: cacheTtl.value === null ? defaults.cacheTtlMs : parseDurationMs(cacheTtl.value, defaults.cacheTtlMs),
       timeoutMs: timeout.value === null ? defaults.timeoutMs : parseDurationMs(timeout.value, defaults.timeoutMs),
-      http2Mode: http2.value === null ? defaults.http2Mode : parseDepsHttp2(http2.value)
+      http2Mode: http2.value === null ? defaults.http2Mode : parseDepsHttp2(http2.value),
+      scope: scope.value === null ? defaults.scope : parseDepsScopeFlag(scope.value)
     },
-    rest: http2.rest.filter((arg) => arg !== "--deps-refresh")
+    rest: scope.rest.filter((arg) => arg !== "--deps-refresh")
   };
 }

@@ -7,6 +7,8 @@ export const DEPS_FINDING_RULE_ID = "vulnerable-dependency";
 
 export type DepsProvider = "osv" | "custom";
 export type DepsHttp2Mode = "auto" | "on" | "off";
+/** changed: manifests in git/--paths scope only; tree: discover all manifests under repo (or --paths roots). */
+export type DepsScope = "changed" | "tree";
 
 export interface DepsScanOptions {
   provider: DepsProvider;
@@ -15,6 +17,7 @@ export interface DepsScanOptions {
   cacheTtlMs: number;
   timeoutMs: number;
   http2Mode: DepsHttp2Mode;
+  scope: DepsScope;
 }
 
 export interface DependencyCoordinate {

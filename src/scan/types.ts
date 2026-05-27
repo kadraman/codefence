@@ -17,6 +17,8 @@ export interface ScanContext {
   staged: boolean;
   /** True when the user passed explicit --paths (demo/test ignore lists are bypassed). */
   explicitPaths: boolean;
+  /** Set when `--deps-scope tree`: all manifests discovered under the repo (or --paths roots). */
+  depsManifestPaths: string[] | null;
   options: ScanOptions;
 }
 

@@ -19,6 +19,18 @@ npm run build
 node dist/src/cli.js scan --only deps --paths examples/deps
 ```
 
+Discover all manifests under `examples/deps` without listing each path:
+
+```bash
+node dist/src/cli.js scan --only deps --deps-scope tree --paths examples/deps
+```
+
+Audit every dependency manifest in the repository:
+
+```bash
+node dist/src/cli.js scan --only deps --deps-scope tree
+```
+
 JSON output for LLM/tooling use:
 
 ```bash

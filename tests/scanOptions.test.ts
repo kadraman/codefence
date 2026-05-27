@@ -198,6 +198,13 @@ test("parseScanArgv parses dependency scanning flags", () => {
   assert.equal(parsed.deps.http2Mode, "on");
 });
 
+test("parseScanArgv parses --deps-scope tree", () => {
+  const parsed = parseScanArgv(["--deps-scope", "tree", "--only", "deps"]);
+  assert.ok(!("help" in parsed));
+  assert.equal(parsed.deps.scope, "tree");
+  assert.throws(() => parseScanArgv(["--deps-scope", "all"]), /--deps-scope must be changed or tree/);
+});
+
 test("parseScanArgv parses secret engine flags", () => {
   const parsed = parseScanArgv([
     "--staged",
