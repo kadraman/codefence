@@ -40,8 +40,11 @@ function selectDependencyManifests(manifests: string[], context: ScanContext): s
       );
     }
     if (preferred) {
-      selected.push(rootManifests.get(preferred)!);
-      continue;
+      const preferredManifest = rootManifests.get(preferred);
+      if (preferredManifest) {
+        selected.push(preferredManifest);
+        continue;
+      }
     }
 
     const packageJson = rootManifests.get("package.json");

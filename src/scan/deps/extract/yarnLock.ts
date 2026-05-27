@@ -27,9 +27,9 @@ function selectorPackageName(selector: string): string | null {
     return match?.[1] ?? null;
   }
 
-  const aliasMatch = trimmed.match(/^([^@]+)@npm:/);
-  if (aliasMatch) {
-    return aliasMatch[1];
+  const npmAliasMatch = trimmed.match(/^([^@]+)@npm:/);
+  if (npmAliasMatch) {
+    return npmAliasMatch[1];
   }
 
   const atIndex = trimmed.indexOf("@");

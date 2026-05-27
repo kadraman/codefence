@@ -3,7 +3,9 @@ import path from "node:path";
 import { DependencyCoordinate } from "../types";
 
 export const NPM_ECOSYSTEM = "npm";
-export const MAX_LOCKFILE_BYTES = 10 * 1024 * 1024;
+const BYTES_PER_MIB = 1024 * 1024;
+const MAX_LOCKFILE_MIB = 10;
+export const MAX_LOCKFILE_BYTES = MAX_LOCKFILE_MIB * BYTES_PER_MIB;
 
 export interface DependencyExtractionResult {
   dependencies: DependencyCoordinate[];
@@ -121,7 +123,7 @@ export function readManifestSource(
       return {
         absolutePath,
         source: null,
-        warning: `Skipping ${path.basename(absolutePath)}: file is larger than ${Math.round(options.maxBytes / (1024 * 1024))} MiB.`
+        warning: `Skipping ${path.basename(absolutePath)}: file is larger than ${Math.round(options.maxBytes / BYTES_PER_MIB)} MiB.`
       };
     }
 
