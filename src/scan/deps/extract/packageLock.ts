@@ -24,10 +24,24 @@ interface PackageLockShape {
 }
 
 function derivePackageNameFromPackagePath(packagePath: string): string | null {
-  const normalized = packagePath.replace(/\\/g, "/");
-  const parts = normalized.split("/node_modules/");
-  const last = parts[parts.length - 1]?.trim();
-  return last ? last : null;
+  const normalized = packagePath.replace(/\\/g, "/").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  const marker = "/node_modules/";
+  if (normalized.includes(marker)) {
+    const lastIndex = normalized.lastIndexOf(marker);
+    const derived = normalized.slice(lastIndex + marker.length).trim();
+    return derived ? derived : null;
+  }
+
+  if (normalized.startsWith("node_modules/")) {
+    const derived = normalized.slice("node_modules/".length).trim();
+    return derived ? derived : null;
+  }
+
+  return normalized;
 }
 
 function coordinatesFromPackages(

@@ -15,6 +15,12 @@ import { ScanContext } from "../src/scan/types";
 
 const LOCK_FIXTURE_ROOT = path.join(process.cwd(), "tests", "fixtures", "locks");
 
+function writeNamedFixture(tmpDir: string, fileName: string, fixtureName: string): string {
+  const targetPath = path.join(tmpDir, fileName);
+  fs.copyFileSync(path.join(LOCK_FIXTURE_ROOT, fixtureName), targetPath);
+  return targetPath;
+}
+
 function makeContext(cwd: string): ScanContext {
   return {
     cwd,
@@ -71,7 +77,8 @@ test("extractPackageJsonDependencies returns exact npm versions only", () => {
 });
 
 test("extractDependenciesForManifest reads package-lock.json v2 and v3 entries", () => {
-  const v3Path = path.join(LOCK_FIXTURE_ROOT, "package-lock-v3-minimal.json");
+  const v3Dir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-package-lock-v3-"));
+  const v3Path = writeNamedFixture(v3Dir, "package-lock.json", "package-lock-v3-minimal.json");
   const v3Deps = extractDependenciesForManifest(v3Path);
   assert.deepEqual(
     v3Deps.map((dep) => `${dep.name}@${dep.version}`).sort(),
@@ -109,11 +116,13 @@ test("extractDependenciesForManifest reads package-lock.json v2 and v3 entries",
     ["minimist@1.2.5", "ws@7.3.0"]
   );
 
+  fs.rmSync(v3Dir, { recursive: true, force: true });
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
 test("extractDependenciesForManifest reads Yarn Classic lockfiles", () => {
-  const manifestPath = path.join(LOCK_FIXTURE_ROOT, "yarn-classic-minimal.lock");
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-yarn-classic-"));
+  const manifestPath = writeNamedFixture(tmpDir, "yarn.lock", "yarn-classic-minimal.lock");
   const deps = extractDependenciesForManifest(manifestPath);
 
   assert.deepEqual(
@@ -121,10 +130,13 @@ test("extractDependenciesForManifest reads Yarn Classic lockfiles", () => {
     ["@types/node@25.9.1", "lodash@4.17.20"]
   );
   assert.ok(deps.every((dep) => dep.manifestLine > 0));
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
 test("extractDependenciesForManifest reads pnpm lockfiles", () => {
-  const manifestPath = path.join(LOCK_FIXTURE_ROOT, "pnpm-minimal.yaml");
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-pnpm-lock-"));
+  const manifestPath = writeNamedFixture(tmpDir, "pnpm-lock.yaml", "pnpm-minimal.yaml");
   const deps = extractDependenciesForManifest(manifestPath);
 
   assert.deepEqual(
@@ -132,6 +144,8 @@ test("extractDependenciesForManifest reads pnpm lockfiles", () => {
     ["@types/node@25.9.1", "lodash@4.17.20"]
   );
   assert.ok(deps.every((dep) => dep.manifestLine > 0));
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
 test("extractDependenciesForManifestWithDiagnostics warns for unsupported lockfiles", () => {
