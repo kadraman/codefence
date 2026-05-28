@@ -255,12 +255,16 @@ test("parseScanArgv reads codefence-config.yml and env overrides it", () => {
   const previousCwd = process.cwd();
   const previousOnly = process.env.CODEFENCE_ONLY;
   const previousIgnored = process.env.CODEFENCE_GIT_IGNORED_PREFIXES;
+  const previousVerbose = process.env.CODEFENCE_VERBOSE;
+  const previousQuiet = process.env.CODEFENCE_QUIET;
 
   fs.writeFileSync(
     path.join(root, "codefence-config.yml"),
     `version: 1
 scan:
   aspects: [deps]
+  verbose: true
+  quiet: true
 paths:
   git_ignored_prefixes:
     - fixtures/
@@ -273,6 +277,8 @@ deps:
   process.chdir(root);
   process.env.CODEFENCE_ONLY = "code";
   process.env.CODEFENCE_GIT_IGNORED_PREFIXES = "examples/,fixtures/";
+  process.env.CODEFENCE_VERBOSE = "false";
+  process.env.CODEFENCE_QUIET = "0";
   try {
     const parsed = parseScanArgv([]);
     assert.ok(!("help" in parsed));
@@ -280,6 +286,8 @@ deps:
     assert.deepEqual(parsed.only, ["code"]);
     assert.deepEqual(parsed.gitIgnoredPrefixes, ["examples/", "fixtures/"]);
     assert.equal(parsed.deps.scope, "tree");
+    assert.equal(parsed.verbose, false);
+    assert.equal(parsed.quiet, false);
   } finally {
     process.chdir(previousCwd);
     if (previousOnly === undefined) {
@@ -291,6 +299,16 @@ deps:
       delete process.env.CODEFENCE_GIT_IGNORED_PREFIXES;
     } else {
       process.env.CODEFENCE_GIT_IGNORED_PREFIXES = previousIgnored;
+    }
+    if (previousVerbose === undefined) {
+      delete process.env.CODEFENCE_VERBOSE;
+    } else {
+      process.env.CODEFENCE_VERBOSE = previousVerbose;
+    }
+    if (previousQuiet === undefined) {
+      delete process.env.CODEFENCE_QUIET;
+    } else {
+      process.env.CODEFENCE_QUIET = previousQuiet;
     }
     fs.rmSync(root, { recursive: true, force: true });
   }

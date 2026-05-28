@@ -7,7 +7,7 @@ For repository-wide defaults (including ignored prefixes), see [`codefence-confi
 
 Path: `examples/secrets/`
 
-All values in these files aref intentionally fake test strings. They are designed to trigger secret-detection rules and are not real credentials.
+All values in these files are intentionally fake test strings. They are designed to trigger secret-detection rules and are not real credentials.
 
 To reduce GitHub push-protection friction, most examples avoid provider-specific token signatures (for example real-looking `ghp_`, `glpat-`, or `sk_live_` forms). The private-key block fixture uses an obviously fake PEM block for the built-in `secret-private-key` rule.
 
@@ -41,7 +41,7 @@ Scans against these fixtures are expected to **exit with code 1** (findings are 
 
 Path: `examples/deps/`
 
-Sample `package.json` manifests pin exact versions of packages with known OSV advisories. See `[examples/deps/README.md](deps/README.md)` for the fixture list and commands.
+Sample `package.json` manifests pin exact versions of packages with known OSV advisories. See [examples/deps/README.md](deps/README.md) for the fixture list and commands.
 
 ```bash
 node dist/src/cli.js scan --only deps --paths examples/deps
@@ -51,6 +51,6 @@ Scans against these fixtures are expected to **exit with code 1** (findings are 
 
 ## Secret rule bundles
 
-Built-in Semgrep-style rules live at `[rules/secret/builtin.yml](../rules/secret/builtin.yml)`.
+Built-in Semgrep-style rules live at [rules/secret/builtin.yml](../rules/secret/builtin.yml).
 
-An extra downloadable bundle for remote-rule demos is under `[examples/rules/](rules/README.md)` (serve locally or fetch via `https://raw.githubusercontent.com/...`).
+An extra downloadable bundle for remote-rule demos is under [examples/rules/](rules/README.md) (serve locally or fetch via `https://raw.githubusercontent.com/...`).

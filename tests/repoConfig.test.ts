@@ -51,6 +51,38 @@ secret:
   }
 });
 
+test("loadRepoScanDefaults accepts boolean-ish values for on/off fields", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-config-bool-ish-"));
+  fs.writeFileSync(
+    path.join(dir, "codefence-config.yml"),
+    `version: 1
+secret:
+  default_rules: true
+`,
+    "utf8"
+  );
+  try {
+    assert.equal(loadRepoScanDefaults(dir).secret.defaultRules, true);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "codefence-config.yml"),
+    `version: 1
+secret:
+  default_rules: "false"
+`,
+    "utf8"
+  );
+  try {
+    assert.equal(loadRepoScanDefaults(dir).secret.defaultRules, false);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("loadRepoScanDefaults rejects invalid config version", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-config-invalid-"));
   fs.writeFileSync(path.join(dir, "codefence-config.yml"), "version: 2\n", "utf8");

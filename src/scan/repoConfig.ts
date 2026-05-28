@@ -165,17 +165,20 @@ function parseOnOff(raw: unknown, field: string, defaultValue: boolean): boolean
   if (raw === undefined || raw === null) {
     return defaultValue;
   }
+  if (typeof raw === "boolean") {
+    return raw;
+  }
   if (typeof raw !== "string") {
     throw new Error(`Invalid ${field} in codefence-config.yml`);
   }
   const normalized = raw.trim().toLowerCase();
-  if (normalized === "on") {
+  if (["on", "true", "yes", "1"].includes(normalized)) {
     return true;
   }
-  if (normalized === "off") {
+  if (["off", "false", "no", "0"].includes(normalized)) {
     return false;
   }
-  throw new Error(`${field} in codefence-config.yml must be on or off`);
+  throw new Error(`${field} in codefence-config.yml must be on/off or true/false`);
 }
 
 export function configFilePath(cwd: string = process.cwd()): string {

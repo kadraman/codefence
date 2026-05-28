@@ -150,7 +150,7 @@ export function runBackgroundScan(options: BackgroundScanOptions = {}): number {
   const rel = normalizeRelativePath(workspace, filePath);
   const baseName = path.basename(rel);
 
-  if (!shouldScanFile(rel)) {
+  if (!shouldScanFile(rel, { cwd: workspace })) {
     logPanel(`[codefence] Not scannable: ${baseName}`);
     return 0;
   }

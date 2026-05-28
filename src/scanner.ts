@@ -122,11 +122,12 @@ export function shouldScanFile(
     return false;
   }
 
-  if (options?.allowIgnored || !options?.cwd) {
+  if (options?.allowIgnored) {
     return true;
   }
 
-  return !isIgnoredScanPath(filePath, options.cwd, options.ignoredPrefixes);
+  const cwd = options?.cwd ?? process.cwd();
+  return !isIgnoredScanPath(filePath, cwd, options?.ignoredPrefixes);
 }
 
 function walkScannableFiles(dir: string, cwd: string, out: Set<string>): void {
@@ -227,13 +228,13 @@ export interface ScanFileOptions {
 }
 
 export async function scanFile(filePath: string, options: ScanFileOptions = {}): Promise<Finding[]> {
-  if (!shouldScanFile(filePath) || !fs.existsSync(filePath)) {
+  const workspace = path.resolve(options.workspace ?? process.cwd());
+  if (!shouldScanFile(filePath, { cwd: workspace, allowIgnored: true }) || !fs.existsSync(filePath)) {
     return [];
   }
 
   const content = fs.readFileSync(filePath, "utf8");
   const lines = content.split(/\r?\n/);
-  const workspace = path.resolve(options.workspace ?? process.cwd());
   const secretOptions = options.secret ?? defaultSecretScanOptions();
   const secretRules =
     options.secretRules ?? (await loadSecretRulesForScan(workspace, secretOptions));

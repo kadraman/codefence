@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { isIgnoredScanPath, scanFile } from "../src/scanner";
+import { isIgnoredScanPath, scanFile, shouldScanFile } from "../src/scanner";
 
 test("isIgnoredScanPath skips examples fixture trees", () => {
   const cwd = process.cwd();
@@ -15,6 +15,11 @@ test("isIgnoredScanPath honors configurable prefixes", () => {
   const cwd = process.cwd();
   assert.ok(isIgnoredScanPath("fixtures/sample.ts", cwd, ["fixtures/"]));
   assert.equal(isIgnoredScanPath("examples/foo.ts", cwd, ["fixtures/"]), false);
+});
+
+test("shouldScanFile applies ignored prefixes when cwd is omitted", () => {
+  assert.equal(shouldScanFile("examples/demo.ts"), false);
+  assert.equal(shouldScanFile("src/app.ts"), true);
 });
 
 test("scanFile finds hardcoded secret and eval", async () => {

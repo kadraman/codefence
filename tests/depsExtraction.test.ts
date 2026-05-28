@@ -10,6 +10,7 @@ import {
   extractDependenciesForManifestWithDiagnostics,
   extractPackageJsonDependencies
 } from "../src/scan/deps/extract";
+import { normalizeInstalledVersion } from "../src/scan/deps/extract/shared";
 import { defaultSecretScanOptions } from "../src/scan/secret/config";
 import { ScanContext } from "../src/scan/types";
 
@@ -76,6 +77,14 @@ test("extractPackageJsonDependencies returns exact npm versions only", () => {
   assert.equal(deps.find((dep) => dep.name === "lodash")?.manifestLine, 3);
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("normalizeInstalledVersion rejects non-semver installed values", () => {
+  assert.equal(normalizeInstalledVersion("git+https://github.com/user/repo.git"), null);
+  assert.equal(normalizeInstalledVersion("https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz"), null);
+  assert.equal(normalizeInstalledVersion("abcdef1234567890"), null);
+  assert.equal(normalizeInstalledVersion("npm:lodash@4.17.21"), "4.17.21");
+  assert.equal(normalizeInstalledVersion("v1.2.3"), "1.2.3");
 });
 
 test("extractDependenciesForManifest reads package-lock.json v2 and v3 entries", () => {

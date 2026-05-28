@@ -146,12 +146,18 @@ function parseOutputFormat(value: string | undefined): ScanOutputFormat {
   throw new Error("--format must be table or json");
 }
 
-function parseBooleanEnv(value: string | undefined): boolean {
+function parseBooleanEnv(value: string | undefined): boolean | null {
   if (!value) {
-    return false;
+    return null;
   }
   const normalized = value.trim().toLowerCase();
-  return ["1", "true", "on", "yes"].includes(normalized);
+  if (["1", "true", "on", "yes"].includes(normalized)) {
+    return true;
+  }
+  if (["0", "false", "off", "no"].includes(normalized)) {
+    return false;
+  }
+  throw new Error(`Invalid boolean env value: ${value}`);
 }
 
 function parseOnOff(value: string, flag: string): boolean {
@@ -253,10 +259,10 @@ export function parseScanArgv(argv: string[]): ParseScanResult {
     formatParsed.value ?? envTrim("CODEFENCE_FORMAT") ?? configDefaults.format
   );
 
-  const verbose =
-    skipParsed.rest.includes("--verbose") || parseBooleanEnv(envTrim("CODEFENCE_VERBOSE")) || configDefaults.verbose;
-  const quiet =
-    skipParsed.rest.includes("--quiet") || parseBooleanEnv(envTrim("CODEFENCE_QUIET")) || configDefaults.quiet;
+  const verboseEnv = parseBooleanEnv(envTrim("CODEFENCE_VERBOSE"));
+  const quietEnv = parseBooleanEnv(envTrim("CODEFENCE_QUIET"));
+  const verbose = skipParsed.rest.includes("--verbose") ? true : (verboseEnv ?? configDefaults.verbose);
+  const quiet = skipParsed.rest.includes("--quiet") ? true : (quietEnv ?? configDefaults.quiet);
 
   const ignoredPrefixesEnv = envTrim("CODEFENCE_GIT_IGNORED_PREFIXES");
   const gitIgnoredPrefixes = ignoredPrefixesEnv

@@ -61,7 +61,7 @@ export function normalizeInstalledVersion(raw: string): string | null {
   if (!normalized || /^[~^*<>]/.test(normalized)) {
     return null;
   }
-  return normalized;
+  return normalizeExactVersion(normalized);
 }
 
 export function escapeRegExp(value: string): string {
