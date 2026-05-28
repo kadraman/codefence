@@ -60,15 +60,15 @@ function parseBooleanSetting(value: string | undefined, defaultValue: boolean): 
   throw new Error(`Invalid boolean setting: ${value}`);
 }
 
-export function defaultDepsScanOptions(): DepsScanOptions {
+export function defaultDepsScanOptions(base: Partial<DepsScanOptions> = {}): DepsScanOptions {
   return {
-    provider: parseProvider(envTrim("CODEFENCE_DEPS_PROVIDER")),
-    providerUrl: envTrim("CODEFENCE_DEPS_PROVIDER_URL") ?? null,
-    refresh: parseBooleanSetting(envTrim("CODEFENCE_DEPS_REFRESH"), false),
-    cacheTtlMs: parseDurationMs(envTrim("CODEFENCE_DEPS_CACHE_TTL"), DEFAULT_DEPS_CACHE_TTL_MS),
-    timeoutMs: parseDurationMs(envTrim("CODEFENCE_DEPS_TIMEOUT"), DEFAULT_DEPS_TIMEOUT_MS),
-    http2Mode: parseHttp2Mode(envTrim("CODEFENCE_DEPS_HTTP2")),
-    scope: parseDepsScope(envTrim("CODEFENCE_DEPS_SCOPE"))
+    provider: parseProvider(envTrim("CODEFENCE_DEPS_PROVIDER") ?? base.provider),
+    providerUrl: envTrim("CODEFENCE_DEPS_PROVIDER_URL") ?? base.providerUrl ?? null,
+    refresh: parseBooleanSetting(envTrim("CODEFENCE_DEPS_REFRESH"), base.refresh ?? false),
+    cacheTtlMs: parseDurationMs(envTrim("CODEFENCE_DEPS_CACHE_TTL"), base.cacheTtlMs ?? DEFAULT_DEPS_CACHE_TTL_MS),
+    timeoutMs: parseDurationMs(envTrim("CODEFENCE_DEPS_TIMEOUT"), base.timeoutMs ?? DEFAULT_DEPS_TIMEOUT_MS),
+    http2Mode: parseHttp2Mode(envTrim("CODEFENCE_DEPS_HTTP2") ?? base.http2Mode),
+    scope: parseDepsScope(envTrim("CODEFENCE_DEPS_SCOPE") ?? base.scope)
   };
 }
 

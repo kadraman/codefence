@@ -12,7 +12,7 @@ scope: "scan|cli|hooks|docs"
 
 This feature adds dependency vulnerability scanning to Codefence using an external vulnerability source, with OSV as the default provider. The scanner should detect when dependency manifests change, resolve affected packages, and query the provider API for known vulnerabilities. The provider integration must be configurable, but work out of the box against OSV.
 
-**Implementation status (2026-05-27):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, and npm `package.json` extraction (exact versions) are **shipped**. Lockfile parsing, non-npm ecosystems, and custom providers remain **open** (see checklist below).
+**Implementation status (2026-05-27):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, npm `package.json` extraction (exact versions), and npm lockfile-aware resolution are **shipped**. Non-npm ecosystems and custom providers remain **open** (see checklist below).
 
 ## Problem Statement
 
@@ -160,7 +160,7 @@ Expected implementation areas:
 
 1. [x] Add dependency scanning aspect identifier and registry wiring.
 2. [x] Implement manifest detection and changed-file trigger logic.
-3. [ ] Implement dependency extraction per manifest type — **partial:** `package.json` (npm, exact semver) only; see [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md).
+3. [x] Implement dependency extraction per manifest type — npm `package.json` exact pins plus `package-lock.json`, `yarn.lock` (Classic), and `pnpm-lock.yaml`; see [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md).
 4. [x] Define provider abstraction and normalized finding schema.
 5. [x] Implement OSV provider client with HTTP/2 preference and HTTP/1.1 size-limit-safe behavior.
 6. [x] Implement caching with TTL and refresh controls.

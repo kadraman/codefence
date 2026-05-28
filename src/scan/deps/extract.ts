@@ -1,8 +1,15 @@
-import fs from "node:fs";
 import path from "node:path";
 import { DependencyCoordinate } from "./types";
-
-const NPM_ECOSYSTEM = "npm";
+import { extractPackageLockDependencies } from "./extract/packageLock";
+import { extractPnpmLockDependencies } from "./extract/pnpmLock";
+import {
+  DependencyExtractionResult,
+  NPM_ECOSYSTEM,
+  findPackageJsonDependencyLine,
+  normalizeExactVersion,
+  readManifestSource
+} from "./extract/shared";
+import { extractYarnLockDependencies } from "./extract/yarnLock";
 
 interface PackageJsonShape {
   dependencies?: Record<string, string>;
@@ -11,45 +18,17 @@ interface PackageJsonShape {
   peerDependencies?: Record<string, string>;
 }
 
-function normalizeExactVersion(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  if (/^[v=]?\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(trimmed)) {
-    return trimmed.replace(/^[v=]+/, "");
-  }
-
-  return null;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function findDependencyLine(source: string, packageName: string): number {
-  const lines = source.split(/\r?\n/);
-  const pattern = new RegExp(`"${escapeRegExp(packageName)}"\\s*:`);
-  for (let index = 0; index < lines.length; index++) {
-    if (pattern.test(lines[index])) {
-      return index + 1;
-    }
-  }
-  return 0;
-}
+export { normalizeExactVersion } from "./extract/shared";
 
 export function extractPackageJsonDependencies(manifestPath: string): DependencyCoordinate[] {
-  const absolute = path.resolve(manifestPath);
-  if (!fs.existsSync(absolute)) {
+  const readResult = readManifestSource(manifestPath);
+  if (!readResult.source) {
     return [];
   }
 
-  let source: string;
   let parsed: PackageJsonShape;
   try {
-    source = fs.readFileSync(absolute, "utf8");
-    parsed = JSON.parse(source) as PackageJsonShape;
+    parsed = JSON.parse(readResult.source) as PackageJsonShape;
   } catch {
     return [];
   }
@@ -71,18 +50,36 @@ export function extractPackageJsonDependencies(manifestPath: string): Dependency
       ecosystem: NPM_ECOSYSTEM,
       name,
       version,
-      manifestPath: absolute,
-      manifestLine: findDependencyLine(source, name)
+      manifestPath: readResult.absolutePath,
+      manifestLine: findPackageJsonDependencyLine(readResult.source, name)
     });
   }
 
   return coordinates;
 }
 
-export function extractDependenciesForManifest(manifestPath: string): DependencyCoordinate[] {
+export function extractDependenciesForManifestWithDiagnostics(
+  manifestPath: string
+): DependencyExtractionResult {
   const baseName = path.basename(manifestPath).toLowerCase();
   if (baseName === "package.json") {
-    return extractPackageJsonDependencies(manifestPath);
+    return {
+      dependencies: extractPackageJsonDependencies(manifestPath),
+      warnings: []
+    };
   }
-  return [];
+  if (baseName === "package-lock.json") {
+    return extractPackageLockDependencies(manifestPath);
+  }
+  if (baseName === "yarn.lock") {
+    return extractYarnLockDependencies(manifestPath);
+  }
+  if (baseName === "pnpm-lock.yaml") {
+    return extractPnpmLockDependencies(manifestPath);
+  }
+  return { dependencies: [], warnings: [] };
+}
+
+export function extractDependenciesForManifest(manifestPath: string): DependencyCoordinate[] {
+  return extractDependenciesForManifestWithDiagnostics(manifestPath).dependencies;
 }

@@ -1,0 +1,9 @@
+# yarn lockfile v1
+
+lodash@^4.17.0:
+  version "4.17.20"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.20.tgz"
+
+"@types/node@^25.0.0", "@types/node@~25.9.0":
+  version "25.9.1"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-25.9.1.tgz"

@@ -1,6 +1,6 @@
 ---
 title: "Lockfile-Aware Dependency Extraction"
-status: proposed
+status: shipped
 owners: ["@kadraman"]
 created: 2026-05-27
 updated: 2026-05-27
@@ -229,17 +229,17 @@ npm run codefence
 ## Implementation Checklist
 
 - [ ] Behavior is documented and unambiguous
-- [ ] `package-lock.json` parser (v2/v3) implemented
-- [ ] `yarn.lock` Classic parser implemented
-- [ ] `pnpm-lock.yaml` parser implemented
-- [ ] Merge / precedence rules when `package.json` and lockfile coexist
-- [ ] `extractDependenciesForManifest` dispatches all three lockfile types
-- [ ] Warnings for unsupported or malformed lockfiles
-- [ ] Unit tests with minimal fixtures
-- [ ] Example lockfile fixtures under `examples/deps/`
+- [x] `package-lock.json` parser (v2/v3) implemented
+- [x] `yarn.lock` Classic parser implemented
+- [x] `pnpm-lock.yaml` parser implemented
+- [x] Merge / precedence rules when `package.json` and lockfile coexist
+- [x] `extractDependenciesForManifest` dispatches all three lockfile types
+- [x] Warnings for unsupported or malformed lockfiles
+- [x] Unit tests with minimal fixtures
+- [x] Example lockfile fixtures under `examples/deps/`
 - [ ] `npm test` passes
 - [ ] `npm run codefence` passes
-- [ ] User-facing docs updated (`README.md`, cross-link from OSV feature doc)
+- [x] User-facing docs updated (`README.md`, cross-link from OSV feature doc)
 
 ## Future Enhancements
 

@@ -9,7 +9,11 @@ export const codeAspect: ScanAspect = {
   async run(context: ScanContext): Promise<AspectOutcome> {
     const sourceFiles = context.files
       .filter((file) =>
-        shouldScanFile(file, { cwd: context.cwd, allowIgnored: context.explicitPaths })
+        shouldScanFile(file, {
+          cwd: context.cwd,
+          allowIgnored: context.explicitPaths,
+          ignoredPrefixes: context.options.gitIgnoredPrefixes
+        })
       )
       .map((file) => path.resolve(context.cwd, file));
 

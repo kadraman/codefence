@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Codefence is a Node.js + TypeScript CLI that provides local guardrails for AI-assisted coding.
+Codefence is a Node.js + TypeScript CLI that provides security guardrails for AI-assisted coding.
 
 - npm package: `codefence`
 - CLI: `codefence`

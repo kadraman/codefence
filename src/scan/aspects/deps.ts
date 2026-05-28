@@ -4,16 +4,68 @@ import type { Finding } from "../../types";
 import { AspectOutcome, ScanAspect, ScanContext } from "../types";
 import { isDepsCacheFresh, readDepsCache, writeDepsCache } from "../deps/cache";
 import { resolveDepsProviderUrl } from "../deps/config";
-import { extractDependenciesForManifest } from "../deps/extract";
+import { extractDependenciesForManifestWithDiagnostics } from "../deps/extract";
 import { queryDependencies } from "../deps/query";
 import { DepsFinding, DependencyCoordinate, DEPS_FINDING_RULE_ID } from "../deps/types";
 import { printUnifiedFindings, writeScanLog, writeScanStatus } from "../output";
 
-function collectDependencies(context: ScanContext, manifests: string[]): DependencyCoordinate[] {
-  const all: DependencyCoordinate[] = [];
+const LOCKFILE_PREFERENCE = ["pnpm-lock.yaml", "package-lock.json", "yarn.lock"] as const;
+const NPM_MANIFEST_BASENAMES = new Set(["package.json", ...LOCKFILE_PREFERENCE]);
+
+function selectDependencyManifests(manifests: string[], context: ScanContext): string[] {
+  const selected: string[] = [];
+  const npmRoots = new Map<string, Map<string, string>>();
+
   for (const manifestPath of manifests) {
     const absolute = path.resolve(context.cwd, manifestPath);
-    all.push(...extractDependenciesForManifest(absolute));
+    const baseName = path.basename(manifestPath).toLowerCase();
+    if (!NPM_MANIFEST_BASENAMES.has(baseName)) {
+      selected.push(absolute);
+      continue;
+    }
+
+    const root = path.dirname(absolute);
+    const rootManifests = npmRoots.get(root) ?? new Map<string, string>();
+    rootManifests.set(baseName, absolute);
+    npmRoots.set(root, rootManifests);
+  }
+
+  for (const [root, rootManifests] of npmRoots) {
+    const availableLockfiles = LOCKFILE_PREFERENCE.filter((lockfile) => rootManifests.has(lockfile));
+    const preferred = availableLockfiles[0];
+    if (availableLockfiles.length > 1 && preferred) {
+      writeScanLog(
+        `[deps] Warning: multiple lockfiles in ${path.relative(context.cwd, root) || "."}; using ${preferred} for extraction.`,
+        context.options
+      );
+    }
+    if (preferred) {
+      const preferredManifest = rootManifests.get(preferred);
+      if (preferredManifest) {
+        selected.push(preferredManifest);
+        continue;
+      }
+    }
+
+    const packageJson = rootManifests.get("package.json");
+    if (packageJson) {
+      selected.push(packageJson);
+    }
+  }
+
+  return selected;
+}
+
+export function collectDependencies(context: ScanContext, manifests: string[]): DependencyCoordinate[] {
+  const selectedManifests = selectDependencyManifests(manifests, context);
+  const all: DependencyCoordinate[] = [];
+
+  for (const manifestPath of selectedManifests) {
+    const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+    for (const warning of result.warnings) {
+      writeScanLog(`[deps] Warning: ${warning}`, context.options);
+    }
+    all.push(...result.dependencies);
   }
 
   const seen = new Set<string>();
@@ -122,4 +174,3 @@ export const depsAspect: ScanAspect = {
     }
   }
 };
-

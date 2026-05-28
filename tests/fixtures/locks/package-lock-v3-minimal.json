@@ -1,0 +1,19 @@
+{
+  "name": "lockfile-example",
+  "lockfileVersion": 3,
+  "packages": {
+    "": {
+      "name": "lockfile-example",
+      "dependencies": {
+        "lodash": "^4.17.0",
+        "@types/node": "^25.0.0"
+      }
+    },
+    "node_modules/lodash": {
+      "version": "4.17.20"
+    },
+    "node_modules/@types/node": {
+      "version": "25.9.1"
+    }
+  }
+}

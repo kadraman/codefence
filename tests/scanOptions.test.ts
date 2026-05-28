@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 import { parseAspectList, parseScanArgv, resolveAspects } from "../src/scan/parseOptions";
 import { defaultDepsScanOptions } from "../src/scan/deps/config";
@@ -28,6 +31,8 @@ test("resolveAspects defaults to code", () => {
   const aspects = resolveAspects({
     staged: false,
     paths: [],
+    gitIgnoredPrefixes: ["examples/"],
+    defaultAspects: ["code"] as ("code" | "deps")[],
     only: null,
     skip: [],
     secret: {
@@ -53,6 +58,8 @@ test("resolveAspects adds deps when dependency manifests are in scope", () => {
   const baseOptions = {
     staged: false,
     paths: [],
+    gitIgnoredPrefixes: ["examples/"],
+    defaultAspects: ["code"] as ("code" | "deps")[],
     only: null,
     skip: [],
     secret: {
@@ -82,6 +89,8 @@ test("resolveAspects does not auto-add deps when --only code is set", () => {
     {
       staged: false,
       paths: [],
+      gitIgnoredPrefixes: ["examples/"],
+      defaultAspects: ["code"] as ("code" | "deps")[],
       only: ["code"],
       skip: [],
       secret: {
@@ -110,6 +119,8 @@ test("resolveAspects does not auto-add deps when --skip deps is set", () => {
     {
       staged: false,
       paths: [],
+      gitIgnoredPrefixes: ["examples/"],
+      defaultAspects: ["code"] as ("code" | "deps")[],
       only: null,
       skip: ["deps"],
       secret: {
@@ -137,6 +148,8 @@ test("resolveAspects honors --only and --skip", () => {
   const aspects = resolveAspects({
     staged: false,
     paths: [],
+    gitIgnoredPrefixes: ["examples/"],
+    defaultAspects: ["code"] as ("code" | "deps")[],
     only: ["code"],
     skip: ["code"],
     secret: {
@@ -235,4 +248,68 @@ test("parseScanArgv parses secret engine flags", () => {
   assert.equal(parsed.secret.entropyThreshold, 4.5);
   assert.equal(parsed.secret.minLength, 18);
   assert.equal(parsed.secret.minConfidence, "medium");
+});
+
+test("parseScanArgv reads codefence-config.yml and env overrides it", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-config-"));
+  const previousCwd = process.cwd();
+  const previousOnly = process.env.CODEFENCE_ONLY;
+  const previousIgnored = process.env.CODEFENCE_GIT_IGNORED_PREFIXES;
+  const previousVerbose = process.env.CODEFENCE_VERBOSE;
+  const previousQuiet = process.env.CODEFENCE_QUIET;
+
+  fs.writeFileSync(
+    path.join(root, "codefence-config.yml"),
+    `version: 1
+scan:
+  aspects: [deps]
+  verbose: true
+  quiet: true
+paths:
+  git_ignored_prefixes:
+    - fixtures/
+deps:
+  scope: tree
+`,
+    "utf8"
+  );
+
+  process.chdir(root);
+  process.env.CODEFENCE_ONLY = "code";
+  process.env.CODEFENCE_GIT_IGNORED_PREFIXES = "examples/,fixtures/";
+  process.env.CODEFENCE_VERBOSE = "false";
+  process.env.CODEFENCE_QUIET = "0";
+  try {
+    const parsed = parseScanArgv([]);
+    assert.ok(!("help" in parsed));
+    assert.deepEqual(parsed.defaultAspects, ["deps"]);
+    assert.deepEqual(parsed.only, ["code"]);
+    assert.deepEqual(parsed.gitIgnoredPrefixes, ["examples/", "fixtures/"]);
+    assert.equal(parsed.deps.scope, "tree");
+    assert.equal(parsed.verbose, false);
+    assert.equal(parsed.quiet, false);
+  } finally {
+    process.chdir(previousCwd);
+    if (previousOnly === undefined) {
+      delete process.env.CODEFENCE_ONLY;
+    } else {
+      process.env.CODEFENCE_ONLY = previousOnly;
+    }
+    if (previousIgnored === undefined) {
+      delete process.env.CODEFENCE_GIT_IGNORED_PREFIXES;
+    } else {
+      process.env.CODEFENCE_GIT_IGNORED_PREFIXES = previousIgnored;
+    }
+    if (previousVerbose === undefined) {
+      delete process.env.CODEFENCE_VERBOSE;
+    } else {
+      process.env.CODEFENCE_VERBOSE = previousVerbose;
+    }
+    if (previousQuiet === undefined) {
+      delete process.env.CODEFENCE_QUIET;
+    } else {
+      process.env.CODEFENCE_QUIET = previousQuiet;
+    }
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });

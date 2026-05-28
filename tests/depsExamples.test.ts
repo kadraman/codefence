@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { extractPackageJsonDependencies } from "../src/scan/deps/extract";
+import { extractDependenciesForManifest, extractPackageJsonDependencies } from "../src/scan/deps/extract";
 import { queryOsvForDependencies } from "../src/scan/deps/provider";
 
 const FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "npm");
@@ -32,9 +32,28 @@ test("examples deps fixtures expose exact npm coordinates", () => {
   ]);
 });
 
+test("examples deps lockfile fixtures expose the same npm coordinates", () => {
+  const manifests = [
+    path.join(FIXTURE_ROOT, "runtime-app", "package-lock.json"),
+    path.join(FIXTURE_ROOT, "dev-tooling", "package-lock.json"),
+    path.join(FIXTURE_ROOT, "library", "package-lock.json")
+  ];
+
+  const coordinates = manifests.flatMap((manifestPath) => extractDependenciesForManifest(manifestPath));
+  const labels = coordinates.map((dep) => `${dep.name}@${dep.version}`).sort();
+
+  assert.deepEqual(labels, [
+    "jsonwebtoken@8.5.1",
+    "lodash@4.17.20",
+    "minimist@1.2.5",
+    "node-fetch@2.6.0",
+    "ws@7.3.0"
+  ]);
+});
+
 test("examples deps fixtures normalize stubbed OSV batch into findings with CVE ids", async () => {
-  const manifestPath = path.join(FIXTURE_ROOT, "runtime-app", "package.json");
-  const coordinates = extractPackageJsonDependencies(manifestPath);
+  const manifestPath = path.join(FIXTURE_ROOT, "runtime-app", "package-lock.json");
+  const coordinates = extractDependenciesForManifest(manifestPath);
   const batchResponse = JSON.parse(fs.readFileSync(OSV_RUNTIME_APP_BATCH, "utf8"));
 
   const originalFetch = globalThis.fetch;

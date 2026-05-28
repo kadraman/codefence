@@ -19,7 +19,7 @@ export async function runScanWorker(options: ScanWorkerOptions): Promise<number>
   }
 
   const rel = normalizeRelativePath(workspace, target);
-  if (!shouldScanFile(rel)) {
+  if (!shouldScanFile(rel, { cwd: workspace })) {
     return 0;
   }
 

@@ -3,6 +3,7 @@ import { hasDependencyFileChanges } from "../manifests";
 import { runScan } from "../scan/runner";
 import { defaultDepsScanOptions } from "../scan/deps/config";
 import { defaultSecretScanOptions } from "../scan/secret/config";
+import { loadRepoScanDefaults } from "../scan/repoConfig";
 import { shouldScanFile } from "../scanner";
 import { countCodeCacheHits } from "./cache";
 
@@ -18,9 +19,12 @@ export async function runPreCommit(): Promise<number> {
 
   try {
     header("Codefence pre-commit");
+    const repoDefaults = loadRepoScanDefaults(process.cwd());
 
     const staged = getChangedFiles(true);
-    const codeFiles = staged.filter((f) => shouldScanFile(f));
+    const codeFiles = staged.filter((f) =>
+      shouldScanFile(f, { cwd: process.cwd(), ignoredPrefixes: repoDefaults.gitIgnoredPrefixes })
+    );
     const hasDepChanges = hasDependencyFileChanges(staged);
 
     if (codeFiles.length === 0 && !hasDepChanges) {
@@ -45,13 +49,15 @@ export async function runPreCommit(): Promise<number> {
     const exitCode = await runScan({
       staged: true,
       paths: [],
+      gitIgnoredPrefixes: repoDefaults.gitIgnoredPrefixes,
+      defaultAspects: repoDefaults.aspects,
       only: null,
       skip: [],
-      secret: defaultSecretScanOptions(),
-      deps: defaultDepsScanOptions(),
-      outputFormat: "table",
-      quiet: false,
-      verbose: false
+      secret: defaultSecretScanOptions(repoDefaults.secret),
+      deps: defaultDepsScanOptions(repoDefaults.deps),
+      outputFormat: repoDefaults.format,
+      quiet: repoDefaults.quiet,
+      verbose: repoDefaults.verbose
     });
 
     const elapsed = ((Date.now() - start) / 1000).toFixed(1);
