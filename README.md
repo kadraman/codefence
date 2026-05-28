@@ -3,7 +3,7 @@
 
 # Codefence
 
-**Codefence** - guardrails for AI-assisted coding.
+**Codefence** - security guardrails for AI-assisted coding.
 
 - **npm:** [`codefence`](https://www.npmjs.com/package/codefence)
 - **CLI:** `codefence`
@@ -142,6 +142,34 @@ Git-based scans skip fixture trees such as `examples/` (see `codefence scan --he
 
 Dependency extraction prefers resolved npm versions from sibling `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml` files when those lockfiles are in scope. If only `package.json` is in scope, Codefence keeps the existing exact-version-only behavior for manifest pins.
 
+### Repository config (`codefence-config.yml`)
+
+Define repository-local defaults in `codefence-config.yml` (repo root).
+Starter template: [`examples/codefence-config.yml.example`](examples/codefence-config.yml.example).
+
+Precedence order:
+
+1. CLI flags
+2. `CODEFENCE_*` environment variables
+3. `codefence-config.yml`
+4. Built-in defaults
+
+Example:
+
+```yaml
+version: 1
+scan:
+  aspects: [code]
+  format: table
+paths:
+  git_ignored_prefixes:
+    - examples/
+deps:
+  scope: changed
+secret:
+  min_confidence: low
+```
+
 ### Full-repository dependency scan (`--deps-scope tree`)
 
 By default, dependency scanning only considers manifests that appear in the **git change set** or in explicit `--paths`. That matches pre-commit and PR workflows but skips unchanged lockfiles and does not walk `yarn.lock` when you only pass `--paths .` (code scans use source extensions, not all manifest types).
@@ -219,7 +247,7 @@ npx --yes serve examples/rules -l 8765
 
 Remote rule bundles are cached under `.codefence/cache/secret-rules/` for offline and low-latency scans. Use `--secret-rules-refresh` or `CODEFENCE_SECRET_RULES_REFRESH=1` to force a re-download before scanning.
 
-**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP`, `CODEFENCE_FORMAT`, `CODEFENCE_DEPS_PROVIDER`, `CODEFENCE_DEPS_PROVIDER_URL`, `CODEFENCE_DEPS_REFRESH`, `CODEFENCE_DEPS_CACHE_TTL`, `CODEFENCE_DEPS_TIMEOUT`, `CODEFENCE_DEPS_HTTP2`, `CODEFENCE_DEPS_SCOPE`, `CODEFENCE_SECRET_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES_VERSION`, `CODEFENCE_SECRET_RULES_UPDATE_URL`, `CODEFENCE_SECRET_RULES_REFRESH`, `CODEFENCE_SECRET_RULES_CACHE_TTL`, `CODEFENCE_SECRET_ENTROPY_THRESHOLD`, `CODEFENCE_SECRET_MIN_LENGTH`, `CODEFENCE_SECRET_MIN_CONFIDENCE`.
+**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP`, `CODEFENCE_FORMAT`, `CODEFENCE_GIT_IGNORED_PREFIXES`, `CODEFENCE_DEPS_PROVIDER`, `CODEFENCE_DEPS_PROVIDER_URL`, `CODEFENCE_DEPS_REFRESH`, `CODEFENCE_DEPS_CACHE_TTL`, `CODEFENCE_DEPS_TIMEOUT`, `CODEFENCE_DEPS_HTTP2`, `CODEFENCE_DEPS_SCOPE`, `CODEFENCE_SECRET_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES_VERSION`, `CODEFENCE_SECRET_RULES_UPDATE_URL`, `CODEFENCE_SECRET_RULES_REFRESH`, `CODEFENCE_SECRET_RULES_CACHE_TTL`, `CODEFENCE_SECRET_ENTROPY_THRESHOLD`, `CODEFENCE_SECRET_MIN_LENGTH`, `CODEFENCE_SECRET_MIN_CONFIDENCE`.
 
 ## Git pre-commit and background scanning
 

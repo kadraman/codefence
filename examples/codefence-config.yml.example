@@ -1,0 +1,54 @@
+# Precedence: CLI flags > CODEFENCE_* env vars > codefence-config.yml > built-in defaults.
+# Copy this file to your repository root as `codefence-config.yml`.
+version: 1
+
+scan:
+  # Env override: CODEFENCE_ASPECTS (comma-separated, e.g. "code,deps")
+  aspects: [code]
+  # Env override: CODEFENCE_FORMAT (table|json)
+  format: table
+  # Env override: CODEFENCE_QUIET (1/true/on/yes)
+  quiet: false
+  # Env override: CODEFENCE_VERBOSE (1/true/on/yes)
+  verbose: false
+
+paths:
+  # Env override: CODEFENCE_GIT_IGNORED_PREFIXES (comma-separated)
+  git_ignored_prefixes:
+    - examples/
+
+deps:
+  # Env override: CODEFENCE_DEPS_PROVIDER (osv|custom)
+  provider: osv
+  # Env override: CODEFENCE_DEPS_PROVIDER_URL
+  provider_url: null
+  # Env override: CODEFENCE_DEPS_REFRESH (1/true/on/yes)
+  refresh: false
+  # Env override: CODEFENCE_DEPS_CACHE_TTL (e.g. 24h, 30m)
+  cache_ttl: 24h
+  # Env override: CODEFENCE_DEPS_TIMEOUT (e.g. 15s)
+  timeout: 15s
+  # Env override: CODEFENCE_DEPS_HTTP2 (auto|on|off)
+  http2: auto
+  # Env override: CODEFENCE_DEPS_SCOPE (changed|tree)
+  scope: changed
+
+secret:
+  # Env override: CODEFENCE_SECRET_RULES (path-delimited list)
+  rules: []
+  # Env override: CODEFENCE_SECRET_DEFAULT_RULES (on|off or boolean-ish values)
+  default_rules: on
+  # Env override: CODEFENCE_SECRET_DEFAULT_RULES_VERSION
+  default_rules_version: null
+  # Env override: CODEFENCE_SECRET_RULES_UPDATE_URL
+  rules_update_url: null
+  # Env override: CODEFENCE_SECRET_RULES_REFRESH (1/true/on/yes)
+  rules_refresh: false
+  # Env override: CODEFENCE_SECRET_RULES_CACHE_TTL (e.g. 24h)
+  rules_cache_ttl: 24h
+  # Env override: CODEFENCE_SECRET_ENTROPY_THRESHOLD
+  entropy_threshold: 4.2
+  # Env override: CODEFENCE_SECRET_MIN_LENGTH
+  min_length: 12
+  # Env override: CODEFENCE_SECRET_MIN_CONFIDENCE (low|medium|high)
+  min_confidence: low

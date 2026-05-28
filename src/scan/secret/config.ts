@@ -99,27 +99,30 @@ export function parseSecretRulePaths(value: string | undefined): string[] {
     .filter(Boolean);
 }
 
-export function defaultSecretScanOptions(): SecretScanOptions {
+export function defaultSecretScanOptions(base: Partial<SecretScanOptions> = {}): SecretScanOptions {
   return {
-    rulePaths: parseSecretRulePaths(envTrim("CODEFENCE_SECRET_RULES")),
-    defaultRules: parseBooleanSetting(envTrim("CODEFENCE_SECRET_DEFAULT_RULES"), true),
-    defaultRulesVersion: envTrim("CODEFENCE_SECRET_DEFAULT_RULES_VERSION") ?? null,
-    rulesUpdateUrl: envTrim("CODEFENCE_SECRET_RULES_UPDATE_URL") ?? null,
-    rulesRefresh: parseBooleanSetting(envTrim("CODEFENCE_SECRET_RULES_REFRESH"), false),
+    rulePaths:
+      envTrim("CODEFENCE_SECRET_RULES") !== undefined
+        ? parseSecretRulePaths(envTrim("CODEFENCE_SECRET_RULES"))
+        : (base.rulePaths ?? []),
+    defaultRules: parseBooleanSetting(envTrim("CODEFENCE_SECRET_DEFAULT_RULES"), base.defaultRules ?? true),
+    defaultRulesVersion: envTrim("CODEFENCE_SECRET_DEFAULT_RULES_VERSION") ?? base.defaultRulesVersion ?? null,
+    rulesUpdateUrl: envTrim("CODEFENCE_SECRET_RULES_UPDATE_URL") ?? base.rulesUpdateUrl ?? null,
+    rulesRefresh: parseBooleanSetting(envTrim("CODEFENCE_SECRET_RULES_REFRESH"), base.rulesRefresh ?? false),
     rulesCacheTtlMs: parseDurationMs(
       envTrim("CODEFENCE_SECRET_RULES_CACHE_TTL"),
-      DEFAULT_SECRET_RULES_CACHE_TTL_MS
+      base.rulesCacheTtlMs ?? DEFAULT_SECRET_RULES_CACHE_TTL_MS
     ),
     entropyThreshold: parsePositiveNumber(
       envTrim("CODEFENCE_SECRET_ENTROPY_THRESHOLD"),
-      DEFAULT_SECRET_ENTROPY_THRESHOLD,
+      base.entropyThreshold ?? DEFAULT_SECRET_ENTROPY_THRESHOLD,
       "Secret entropy threshold"
     ),
     minLength: parsePositiveNumber(
       envTrim("CODEFENCE_SECRET_MIN_LENGTH"),
-      DEFAULT_SECRET_MIN_LENGTH,
+      base.minLength ?? DEFAULT_SECRET_MIN_LENGTH,
       "Secret minimum length"
     ),
-    minConfidence: parseConfidenceLevel(envTrim("CODEFENCE_SECRET_MIN_CONFIDENCE"), "low")
+    minConfidence: parseConfidenceLevel(envTrim("CODEFENCE_SECRET_MIN_CONFIDENCE"), base.minConfidence ?? "low")
   };
 }

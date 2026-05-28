@@ -41,6 +41,8 @@ test("buildScanContext populates depsManifestPaths for tree scope", () => {
     const context = buildScanContext({
       staged: false,
       paths: [],
+      gitIgnoredPrefixes: ["examples/"],
+      defaultAspects: ["code"],
       only: ["deps"],
       skip: [],
       secret: defaultSecretScanOptions(),
@@ -61,6 +63,8 @@ test("resolveAspects auto-includes deps when deps scope is tree", () => {
     {
       staged: false,
       paths: [],
+      gitIgnoredPrefixes: ["examples/"],
+      defaultAspects: ["code"],
       only: null,
       skip: [],
       secret: defaultSecretScanOptions(),

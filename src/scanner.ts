@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { rules } from "./rules";
-import { GIT_SCAN_IGNORED_PREFIXES } from "./scan/ignorePaths";
+import { DEFAULT_GIT_SCAN_IGNORED_PREFIXES } from "./scan/ignorePaths";
 import { defaultSecretScanOptions } from "./scan/secret/config";
 import { scanSecretFindings } from "./scan/secret/engine";
 import { loadSecretRulesForScan } from "./scan/secret/rulesCache";
@@ -75,7 +75,7 @@ export function lineContextForRule(cache: LineContextCache, rule: Rule): LineSca
 }
 
 /** Paths skipped during git-based scans; still scanned when passed via --paths. */
-const ignoredScanPrefixes: readonly string[] = GIT_SCAN_IGNORED_PREFIXES;
+const ignoredScanPrefixes: readonly string[] = DEFAULT_GIT_SCAN_IGNORED_PREFIXES;
 
 const supportedExtensions = new Set([
   ".ts",
@@ -102,12 +102,19 @@ function normalizeRelativePath(filePath: string, cwd: string): string {
   return path.relative(cwd, absolute).replace(/\\/g, "/");
 }
 
-export function isIgnoredScanPath(filePath: string, cwd: string): boolean {
+export function isIgnoredScanPath(
+  filePath: string,
+  cwd: string,
+  prefixes: readonly string[] = ignoredScanPrefixes
+): boolean {
   const relative = normalizeRelativePath(filePath, cwd);
-  return ignoredScanPrefixes.some((prefix) => relative.startsWith(prefix));
+  return prefixes.some((prefix) => relative.startsWith(prefix));
 }
 
-export function shouldScanFile(filePath: string, options?: { cwd?: string; allowIgnored?: boolean }): boolean {
+export function shouldScanFile(
+  filePath: string,
+  options?: { cwd?: string; allowIgnored?: boolean; ignoredPrefixes?: readonly string[] }
+): boolean {
   const ext = path.extname(filePath).toLowerCase();
   const baseName = path.basename(filePath).toLowerCase();
   const hasSupportedType = supportedExtensions.has(ext) || baseName === ".env";
@@ -119,7 +126,7 @@ export function shouldScanFile(filePath: string, options?: { cwd?: string; allow
     return true;
   }
 
-  return !isIgnoredScanPath(filePath, options.cwd);
+  return !isIgnoredScanPath(filePath, options.cwd, options.ignoredPrefixes);
 }
 
 function walkScannableFiles(dir: string, cwd: string, out: Set<string>): void {

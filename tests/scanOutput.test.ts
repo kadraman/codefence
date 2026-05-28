@@ -231,6 +231,8 @@ test("runScan json mode writes only JSON lines to stdout and stays quiet on stde
     const exitCode = await runScan({
       staged: false,
       paths: ["examples/deps/npm/runtime-app"],
+      gitIgnoredPrefixes: ["examples/"],
+      defaultAspects: ["code"],
       only: ["deps"],
       skip: [],
       secret: defaultSecretScanOptions(),

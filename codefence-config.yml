@@ -1,0 +1,21 @@
+version: 1
+
+scan:
+  aspects: [code]
+  format: table
+  quiet: false
+  verbose: false
+
+paths:
+  # Keep fixture trees out of git-based scans in this repo.
+  git_ignored_prefixes:
+    - examples/
+
+deps:
+  provider: osv
+  scope: changed
+  http2: auto
+
+secret:
+  default_rules: on
+  min_confidence: low

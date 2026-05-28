@@ -25,6 +25,10 @@ export interface ScanContext {
 export interface ScanOptions {
   staged: boolean;
   paths: string[];
+  /** Relative path prefixes ignored for git-based code scanning. */
+  gitIgnoredPrefixes: string[];
+  /** Baseline aspect list before env/flags are applied. */
+  defaultAspects: AspectId[];
   only: AspectId[] | null;
   skip: AspectId[];
   secret: SecretScanOptions;

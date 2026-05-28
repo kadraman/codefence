@@ -31,6 +31,8 @@ function makeContext(cwd: string): ScanContext {
     options: {
       staged: false,
       paths: [],
+      gitIgnoredPrefixes: ["examples/"],
+      defaultAspects: ["code"],
       only: ["deps"],
       skip: [],
       secret: defaultSecretScanOptions(),

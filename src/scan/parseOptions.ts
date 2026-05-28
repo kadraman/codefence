@@ -2,6 +2,7 @@ import { cliInvocation } from "../cliName";
 import { hasDependencyFileChanges } from "../manifests";
 import { formatGitScanIgnoredPrefixes } from "./ignorePaths";
 import { defaultDepsScanOptions } from "./deps/config";
+import { loadRepoScanDefaults } from "./repoConfig";
 import {
   defaultSecretScanOptions,
   parseConfidenceLevel,
@@ -9,7 +10,7 @@ import {
   parsePositiveNumber
 } from "./secret/config";
 import { SecretScanOptions } from "./secret/types";
-import { ASPECT_IDS, AspectId, DEFAULT_ASPECTS, ScanOptions, ScanOutputFormat } from "./types";
+import { ASPECT_IDS, AspectId, ScanOptions, ScanOutputFormat } from "./types";
 
 const ASPECT_ALIASES: Record<string, AspectId> = {
   code: "code",
@@ -126,10 +127,10 @@ function envTrim(key: string): string | undefined {
   return value ? value : undefined;
 }
 
-function defaultAspectsFromEnv(): AspectId[] {
+function defaultAspectsFromEnv(fallback: AspectId[]): AspectId[] {
   const raw = envTrim("CODEFENCE_ASPECTS");
   if (!raw) {
-    return [...DEFAULT_ASPECTS];
+    return [...fallback];
   }
   return parseAspectList(raw);
 }
@@ -164,8 +165,10 @@ function parseOnOff(value: string, flag: string): boolean {
   throw new Error(`${flag} must be on or off`);
 }
 
-function parseSecretOptions(argv: string[]): { secret: SecretScanOptions; rest: string[] } {
-  const defaults = defaultSecretScanOptions();
+function parseSecretOptions(
+  argv: string[],
+  defaults: SecretScanOptions
+): { secret: SecretScanOptions; rest: string[] } {
   const secretRules = collectFlagValues(argv, "--secret-rules");
   const defaultRules = readFlagValue(secretRules.rest, "--secret-default-rules");
   const defaultRulesVersion = readFlagValue(defaultRules.rest, "--secret-default-rules-version");
@@ -211,9 +214,12 @@ function parseSecretOptions(argv: string[]): { secret: SecretScanOptions; rest: 
 }
 
 export function parseScanArgv(argv: string[]): ParseScanResult {
+  const configDefaults = loadRepoScanDefaults(process.cwd());
+  const depsDefaults = defaultDepsScanOptions(configDefaults.deps);
+  const secretDefaults = defaultSecretScanOptions(configDefaults.secret);
   const { paths, rest: afterPaths } = collectPaths(argv);
-  const { deps, rest: afterDeps } = parseDepsOptions(afterPaths);
-  const { secret, rest: afterSecret } = parseSecretOptions(afterDeps);
+  const { deps, rest: afterDeps } = parseDepsOptions(afterPaths, depsDefaults);
+  const { secret, rest: afterSecret } = parseSecretOptions(afterDeps, secretDefaults);
 
   const formatParsed = readFlagValue(afterSecret, "--format");
   const onlyParsed = readFlagValue(formatParsed.rest, "--only");
@@ -244,17 +250,24 @@ export function parseScanArgv(argv: string[]): ParseScanResult {
   }
 
   const outputFormat: ScanOutputFormat = parseOutputFormat(
-    formatParsed.value ?? envTrim("CODEFENCE_FORMAT")
+    formatParsed.value ?? envTrim("CODEFENCE_FORMAT") ?? configDefaults.format
   );
 
   const verbose =
-    skipParsed.rest.includes("--verbose") || parseBooleanEnv(envTrim("CODEFENCE_VERBOSE"));
+    skipParsed.rest.includes("--verbose") || parseBooleanEnv(envTrim("CODEFENCE_VERBOSE")) || configDefaults.verbose;
   const quiet =
-    skipParsed.rest.includes("--quiet") || parseBooleanEnv(envTrim("CODEFENCE_QUIET"));
+    skipParsed.rest.includes("--quiet") || parseBooleanEnv(envTrim("CODEFENCE_QUIET")) || configDefaults.quiet;
+
+  const ignoredPrefixesEnv = envTrim("CODEFENCE_GIT_IGNORED_PREFIXES");
+  const gitIgnoredPrefixes = ignoredPrefixesEnv
+    ? ignoredPrefixesEnv.split(",").map((part) => part.trim()).filter(Boolean)
+    : configDefaults.gitIgnoredPrefixes;
 
   return {
     staged: skipParsed.rest.includes("--staged"),
     paths,
+    gitIgnoredPrefixes,
+    defaultAspects: configDefaults.aspects,
     only,
     skip,
     secret,
@@ -303,7 +316,7 @@ export function resolveAspects(options: ScanOptions, filesInScope: string[] = []
   if (options.only && options.only.length > 0) {
     aspects = [...options.only];
   } else {
-    aspects = defaultAspectsFromEnv();
+    aspects = defaultAspectsFromEnv(options.defaultAspects);
   }
 
   for (const skip of options.skip) {
@@ -344,8 +357,11 @@ Options:
   --secret-min-confidence <level>    Filter secret findings below low|medium|high confidence
   -h, --help                         Show this help
 
-Git-based scans skip: ${formatGitScanIgnoredPrefixes()}
+Git-based scans skip by default: ${formatGitScanIgnoredPrefixes()}
   (explicit --paths still scans those files)
+
+Config file:
+  codefence-config.yml              Repository defaults (CLI > env > config > built-in defaults)
 
 Aspects (default: code; deps runs automatically when dependency manifests are in scope):
   code          Local secure-coding rules on changed source files
@@ -363,6 +379,7 @@ Environment:
   CODEFENCE_DEPS_TIMEOUT            Same as --deps-timeout
   CODEFENCE_DEPS_HTTP2              Same as --deps-http2
   CODEFENCE_DEPS_SCOPE              Same as --deps-scope (changed or tree)
+  CODEFENCE_GIT_IGNORED_PREFIXES    Comma-separated git-scan ignored prefixes (for example examples/,fixtures/)
   CODEFENCE_SECRET_RULES            Default Semgrep-style secret rule paths
   CODEFENCE_SECRET_DEFAULT_RULES    Same as --secret-default-rules
   CODEFENCE_SECRET_DEFAULT_RULES_VERSION  Same as --secret-default-rules-version
@@ -406,8 +423,10 @@ function parseDepsScopeFlag(value: string): "changed" | "tree" {
   throw new Error("--deps-scope must be changed or tree");
 }
 
-function parseDepsOptions(argv: string[]): { deps: ReturnType<typeof defaultDepsScanOptions>; rest: string[] } {
-  const defaults = defaultDepsScanOptions();
+function parseDepsOptions(
+  argv: string[],
+  defaults: ReturnType<typeof defaultDepsScanOptions>
+): { deps: ReturnType<typeof defaultDepsScanOptions>; rest: string[] } {
   const provider = readFlagValue(argv, "--deps-provider");
   const providerUrl = readFlagValue(provider.rest, "--deps-provider-url");
   const cacheTtl = readFlagValue(providerUrl.rest, "--deps-cache-ttl");

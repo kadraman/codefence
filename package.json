@@ -1,7 +1,7 @@
 {
   "name": "codefence",
   "version": "0.1.0",
-  "description": "Codefence: guardrails for AI-assisted coding",
+  "description": "Codefence: security guardrails for AI-assisted coding",
   "main": "dist/src/index.js",
   "files": [
     "dist",

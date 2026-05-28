@@ -11,6 +11,12 @@ test("isIgnoredScanPath skips examples fixture trees", () => {
   assert.equal(isIgnoredScanPath("src/app.ts", cwd), false);
 });
 
+test("isIgnoredScanPath honors configurable prefixes", () => {
+  const cwd = process.cwd();
+  assert.ok(isIgnoredScanPath("fixtures/sample.ts", cwd, ["fixtures/"]));
+  assert.equal(isIgnoredScanPath("examples/foo.ts", cwd, ["fixtures/"]), false);
+});
+
 test("scanFile finds hardcoded secret and eval", async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-"));
   const file = path.join(tempDir, "bad.ts");
