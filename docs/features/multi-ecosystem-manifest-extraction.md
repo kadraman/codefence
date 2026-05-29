@@ -10,7 +10,7 @@ scope: "scan|deps|docs"
 
 ## Summary
 
-Extend Codefence dependency extraction so each **language manifest** listed in `src/manifests.ts` produces OSV-queryable `(ecosystem, name, version)` coordinates—not only npm `package.json` with exact semver. Parsers should plug into the existing `deps` aspect, OSV `querybatch` client, cache, and finding output without new CLI aspects. Work is delivered **incrementally by ecosystem**; npm lockfile resolution remains a separate, npm-focused effort in [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md).
+Extend Codefence dependency extraction so each **language manifest** listed in `src/manifests.ts` produces OSV-queryable `(ecosystem, name, version)` coordinates—not only npm `package.json` with exact semver. Parsers should plug into the existing `deps` aspect, OSV `querybatch` client, cache, and finding output without new CLI aspects. Work is delivered **incrementally by ecosystem**; npm lockfile resolution is shipped separately — see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md). Current trigger vs extraction status: [dependency-support.md](../dependency-support.md).
 
 ## Problem Statement
 
@@ -23,7 +23,7 @@ Today:
 
 Related but **out of scope for this feature** (separate specs):
 
-- npm lockfiles: [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md)
+- npm lockfiles: [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
 - OSV transport, cache, severity: [vulnerable-dependency-scanning-osv.md](./vulnerable-dependency-scanning-osv.md)
 
 ## Proposed Solution
@@ -66,7 +66,7 @@ Use [OSV supported ecosystems](https://google.github.io/osv.dev/) names in `Depe
 | File | Tier | Extraction v1 target |
 | ---- | ---- | -------------------- |
 | `package.json` | — | **Done** (exact semver only) |
-| `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` | npm | [Lockfile feature](./lockfile-aware-dependency-extraction.md) |
+| `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` | npm | [Lockfile feature](./implemented/lockfile-aware-dependency-extraction.md) |
 | `requirements.txt` | 1 | Lines matching `name==version` |
 | `go.mod` | 1 | `require module path vX.Y.Z` (non-indirect) |
 | `Gemfile` | 2 | Exact pins only; else `Gemfile.lock` |
@@ -281,7 +281,7 @@ npm run codefence
 
 ## Future Enhancements
 
-1. Lockfile parsers shared across ecosystems (see also npm [lockfile doc](./lockfile-aware-dependency-extraction.md))
+1. Lockfile parsers shared across ecosystems (see also npm [lockfile doc](./implemented/lockfile-aware-dependency-extraction.md))
 2. `--deps-ecosystems` filter for large monorepos
 3. Workspace-aware extraction (npm workspaces, Go workspaces, Poetry monorepo)
 4. Private registry aliases in manifests (name mapping only; auth stays out of band)
@@ -299,7 +299,7 @@ npm run codefence
 ## References
 
 1. [Vulnerable Dependency Scanning With OSV](./vulnerable-dependency-scanning-osv.md)
-2. [Lockfile-aware dependency extraction (npm)](./lockfile-aware-dependency-extraction.md)
+2. [Lockfile-aware dependency extraction (npm)](./implemented/lockfile-aware-dependency-extraction.md)
 3. `src/manifests.ts` — triggered manifest basenames
 4. `src/scan/deps/extract.ts` — current npm-only extraction
 5. [OSV supported ecosystems](https://google.github.io/osv.dev/)

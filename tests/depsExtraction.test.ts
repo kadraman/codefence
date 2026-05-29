@@ -244,3 +244,26 @@ test("collectDependencies prefers pnpm-lock.yaml when multiple lockfiles are pre
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
+
+test("collectDependencies returns no deps for ranged package.json without lockfile", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-ranged-only-"));
+  fs.writeFileSync(
+    path.join(tmpDir, "package.json"),
+    JSON.stringify(
+      {
+        dependencies: {
+          lodash: "^4.17.0",
+          react: "~19.0.0"
+        }
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+
+  const deps = collectDependencies(makeContext(tmpDir), ["package.json"]);
+  assert.deepEqual(deps, []);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});

@@ -40,7 +40,7 @@ When the `deps` aspect runs, for each dependency manifest in scan scope:
 
 Out of scope for this feature (documented under [Future Enhancements](#future-enhancements)):
 
-- Non-npm lockfiles (`poetry.lock`, `Gemfile.lock`, `go.sum`, etc.) — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md)
+- Non-npm lockfiles (`poetry.lock`, `Gemfile.lock`, `go.sum`, etc.) — see [multi-ecosystem-manifest-extraction.md](../multi-ecosystem-manifest-extraction.md)
 - Full semver range resolution without a lockfile
 - Workspace-aware “only changed packages in lockfile diff” optimization
 
@@ -228,7 +228,7 @@ npm run codefence
 
 ## Implementation Checklist
 
-- [ ] Behavior is documented and unambiguous
+- [x] Behavior is documented and unambiguous
 - [x] `package-lock.json` parser (v2/v3) implemented
 - [x] `yarn.lock` Classic parser implemented
 - [x] `pnpm-lock.yaml` parser implemented
@@ -237,8 +237,8 @@ npm run codefence
 - [x] Warnings for unsupported or malformed lockfiles
 - [x] Unit tests with minimal fixtures
 - [x] Example lockfile fixtures under `examples/deps/`
-- [ ] `npm test` passes
-- [ ] `npm run codefence` passes
+- [x] `npm test` passes
+- [x] `npm run codefence` passes
 - [x] User-facing docs updated (`README.md`, cross-link from OSV feature doc)
 
 ## Future Enhancements
@@ -252,16 +252,16 @@ npm run codefence
 
 ## Open Questions
 
-1. **Yarn Berry in v1?** — Support Classic only initially, or invest in Berry parser up front?
-2. **File size limit** — Default max lockfile size (e.g. 10 MiB) before skip + warn?
-3. **Workspace roots** — Should `pnpm-lock.yaml` at repo root scan all importers, or only importers touched in git diff? (v1 proposal: all packages listed under lockfile when file is in scope.)
-4. **Optional dependencies** — Include optional deps from lockfile, or match `npm ls --omit=optional`? (v1 proposal: include all resolved entries with a version.)
-5. **Peer dependencies** — Include peers resolved in lockfile? (v1 proposal: yes if present as resolved packages.)
+1. ~~**Yarn Berry in v1?**~~ **Resolved:** Classic only in v1; Berry returns a warning and no coordinates.
+2. ~~**File size limit**~~ **Resolved:** Skip + warn above **10 MiB** per lockfile (`MAX_LOCKFILE_BYTES` in `src/scan/deps/extract/shared.ts`).
+3. **Workspace roots** — Should `pnpm-lock.yaml` at repo root scan all importers, or only importers touched in git diff? (v1: all packages listed under lockfile when file is in scope.)
+4. **Optional dependencies** — Include optional deps from lockfile, or match `npm ls --omit=optional`? (v1: include all resolved entries with a version.)
+5. **Peer dependencies** — Include peers resolved in lockfile? (v1: yes if present as resolved packages.)
 
 ## References
 
-1. [Vulnerable Dependency Scanning With OSV](./vulnerable-dependency-scanning-osv.md) — provider, cache, CLI, manifest triggers
-2. `src/scan/deps/extract.ts` — current `package.json`-only extraction
+1. [Vulnerable Dependency Scanning With OSV](../vulnerable-dependency-scanning-osv.md) — provider, cache, CLI, manifest triggers
+2. `src/scan/deps/extract.ts` — manifest dispatch; lockfile parsers under `src/scan/deps/extract/`
 3. `src/manifests.ts` — `dependencyManifestNames` including lockfile basenames
 4. [OSV npm ecosystem](https://google.github.io/osv.dev/) — `package.ecosystem: "npm"`
 5. [package-lock.json format](https://docs.npmjs.com/cli/v10/configuring-npm/package-lock-json)
@@ -272,4 +272,4 @@ npm run codefence
 
 - This feature deliberately stays in the **extraction** layer; it does not replace manifest change detection already implemented for the `deps` aspect.
 - Parser maintenance is the main long-term cost; keep parsers small, test-heavy, and isolated per format.
-- After shipping, update the OSV feature doc checklist item “Lockfile-aware resolution for higher precision” to point here and mark done when complete.
+- OSV feature doc cross-links here and marks npm lockfile extraction as shipped (see [vulnerable-dependency-scanning-osv.md](../vulnerable-dependency-scanning-osv.md)).

@@ -135,6 +135,8 @@ Git-based scans skip fixture trees such as `examples/` (see `codefence scan --he
 
 Dependency extraction prefers resolved npm versions from sibling `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml` files when those lockfiles are in scope. If only `package.json` is in scope, Codefence keeps the existing exact-version-only behavior for manifest pins.
 
+For which package managers and manifest types are supported today (vs trigger-only), see **[docs/dependency-support.md](docs/dependency-support.md)**.
+
 ### Repository config (`codefence-config.yml`)
 
 Define repository-local defaults in `codefence-config.yml` (repo root).
@@ -291,6 +293,7 @@ Hook details: [docs/HOOKS.md](docs/HOOKS.md).
 | [README.md](README.md) | Install, `codefence scan`, release |
 | [docs/AI-ASSISTANTS.md](docs/AI-ASSISTANTS.md) | Cursor, Claude, Copilot, `codefence install` |
 | [docs/HOOKS.md](docs/HOOKS.md) | Git pre-commit, background scanner, cache |
+| [docs/dependency-support.md](docs/dependency-support.md) | Dependency ecosystems: npm shipped, others planned |
 | [docs/README.md](docs/README.md) | Documentation index |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development, tests, npm publish |
 

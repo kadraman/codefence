@@ -12,7 +12,7 @@ scope: "scan|cli|hooks|docs"
 
 This feature adds dependency vulnerability scanning to Codefence using an external vulnerability source, with OSV as the default provider. The scanner should detect when dependency manifests change, resolve affected packages, and query the provider API for known vulnerabilities. The provider integration must be configurable, but work out of the box against OSV.
 
-**Implementation status (2026-05-27):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, npm `package.json` extraction (exact versions), and npm lockfile-aware resolution are **shipped**. Non-npm ecosystems and custom providers remain **open** (see checklist below).
+**Implementation status (2026-05-27):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, npm `package.json` extraction (exact versions), and npm lockfile-aware resolution are **shipped**. Non-npm ecosystems and custom providers remain **open** (see checklist below). Ecosystem support matrix: [dependency-support.md](../dependency-support.md).
 
 ## Problem Statement
 
@@ -160,7 +160,7 @@ Expected implementation areas:
 
 1. [x] Add dependency scanning aspect identifier and registry wiring.
 2. [x] Implement manifest detection and changed-file trigger logic.
-3. [x] Implement dependency extraction per manifest type — npm `package.json` exact pins plus `package-lock.json`, `yarn.lock` (Classic), and `pnpm-lock.yaml`; see [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md).
+3. [x] Implement dependency extraction per manifest type — npm `package.json` exact pins plus `package-lock.json`, `yarn.lock` (Classic), and `pnpm-lock.yaml`; see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md).
 4. [x] Define provider abstraction and normalized finding schema.
 5. [x] Implement OSV provider client with HTTP/2 preference and HTTP/1.1 size-limit-safe behavior.
 6. [x] Implement caching with TTL and refresh controls.
@@ -215,7 +215,7 @@ Suggested files (actual):
 | File | Status |
 | ---- | ------ |
 | `tests/manifests.test.ts` | [x] Manifest name detection |
-| `tests/depsExtraction.test.ts` | [x] `package.json` extraction |
+| `tests/depsExtraction.test.ts` | [x] npm `package.json`, lockfiles, merge precedence |
 | `tests/depsProviderOsv.test.ts` | [x] OSV batch/normalization/enrichment |
 | `tests/depsHttpClient.test.ts` | [x] HTTP/2 transport |
 | `tests/depsQuery.test.ts` | [x] Provider dispatch; custom rejected |
@@ -227,7 +227,7 @@ Suggested files (actual):
 ### CLI/Integration Tests
 
 1. [x] Staged / explicit `package.json` paths trigger OSV query flow (`examples/deps`, `runScan` json test).
-2. [ ] Staged changes in each initial manifest type trigger OSV query flow — **trigger only** for listed names in `src/manifests.ts`; extraction/OSV query only for `package.json` today.
+2. [x] Staged npm lockfiles and `package.json` trigger extraction + OSV query flow; other manifest names in `src/manifests.ts` trigger the aspect but have no extraction yet.
 3. [x] `--deps-refresh` bypasses cache (wired in `deps` aspect).
 4. [x] `--deps-http2 on` uses HTTP/2 transport path (`tests/depsHttpClient.test.ts`).
 5. [x] Provider errors produce deterministic, actionable output (failed aspect + message).
@@ -271,9 +271,8 @@ Feature is not complete until both commands pass.
 
 ### Open / partial
 
-- [ ] **Dependency extraction** beyond npm `package.json` (exact semver only in `src/scan/deps/extract.ts`):
-  - [ ] `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` — planned in [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md)
-  - [ ] Non-npm manifests — [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md) (`requirements.txt`, `go.mod`, `pom.xml`, …)
+- [x] **npm lockfile extraction** — `package-lock.json` (v2/v3), `yarn.lock` (Classic), `pnpm-lock.yaml`; see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
+- [ ] **Dependency extraction** for non-npm manifests — [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md) (`requirements.txt`, `go.mod`, `pom.xml`, …)
 - [ ] **Custom provider** (`--deps-provider custom`) — CLI flag exists; `queryDependencies` throws until a provider API ships
 - [ ] **Provider authentication** for custom/private endpoints
 - [ ] **Dedicated deps cache unit tests** (`tests/depsCache.test.ts`)
@@ -283,7 +282,7 @@ Feature is not complete until both commands pass.
 
 ## Future Enhancements
 
-1. Lockfile-aware resolution for higher precision — see [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md)
+1. Additional npm lockfile coverage (Yarn Berry, `package-lock.json` v1, shrinkwrap) — see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
 2. Additional ecosystems (Python, Go, JVM, .NET, …) — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md)
 3. Multi-provider aggregation with deduplication
 4. Authenticated provider support with secret-safe credential handling
@@ -292,7 +291,7 @@ Feature is not complete until both commands pass.
 ## Open Questions
 
 1. ~~Should dependency scanning be included in default scan aspects or opt-in initially?~~ **Resolved:** Default aspect is `code` only; `deps` auto-runs when dependency manifests are in the git/`--paths` scope, or when `--deps-scope tree` is set (unless `--only` / `--skip deps`).
-2. ~~Which lockfiles are in scope for initial implementation?~~ **Resolved for triggers, open for extraction:** All names in [Manifest Triggers](#manifest-triggers) are recognized for scan triggering and tree discovery; version resolution from lockfiles is tracked in [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md).
+2. ~~Which lockfiles are in scope for initial implementation?~~ **Resolved:** All names in [Manifest Triggers](#manifest-triggers) trigger scans and tree discovery; npm version resolution from `package-lock.json`, `yarn.lock` (Classic), and `pnpm-lock.yaml` is shipped — see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md).
 3. ~~What is the exact timeout/retry policy for provider calls?~~ **Resolved (v1):** Configurable timeout via `--deps-timeout` (default 15s); GET retries once after 300ms; batch query uses single attempt with abort timeout; enrichment concurrency capped at 8.
 4. Should provider responses be persisted as raw cache artifacts for debugging? **Open.**
 5. ~~How should severity be mapped when provider metadata is incomplete?~~ **Resolved:** OSV text labels map directly; numeric CVSS uses ≥9 critical, ≥7 high, ≥4 medium, &lt;4 low; unknown metadata defaults to `medium`.
