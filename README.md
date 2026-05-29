@@ -1,20 +1,13 @@
 
-<p align="center"><img src="./media/logo.png" alt="Codefence" width="420"/></p>
+<p align="center"><img src="./media/logo.png" alt="Codefence" width="720"/></p>
 
 # Codefence
 
-**Codefence** - security guardrails for AI-assisted coding.
-
-- **npm:** [`codefence`](https://www.npmjs.com/package/codefence)
-- **CLI:** `codefence`
-
-## What this project provides
-
-- `codefence scan` — local security scanning on git-changed or explicit paths (secrets and dependency vulnerabilities)
-- Integrations for Cursor, Claude Code, and GitHub Copilot
-- Cross-platform Git pre-commit hook and optional IDE background scanning (`codefence install-hooks`)
+**Codefence** is a security scanning tool that provides guardrails for AI-assisted coding. Available as a CLI through the installation of an [`npm`](https://www.npmjs.com/package/codefence) package, it provides security scanning on git-changed or explicit paths. It currently supports secret scanning and dependency vulnerabilities to prevent the exposure of secrets (through context pasting or session persistence), vulnerable recommendations, or hallucinated packages. Integrations are available for Cursor, Claude Code, and GitHub Copilot, as well as a cross-platform Git pre-commit hook and optional IDE background scanning (`codefence install-hooks`).
 
 ## Prerequisites
+
+To install and run **Codefence** you will need:
 
 - [Node.js](https://nodejs.org/) 18+
 
