@@ -20,16 +20,16 @@ function parsePinnedRequirement(line: string): { name: string; version: string }
     return null;
   }
 
-  function isRequirementsDirective(line: string): boolean {
-    return /^(-r|--requirement|-c|--constraint|-e|--editable|--index-url|--extra-index-url|--find-links)\b/.test(
-      line
-    );
-  }
-
   return {
     name: match[1],
     version: match[2]
   };
+}
+
+function isRequirementsDirective(line: string): boolean {
+  return /^(-r|--requirement|-c|--constraint|-e|--editable|--index-url|--extra-index-url|--find-links)\b/.test(
+    line
+  );
 }
 
 export function extractRequirementsTxtDependencies(manifestPath: string): DependencyExtractionResult {
