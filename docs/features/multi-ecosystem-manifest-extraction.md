@@ -3,7 +3,7 @@ title: "Multi-Ecosystem Manifest Extraction"
 status: proposed
 owners: ["@kadraman"]
 created: 2026-05-27
-updated: 2026-05-27
+updated: 2026-05-30
 issue: "TBD"
 scope: "scan|deps|docs"
 ---
@@ -245,16 +245,17 @@ npm run codefence
 
 ### Tier 1 — Python + Go
 
-- [ ] `requirements.txt` — `==` pins → `PyPI`
+- [x] `requirements.txt` — `==` pins → `PyPI`
 - [ ] `go.mod` — `require` lines with semver → `Go`
-- [ ] Fixtures and unit tests
-- [ ] README ecosystem row
+- [ ] `Pipfile` — `[packages]` / `[dev-packages]` exact `==` pins → `PyPI`
+- [x] Fixtures and unit tests
+- [x] README ecosystem row
 
 ### Tier 2 — Ruby, PHP, Python (project files)
 
 - [ ] `composer.json` — exact `require` versions → `Packagist`
 - [ ] `Gemfile` exact pins; `Gemfile.lock` resolved versions → `RubyGems`
-- [ ] `pyproject.toml` — PEP 621 exact pins → `PyPI`
+- [x] `pyproject.toml` — PEP 621 exact pins → `PyPI`
 - [ ] `poetry.lock` / `Pipfile.lock` parsers (or defer with clear skip message)
 - [ ] Fixtures and tests
 

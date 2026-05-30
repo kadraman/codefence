@@ -1,7 +1,10 @@
 import path from "node:path";
 import { DependencyCoordinate } from "./types";
 import { extractPackageLockDependencies } from "./extract/packageLock";
+import { extractPipfileDependencies } from "./extract/pipfile";
 import { extractPnpmLockDependencies } from "./extract/pnpmLock";
+import { extractPyprojectTomlDependencies } from "./extract/pyprojectToml";
+import { extractRequirementsTxtDependencies } from "./extract/requirementsTxt";
 import {
   DependencyExtractionResult,
   NPM_ECOSYSTEM,
@@ -76,6 +79,15 @@ export function extractDependenciesForManifestWithDiagnostics(
   }
   if (baseName === "pnpm-lock.yaml") {
     return extractPnpmLockDependencies(manifestPath);
+  }
+  if (baseName === "requirements.txt") {
+    return extractRequirementsTxtDependencies(manifestPath);
+  }
+  if (baseName === "pipfile") {
+    return extractPipfileDependencies(manifestPath);
+  }
+  if (baseName === "pyproject.toml") {
+    return extractPyprojectTomlDependencies(manifestPath);
   }
   return { dependencies: [], warnings: [] };
 }

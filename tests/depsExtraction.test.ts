@@ -159,6 +159,92 @@ test("extractDependenciesForManifest reads pnpm lockfiles", () => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
+test("extractDependenciesForManifest reads pinned requirements.txt entries", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-requirements-"));
+  const manifestPath = path.join(tmpDir, "requirements.txt");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "django==2.2.24",
+      "requests>=2.31.0",
+      "uvicorn[standard]==0.30.0 ; python_version >= '3.9'",
+      "--extra-index-url https://example.com/simple",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["PyPI:django@2.2.24", "PyPI:uvicorn@0.30.0"]
+  );
+  assert.equal(result.dependencies.find((dep) => dep.name === "django")?.manifestLine, 1);
+  assert.equal(result.dependencies.find((dep) => dep.name === "uvicorn")?.manifestLine, 3);
+  assert.equal(result.warnings.length, 1);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads pinned Pipfile entries", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-pipfile-"));
+  const manifestPath = path.join(tmpDir, "Pipfile");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "[packages]",
+      'django = "==2.2.24"',
+      'requests = ">=2.31.0"',
+      'flask = {version = "==2.2.5", extras = ["async"]}',
+      "",
+      "[dev-packages]",
+      'pytest = "==7.4.0"',
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["PyPI:django@2.2.24", "PyPI:flask@2.2.5", "PyPI:pytest@7.4.0"]
+  );
+  assert.equal(result.warnings.length, 1);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads pinned pyproject.toml dependencies", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-pyproject-"));
+  const manifestPath = path.join(tmpDir, "pyproject.toml");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "[project]",
+      "dependencies = [",
+      '  "urllib3==1.26.4",',
+      '  "requests>=2.31.0",',
+      '  "idna==3.7; python_version >= \'3.9\'"',
+      "]",
+      "",
+      "[project.optional-dependencies]",
+      'dev = ["pytest==7.4.0", "mypy>=1.0"]',
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["PyPI:idna@3.7", "PyPI:pytest@7.4.0", "PyPI:urllib3@1.26.4"]
+  );
+  assert.equal(result.dependencies.find((dep) => dep.name === "urllib3")?.manifestLine, 3);
+  assert.equal(result.warnings.length, 1);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
 test("extractDependenciesForManifestWithDiagnostics warns for unsupported lockfiles", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-yarn-berry-"));
   const yarnLockPath = path.join(tmpDir, "yarn.lock");

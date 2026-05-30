@@ -12,7 +12,7 @@ Implementation source of truth: [`src/manifests.ts`](../src/manifests.ts) (trigg
 | Ecosystem | OSV ecosystem | Trigger | Version extraction | Lockfile / resolved versions |
 | --------- | ------------- | ------- | ------------------ | ---------------------------- |
 | **Node.js (npm)** | `npm` | Yes | **Shipped** | `package-lock.json` (v2/v3), `yarn.lock` (Classic), `pnpm-lock.yaml` |
-| Python | `PyPI` | Yes | Planned | See [multi-ecosystem spec](features/multi-ecosystem-manifest-extraction.md) |
+| Python | `PyPI` | Yes | **Shipped** (`requirements.txt`, `Pipfile`, `pyproject.toml`) | Lockfile-based resolution (`poetry.lock`, `Pipfile.lock`) planned |
 | Go | `Go` | Yes | Planned | `go.mod` / `go.sum` |
 | Rust | `crates.io` | Yes | Planned | `Cargo.toml` / `Cargo.lock` |
 | Ruby | `RubyGems` | Yes | Planned | `Gemfile` / `Gemfile.lock` |
@@ -34,22 +34,22 @@ Provider, cache, and CLI behavior: [vulnerable-dependency-scanning-osv.md](featu
 
 **Merge rules** (same directory): if multiple lockfiles are in scope, use `pnpm-lock.yaml` → `package-lock.json` → `yarn.lock` (one-line warning). When any preferred lockfile is in scope, lockfile versions win over ranged `package.json` entries. Details: [lockfile-aware-dependency-extraction.md](features/implemented/lockfile-aware-dependency-extraction.md).
 
-## Other manifests (trigger only today)
+## Other manifests (partial support)
 
-These files are recognized in [`src/manifests.ts`](../src/manifests.ts) and can start a dependency scan, but `extractDependenciesForManifest` does not parse them yet. You may see:
+These files are recognized in [`src/manifests.ts`](../src/manifests.ts) and can start a dependency scan. Some have shipped extraction, while others are still trigger-only and may produce:
 
 ```text
 [deps] SKIPPED — No exact-version dependencies extracted from changed manifests.
 ```
 
-| Manifest | Planned ecosystem | Planned extraction (tier) |
-| -------- | ----------------- | --------------------------- |
-| `requirements.txt` | PyPI | Pinned `==` lines (tier 1) |
+| Manifest | Ecosystem | Extraction status |
+| -------- | --------- | ----------------- |
+| `requirements.txt` | PyPI | ✅ Shipped (`name==version`) |
 | `go.mod` | Go | `require … vX.Y.Z` (tier 1) |
 | `Gemfile` | RubyGems | Exact pins; `Gemfile.lock` (tier 2) |
 | `composer.json` | Packagist | Exact `require` versions (tier 2) |
-| `pyproject.toml` | PyPI | Exact PEP 621 pins (tier 2) |
-| `Pipfile` | PyPI | Via `Pipfile.lock` (tier 2) |
+| `pyproject.toml` | PyPI | ✅ Shipped (`[project]` and `[project.optional-dependencies]` exact `==` pins) |
+| `Pipfile` | PyPI | ✅ Shipped (`[packages]` / `[dev-packages]` exact `==` pins and inline table `version`) |
 | `poetry.lock` | PyPI | Lockfile parser (tier 2–3) |
 | `Pipfile.lock` | PyPI | Lockfile parser (tier 2–3) |
 | `Cargo.toml` | crates.io | Exact pins (tier 2) |

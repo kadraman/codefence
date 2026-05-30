@@ -3,7 +3,7 @@ title: "Vulnerable Dependency Scanning With OSV Default"
 status: partial
 owners: ["@kadraman"]
 created: 2026-05-25
-updated: 2026-05-27
+updated: 2026-05-30
 issue: "TBD"
 scope: "scan|cli|hooks|docs"
 ---
@@ -272,7 +272,7 @@ Feature is not complete until both commands pass.
 ### Open / partial
 
 - [x] **npm lockfile extraction** — `package-lock.json` (v2/v3), `yarn.lock` (Classic), `pnpm-lock.yaml`; see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
-- [ ] **Dependency extraction** for non-npm manifests — [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md) (`requirements.txt`, `go.mod`, `pom.xml`, …)
+- [ ] **Dependency extraction** for non-npm manifests — [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md) (Python `requirements.txt`, `Pipfile`, and `pyproject.toml` shipped; other ecosystems remain open)
 - [ ] **Custom provider** (`--deps-provider custom`) — CLI flag exists; `queryDependencies` throws until a provider API ships
 - [ ] **Provider authentication** for custom/private endpoints
 - [ ] **Dedicated deps cache unit tests** (`tests/depsCache.test.ts`)

@@ -6,6 +6,7 @@ import { extractDependenciesForManifest, extractPackageJsonDependencies } from "
 import { queryOsvForDependencies } from "../src/scan/deps/provider";
 
 const FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "npm");
+const PYTHON_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "python");
 const OSV_RUNTIME_APP_BATCH = path.join(
   process.cwd(),
   "tests",
@@ -48,6 +49,23 @@ test("examples deps lockfile fixtures expose the same npm coordinates", () => {
     "minimist@1.2.5",
     "node-fetch@2.6.0",
     "ws@7.3.0"
+  ]);
+});
+
+test("examples python deps fixtures expose exact PyPI coordinates", () => {
+  const manifests = [
+    path.join(PYTHON_FIXTURE_ROOT, "requirements-app", "requirements.txt"),
+    path.join(PYTHON_FIXTURE_ROOT, "pipfile-app", "Pipfile"),
+    path.join(PYTHON_FIXTURE_ROOT, "pyproject-app", "pyproject.toml")
+  ];
+
+  const coordinates = manifests.flatMap((manifestPath) => extractDependenciesForManifest(manifestPath));
+  const labels = coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort();
+
+  assert.deepEqual(labels, [
+    "PyPI:django@2.2.24",
+    "PyPI:jinja2@2.11.2",
+    "PyPI:urllib3@1.26.4"
   ]);
 });
 

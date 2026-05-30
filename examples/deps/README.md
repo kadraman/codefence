@@ -2,7 +2,7 @@
 
 Path: `examples/deps/`
 
-These manifests pin **exact versions** of packages with known [OSV](https://osv.dev/) advisories and CVEs. Each npm example now also includes a sibling `package-lock.json` so dependency scans can resolve lockfile-backed versions the same way real projects do. They are fake projects for local testing only — do not install or publish them.
+These manifests pin **exact versions** of packages with known [OSV](https://osv.dev/) advisories and CVEs. Each npm example also includes a sibling `package-lock.json` so dependency scans can resolve lockfile-backed versions the same way real projects do. Python fixtures demonstrate exact-pin extraction for `requirements.txt`, `Pipfile`, and `pyproject.toml`. They are fake projects for local testing only — do not install or publish them.
 
 | Fixture | Section | Package | Version | Example CVE | Fixed |
 | ------- | ------- | ------- | ------- | ----------- | ----- |
@@ -11,6 +11,9 @@ These manifests pin **exact versions** of packages with known [OSV](https://osv.
 | `npm/dev-tooling/package.json` / `package-lock.json` | `devDependencies` | `ws` | `7.3.0` | `CVE-2024-37890` | `>= 5.2.4` |
 | `npm/dev-tooling/package.json` / `package-lock.json` | `devDependencies` | `jsonwebtoken` | `8.5.1` | `CVE-2022-23539` | `>= 9.0.0` |
 | `npm/library/package.json` / `package-lock.json` | `optionalDependencies` | `node-fetch` | `2.6.0` | `CVE-2022-0235` | `>= 3.1.1` |
+| `python/requirements-app/requirements.txt` | direct requirements | `django` | `2.2.24` | `CVE-2021-45116` | `>= 2.2.25` |
+| `python/pipfile-app/Pipfile` | `[packages]` | `jinja2` | `2.11.2` | `CVE-2020-28493` | `>= 2.11.3` |
+| `python/pyproject-app/pyproject.toml` | `[project.dependencies]` | `urllib3` | `1.26.4` | `CVE-2021-33503` | `>= 1.26.5` |
 
 Run against the full fixture tree:
 

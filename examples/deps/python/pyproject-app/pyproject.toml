@@ -1,0 +1,7 @@
+[project]
+name = "pyproject-app"
+version = "0.1.0"
+dependencies = [
+  "urllib3==1.26.4",
+  "requests>=2.31.0",
+]
