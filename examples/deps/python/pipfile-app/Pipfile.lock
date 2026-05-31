@@ -1,0 +1,33 @@
+{
+  "_meta": {
+    "hash": {
+      "sha256": "codefence-fixture-pipfile-app"
+    },
+    "pipfile-spec": 6,
+    "requires": {
+      "python_version": "3.11"
+    },
+    "sources": [
+      {
+        "name": "pypi",
+        "url": "https://pypi.org/simple",
+        "verify_ssl": true
+      }
+    ]
+  },
+  "default": {
+    "click": {
+      "hashes": [
+        "sha256:codefence-fixture-click"
+      ],
+      "version": "==8.1.7"
+    },
+    "jinja2": {
+      "hashes": [
+        "sha256:codefence-fixture-jinja2"
+      ],
+      "version": "==2.11.2"
+    }
+  },
+  "develop": {}
+}

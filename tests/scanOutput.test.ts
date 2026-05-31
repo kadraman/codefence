@@ -1,3 +1,4 @@
+import path from "node:path";
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Finding } from "../src/types";
@@ -5,6 +6,7 @@ import { runScan } from "../src/scan/runner";
 import {
   colorSeverity,
   isScanQuiet,
+  printScanWarnings,
   printUnifiedFindings,
   writeScanLog,
   writeScanStatus
@@ -215,6 +217,47 @@ test("dependency json output includes package, version, cve, and line fields", (
   assert.deepEqual(payload.location, { line: 7 });
 });
 
+test("printScanWarnings writes structured warning records to stdout in json mode", () => {
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const originalLog = console.log;
+  const originalError = console.error;
+  console.log = (...args: unknown[]) => {
+    stdout.push(args.map(String).join(" "));
+  };
+  console.error = (...args: unknown[]) => {
+    stderr.push(args.map(String).join(" "));
+  };
+
+  try {
+    printScanWarnings(
+      "deps",
+      [
+        {
+          code: "deps.non-exact-spec",
+          message: "Skipped non-exact requirements.txt dependency entries; no OSV lookup for unresolved ranges.",
+          manifestPath: path.join(process.cwd(), "examples/deps/python/requirements-app/requirements.txt"),
+          remediation: "Pin dependencies with == in requirements.txt or commit uv.lock, Pipfile.lock, or poetry.lock, then re-scan."
+        }
+      ],
+      "json",
+      process.cwd(),
+      jsonControl
+    );
+    assert.deepEqual(stderr, []);
+    assert.equal(stdout.length, 1);
+    const payload = JSON.parse(stdout[0] ?? "");
+    assert.equal(payload.category, "warning");
+    assert.equal(payload.aspect, "deps");
+    assert.equal(payload.code, "deps.non-exact-spec");
+    assert.match(payload.filename, /requirements-app\/requirements\.txt$/);
+    assert.ok(payload.remediation);
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+  }
+});
+
 test("runScan json mode writes only JSON lines to stdout and stays quiet on stderr by default", async () => {
   const stdout: string[] = [];
   const stderr: string[] = [];
@@ -247,9 +290,51 @@ test("runScan json mode writes only JSON lines to stdout and stays quiet on stde
     assert.equal(stderr.length, 0);
     for (const line of stdout) {
       const payload = JSON.parse(line);
-      assert.equal(payload.category, "dependency");
-      assert.ok(payload.package);
+      assert.ok(["dependency", "warning"].includes(payload.category));
+      if (payload.category === "dependency") {
+        assert.ok(payload.package);
+      }
     }
+  } finally {
+    console.log = originalLog;
+    console.error = originalError;
+  }
+});
+
+test("runScan json mode includes deps warnings on stdout for unresolved python specs", async () => {
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  const originalLog = console.log;
+  const originalError = console.error;
+  console.log = (...args: unknown[]) => {
+    stdout.push(args.map(String).join(" "));
+  };
+  console.error = (...args: unknown[]) => {
+    stderr.push(args.map(String).join(" "));
+  };
+
+  try {
+    const exitCode = await runScan({
+      staged: false,
+      paths: ["examples/deps/python/requirements-app"],
+      gitIgnoredPrefixes: ["examples/"],
+      defaultAspects: ["code"],
+      only: ["deps"],
+      skip: [],
+      secret: defaultSecretScanOptions(),
+      deps: { ...defaultDepsScanOptions(), refresh: true },
+      outputFormat: "json",
+      quiet: false,
+      verbose: false
+    });
+
+    assert.equal(exitCode, 1);
+    assert.equal(stderr.length, 0);
+    assert.ok(stdout.some((line) => JSON.parse(line).category === "warning"));
+    assert.ok(stdout.some((line) => JSON.parse(line).category === "dependency"));
+    const warning = stdout.map((line) => JSON.parse(line)).find((payload) => payload.category === "warning");
+    assert.equal(warning.code, "deps.non-exact-spec");
+    assert.ok(warning.remediation);
   } finally {
     console.log = originalLog;
     console.error = originalError;

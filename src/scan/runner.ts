@@ -13,12 +13,21 @@ const ASPECT_REGISTRY: Record<AspectId, ScanAspect> = {
   deps: depsAspect
 };
 
+function normalizeScopePath(cwd: string, filePath: string): string {
+  const absolute = path.isAbsolute(filePath) ? filePath : path.resolve(cwd, filePath);
+  return path.relative(cwd, absolute).replace(/\\/g, "/");
+}
+
+function filesForExplicitPaths(paths: string[], cwd: string): string[] {
+  const scannable = expandScanPaths(paths, cwd).map((file) => normalizeScopePath(cwd, file));
+  const manifests = discoverDependencyManifests(cwd, paths);
+  return [...new Set([...scannable, ...manifests])].sort();
+}
+
 export function buildScanContext(options: ScanOptions): ScanContext {
   const cwd = process.cwd();
   const files =
-    options.paths.length > 0
-      ? expandScanPaths(options.paths, cwd).map((file) => path.relative(cwd, file))
-      : getChangedFiles(options.staged);
+    options.paths.length > 0 ? filesForExplicitPaths(options.paths, cwd) : getChangedFiles(options.staged);
 
   const depsManifestPaths =
     options.deps.scope === "tree"

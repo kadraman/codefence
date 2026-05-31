@@ -4,8 +4,10 @@ import {
   MAX_LOCKFILE_BYTES,
   NPM_ECOSYSTEM,
   dedupeCoordinates,
+  depsExtractionWarning,
   emptyExtractionResult,
   findBestEffortLine,
+  manifestReadWarning,
   normalizeInstalledVersion,
   readManifestSource
 } from "./shared";
@@ -105,19 +107,31 @@ function collectLegacyDependencies(
 export function extractPackageLockDependencies(manifestPath: string): DependencyExtractionResult {
   const readResult = readManifestSource(manifestPath, { maxBytes: MAX_LOCKFILE_BYTES });
   if (!readResult.source) {
-    return emptyExtractionResult(readResult.warning);
+    return emptyExtractionResult(
+      readResult.warning ? manifestReadWarning(readResult.absolutePath, readResult.warning) : undefined
+    );
   }
 
   let parsed: PackageLockShape;
   try {
     parsed = JSON.parse(readResult.source) as PackageLockShape;
   } catch {
-    return emptyExtractionResult("Malformed package-lock.json; skipping dependency extraction.");
+    return emptyExtractionResult(
+      depsExtractionWarning(
+        readResult.absolutePath,
+        "deps.malformed-lockfile",
+        "Malformed package-lock.json; skipping dependency extraction."
+      )
+    );
   }
 
   if (parsed.lockfileVersion !== 2 && parsed.lockfileVersion !== 3) {
     return emptyExtractionResult(
-      `Unsupported package-lock.json lockfileVersion ${String(parsed.lockfileVersion ?? "unknown")}; only v2/v3 are supported.`
+      depsExtractionWarning(
+        readResult.absolutePath,
+        "deps.unsupported-lockfile",
+        `Unsupported package-lock.json lockfileVersion ${String(parsed.lockfileVersion ?? "unknown")}; only v2/v3 are supported.`
+      )
     );
   }
 

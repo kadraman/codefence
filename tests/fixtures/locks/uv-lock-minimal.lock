@@ -1,0 +1,22 @@
+version = 1
+requires-python = ">=3.11"
+
+[[package]]
+name = "requests"
+version = "2.31.0"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "urllib3"
+version = "1.26.4"
+source = { registry = "https://pypi.org/simple" }
+
+[[distribution]]
+name = "certifi"
+version = "2024.7.4"
+source = "registry+https://pypi.org/simple"
+
+[[package]]
+name = "private-git-lib"
+version = "0.1.0"
+source = { git = "https://github.com/example/private-git-lib.git", rev = "abc123" }

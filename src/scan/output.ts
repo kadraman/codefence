@@ -1,6 +1,8 @@
 import path from "node:path";
 import { SEVERITY_RANK, type Severity } from "../severity";
 import type { Finding } from "../types";
+import { formatDepsWarningLog } from "./deps/extract/shared";
+import type { DepsExtractionWarning } from "./deps/extract/shared";
 import type { ScanOutputControl, ScanOutputFormat } from "./types";
 
 type UnifiedCategory = "code" | "dependency";
@@ -319,8 +321,8 @@ function printJson(findings: Finding[], category: UnifiedCategory, cwd: string):
   for (const finding of findings) {
     const filename = relativeFilename(finding.filePath, cwd);
     const payload = {
-      severity: finding.severity,
       category,
+      severity: finding.severity,
       package: finding.packageName ?? null,
       version: finding.packageVersion ?? null,
       fixed: finding.fixedVersion ? `>= ${finding.fixedVersion}` : null,
@@ -337,6 +339,46 @@ function printJson(findings: Finding[], category: UnifiedCategory, cwd: string):
       detectionMethod: finding.detectionMethod ?? null
     };
     console.log(JSON.stringify(payload));
+  }
+}
+
+function printJsonWarnings(
+  aspect: "code" | "deps",
+  warnings: DepsExtractionWarning[],
+  cwd: string
+): void {
+  for (const warning of warnings) {
+    console.log(
+      JSON.stringify({
+        category: "warning",
+        aspect,
+        code: warning.code,
+        message: warning.message,
+        filename: relativeFilename(warning.manifestPath, cwd),
+        remediation: warning.remediation
+      })
+    );
+  }
+}
+
+export function printScanWarnings(
+  aspect: "code" | "deps",
+  warnings: DepsExtractionWarning[],
+  format: ScanOutputFormat,
+  cwd: string,
+  control: ScanOutputControl
+): void {
+  if (warnings.length === 0) {
+    return;
+  }
+
+  if (format === "json") {
+    printJsonWarnings(aspect, warnings, cwd);
+    return;
+  }
+
+  for (const warning of warnings) {
+    writeScanLog(`[${aspect}] Warning: ${formatDepsWarningLog(warning)}`, control);
   }
 }
 
