@@ -649,3 +649,136 @@ test("collectDependencies does not warn about unscoped lockfiles when lockfile i
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
+
+test("extractDependenciesForManifest reads go.mod block require entries", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-gomod-block-"));
+  const manifestPath = path.join(tmpDir, "go.mod");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "module example.com/myapp",
+      "",
+      "go 1.21",
+      "",
+      "require (",
+      "\tgolang.org/x/crypto v0.16.0",
+      "\tgithub.com/gin-gonic/gin v1.8.1",
+      "\tgithub.com/google/uuid v1.6.0 // indirect",
+      ")",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    [
+      "Go:github.com/gin-gonic/gin@1.8.1",
+      "Go:github.com/google/uuid@1.6.0",
+      "Go:golang.org/x/crypto@0.16.0"
+    ]
+  );
+  assert.equal(result.dependencies.find((dep) => dep.name === "golang.org/x/crypto")?.manifestLine, 6);
+  assert.equal(result.warnings.length, 0);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads go.mod single-line require entries", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-gomod-single-"));
+  const manifestPath = path.join(tmpDir, "go.mod");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "module example.com/myapp",
+      "",
+      "go 1.21",
+      "",
+      "require golang.org/x/crypto v0.16.0",
+      "require github.com/go-jose/go-jose/v3 v3.0.0",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    [
+      "Go:github.com/go-jose/go-jose/v3@3.0.0",
+      "Go:golang.org/x/crypto@0.16.0"
+    ]
+  );
+  assert.equal(result.dependencies.find((dep) => dep.name === "golang.org/x/crypto")?.manifestLine, 5);
+  assert.equal(result.warnings.length, 0);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest skips pseudo-versions in go.mod", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-gomod-pseudo-"));
+  const manifestPath = path.join(tmpDir, "go.mod");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "module example.com/myapp",
+      "",
+      "go 1.21",
+      "",
+      "require (",
+      "\tgolang.org/x/crypto v0.16.0",
+      "\tgithub.com/some/dev-dep v0.0.0-20231113122135-a4f7c8f4c9d3",
+      ")",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`),
+    ["Go:golang.org/x/crypto@0.16.0"]
+  );
+  assert.equal(result.warnings.length, 0);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest returns empty result for malformed go.mod", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-gomod-malformed-"));
+  const manifestPath = path.join(tmpDir, "go.mod");
+  fs.writeFileSync(manifestPath, "not a valid go.mod\n!!!###", "utf8");
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(result.dependencies, []);
+  assert.equal(result.warnings.length, 0);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest deduplicates go.mod entries", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-gomod-dedup-"));
+  const manifestPath = path.join(tmpDir, "go.mod");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "module example.com/myapp",
+      "",
+      "go 1.21",
+      "",
+      "require (",
+      "\tgolang.org/x/crypto v0.16.0",
+      "\tgolang.org/x/crypto v0.16.0",
+      ")",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.equal(result.dependencies.length, 1);
+  assert.equal(result.dependencies[0]?.name, "golang.org/x/crypto");
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
