@@ -7,9 +7,57 @@ const BYTES_PER_MIB = 1024 * 1024;
 const MAX_LOCKFILE_MIB = 10;
 export const MAX_LOCKFILE_BYTES = MAX_LOCKFILE_MIB * BYTES_PER_MIB;
 
+export interface DepsExtractionWarning {
+  code: string;
+  message: string;
+  manifestPath: string;
+  remediation: string | null;
+}
+
 export interface DependencyExtractionResult {
   dependencies: DependencyCoordinate[];
-  warnings: string[];
+  warnings: DepsExtractionWarning[];
+}
+
+export function formatDepsWarningLog(warning: DepsExtractionWarning): string {
+  const basename = path.basename(warning.manifestPath);
+  return `${warning.message} (${basename})`;
+}
+
+export function depsExtractionWarning(
+  manifestPath: string,
+  code: string,
+  message: string,
+  remediation: string | null = null
+): DepsExtractionWarning {
+  return {
+    code,
+    message,
+    manifestPath,
+    remediation
+  };
+}
+
+export function manifestReadWarning(manifestPath: string, message: string): DepsExtractionWarning {
+  return depsExtractionWarning(manifestPath, "deps.manifest-unreadable", message);
+}
+
+export function nonExactSpecWarning(manifestPath: string, manifestKind: string): DepsExtractionWarning {
+  const remediation =
+    manifestKind === "Pipfile"
+      ? "Commit Pipfile.lock or pin dependencies with == in the Pipfile, then re-scan."
+      : manifestKind === "pyproject.toml"
+        ? "Commit uv.lock, poetry.lock, or pin dependencies with == in pyproject.toml, then re-scan."
+        : manifestKind === "requirements.txt"
+          ? "Pin dependencies with == in requirements.txt or commit uv.lock, Pipfile.lock, or poetry.lock, then re-scan."
+          : "Pin dependencies with == or commit a lockfile, then re-scan.";
+
+  return depsExtractionWarning(
+    manifestPath,
+    "deps.non-exact-spec",
+    `Skipped non-exact ${manifestKind} dependency entries; no OSV lookup for unresolved ranges.`,
+    remediation
+  );
 }
 
 export function normalizeExactVersion(raw: string): string | null {
@@ -140,7 +188,7 @@ export function readManifestSource(
   }
 }
 
-export function emptyExtractionResult(warning?: string): DependencyExtractionResult {
+export function emptyExtractionResult(warning?: DepsExtractionWarning): DependencyExtractionResult {
   return {
     dependencies: [],
     warnings: warning ? [warning] : []

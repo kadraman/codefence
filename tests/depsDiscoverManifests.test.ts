@@ -56,6 +56,73 @@ test("buildScanContext populates depsManifestPaths for tree scope", () => {
   } finally {
     process.chdir(previous);
   }
+
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("buildScanContext unions dependency manifests into explicit path scope", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-deps-path-scope-"));
+  const appDir = path.join(root, "python-app");
+  fs.mkdirSync(appDir, { recursive: true });
+  fs.writeFileSync(path.join(appDir, "requirements.txt"), "django==2.2.24\n", "utf8");
+  fs.writeFileSync(path.join(appDir, "Pipfile"), "[packages]\n", "utf8");
+  fs.writeFileSync(path.join(appDir, "main.py"), "print('hi')\n", "utf8");
+
+  const previous = process.cwd();
+  process.chdir(root);
+  try {
+    const context = buildScanContext({
+      staged: false,
+      paths: ["python-app"],
+      gitIgnoredPrefixes: ["examples/"],
+      defaultAspects: ["code"],
+      only: ["deps"],
+      skip: [],
+      secret: defaultSecretScanOptions(),
+      deps: defaultDepsScanOptions(),
+      outputFormat: "table",
+      quiet: false,
+      verbose: false
+    });
+
+    assert.equal(context.depsManifestPaths, null);
+    assert.ok(context.files.includes("python-app/main.py"));
+    assert.ok(context.files.includes("python-app/requirements.txt"));
+    assert.ok(context.files.includes("python-app/Pipfile"));
+  } finally {
+    process.chdir(previous);
+  }
+
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("buildScanContext includes explicit dependency manifest file paths", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-deps-path-file-"));
+  fs.writeFileSync(path.join(root, "requirements.txt"), "django==2.2.24\n", "utf8");
+
+  const previous = process.cwd();
+  process.chdir(root);
+  try {
+    const context = buildScanContext({
+      staged: false,
+      paths: ["requirements.txt"],
+      gitIgnoredPrefixes: ["examples/"],
+      defaultAspects: ["code"],
+      only: ["deps"],
+      skip: [],
+      secret: defaultSecretScanOptions(),
+      deps: defaultDepsScanOptions(),
+      outputFormat: "table",
+      quiet: false,
+      verbose: false
+    });
+
+    assert.deepEqual(context.files, ["requirements.txt"]);
+  } finally {
+    process.chdir(previous);
+  }
+
+  fs.rmSync(root, { recursive: true, force: true });
 });
 
 test("resolveAspects auto-includes deps when deps scope is tree", () => {

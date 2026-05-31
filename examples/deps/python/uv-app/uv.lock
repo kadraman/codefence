@@ -1,0 +1,27 @@
+version = 1
+requires-python = ">=3.11"
+
+[[package]]
+name = "urllib3"
+version = "1.26.4"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "requests"
+version = "2.31.0"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "certifi"
+version = "2024.7.4"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "charset-normalizer"
+version = "3.3.2"
+source = { registry = "https://pypi.org/simple" }
+
+[[package]]
+name = "idna"
+version = "3.7.0"
+source = { registry = "https://pypi.org/simple" }

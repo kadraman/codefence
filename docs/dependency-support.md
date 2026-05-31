@@ -12,7 +12,7 @@ Implementation source of truth: [`src/manifests.ts`](../src/manifests.ts) (trigg
 | Ecosystem | OSV ecosystem | Trigger | Version extraction | Lockfile / resolved versions |
 | --------- | ------------- | ------- | ------------------ | ---------------------------- |
 | **Node.js (npm)** | `npm` | Yes | **Shipped** | `package-lock.json` (v2/v3), `yarn.lock` (Classic), `pnpm-lock.yaml` |
-| Python | `PyPI` | Yes | **Shipped** (`requirements.txt`, `Pipfile`, `pyproject.toml`) | Lockfile-based resolution (`poetry.lock`, `Pipfile.lock`) planned |
+| Python | `PyPI` | Yes | **Shipped** (`requirements.txt`, `Pipfile`, `pyproject.toml`) | `poetry.lock`, `Pipfile.lock`, `uv.lock` |
 | Go | `Go` | Yes | Planned | `go.mod` / `go.sum` |
 | Rust | `crates.io` | Yes | Planned | `Cargo.toml` / `Cargo.lock` |
 | Ruby | `RubyGems` | Yes | Planned | `Gemfile` / `Gemfile.lock` |
@@ -44,14 +44,15 @@ These files are recognized in [`src/manifests.ts`](../src/manifests.ts) and can 
 
 | Manifest | Ecosystem | Extraction status |
 | -------- | --------- | ----------------- |
-| `requirements.txt` | PyPI | ✅ Shipped (`name==version`) |
+| `requirements.txt` | PyPI | ✅ Shipped (`name==version`, recursive `-r` includes) |
 | `go.mod` | Go | `require … vX.Y.Z` (tier 1) |
 | `Gemfile` | RubyGems | Exact pins; `Gemfile.lock` (tier 2) |
 | `composer.json` | Packagist | Exact `require` versions (tier 2) |
 | `pyproject.toml` | PyPI | ✅ Shipped (`[project]` and `[project.optional-dependencies]` exact `==` pins) |
 | `Pipfile` | PyPI | ✅ Shipped (`[packages]` / `[dev-packages]` exact `==` pins and inline table `version`) |
-| `poetry.lock` | PyPI | Lockfile parser (tier 2–3) |
-| `Pipfile.lock` | PyPI | Lockfile parser (tier 2–3) |
+| `poetry.lock` | PyPI | ✅ Shipped (registry packages) |
+| `Pipfile.lock` | PyPI | ✅ Shipped (PyPI packages) |
+| `uv.lock` | PyPI | ✅ Shipped (`[[package]]` / `[[distribution]]`, registry sources) |
 | `Cargo.toml` | crates.io | Exact pins (tier 2) |
 | `Cargo.lock` | crates.io | Lockfile parser (tier 2–3) |
 | `Gemfile.lock` | RubyGems | Lockfile parser (tier 2–3) |

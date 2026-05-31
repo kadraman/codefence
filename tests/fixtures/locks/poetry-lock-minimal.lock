@@ -1,0 +1,32 @@
+[[package]]
+name = "requests"
+version = "2.31.0"
+description = "HTTP library"
+category = "main"
+optional = false
+
+[[package]]
+name = "urllib3"
+version = "1.26.4"
+description = "HTTP library with thread-safe connection pooling"
+category = "main"
+optional = false
+
+[[package]]
+name = "pytest"
+version = "7.4.0"
+description = "pytest testing framework"
+category = "dev"
+optional = false
+
+[[package]]
+name = "private-git-lib"
+version = "0.1.0"
+description = "Git dependency"
+category = "main"
+optional = false
+
+[package.source]
+type = "git"
+url = "https://github.com/example/private-git-lib.git"
+reference = "abc123"

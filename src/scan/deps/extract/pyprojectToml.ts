@@ -1,10 +1,13 @@
 import path from "node:path";
 import { DependencyCoordinate } from "../types";
-import { DependencyExtractionResult, dedupeCoordinates, readManifestSource } from "./shared";
+import {
+  DependencyExtractionResult,
+  dedupeCoordinates,
+  manifestReadWarning,
+  nonExactSpecWarning,
+  readManifestSource
+} from "./shared";
 import { PYPI_ECOSYSTEM } from "./requirementsTxt";
-
-const PYPROJECT_HINT =
-  "Skipped non-exact pyproject.toml dependency specs; pin versions with == to enable OSV lookups.";
 
 function parseRequirementString(spec: string): { name: string; version: string } | null {
   const requirement = spec.split(";")[0]?.trim() ?? "";
@@ -28,7 +31,10 @@ function parseDependencyArrayLine(line: string): string[] {
 export function extractPyprojectTomlDependencies(manifestPath: string): DependencyExtractionResult {
   const readResult = readManifestSource(manifestPath);
   if (!readResult.source) {
-    return { dependencies: [], warnings: readResult.warning ? [readResult.warning] : [] };
+    return {
+      dependencies: [],
+      warnings: readResult.warning ? [manifestReadWarning(readResult.absolutePath, readResult.warning)] : []
+    };
   }
 
   const dependencies: DependencyCoordinate[] = [];
@@ -112,9 +118,7 @@ export function extractPyprojectTomlDependencies(manifestPath: string): Dependen
     }
   }
 
-  const warnings = skippedNonExact
-    ? [`${PYPROJECT_HINT} (${path.basename(readResult.absolutePath)})`]
-    : [];
+  const warnings = skippedNonExact ? [nonExactSpecWarning(readResult.absolutePath, "pyproject.toml")] : [];
   return {
     dependencies: dedupeCoordinates(dependencies),
     warnings

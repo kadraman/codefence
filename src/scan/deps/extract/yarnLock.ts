@@ -4,7 +4,9 @@ import {
   MAX_LOCKFILE_BYTES,
   NPM_ECOSYSTEM,
   dedupeCoordinates,
+  depsExtractionWarning,
   emptyExtractionResult,
+  manifestReadWarning,
   normalizeInstalledVersion,
   readManifestSource
 } from "./shared";
@@ -42,12 +44,20 @@ function selectorPackageName(selector: string): string | null {
 export function extractYarnLockDependencies(manifestPath: string): DependencyExtractionResult {
   const readResult = readManifestSource(manifestPath, { maxBytes: MAX_LOCKFILE_BYTES });
   if (!readResult.source) {
-    return emptyExtractionResult(readResult.warning);
+    return emptyExtractionResult(
+      readResult.warning ? manifestReadWarning(readResult.absolutePath, readResult.warning) : undefined
+    );
   }
 
   const lines = readResult.source.split(/\r?\n/);
   if (lines.slice(0, 50).some((line) => line.trim() === "__metadata:")) {
-    return emptyExtractionResult("Unsupported yarn.lock format: Yarn Berry lockfiles are not supported yet.");
+    return emptyExtractionResult(
+      depsExtractionWarning(
+        readResult.absolutePath,
+        "deps.unsupported-lockfile",
+        "Unsupported yarn.lock format: Yarn Berry lockfiles are not supported yet."
+      )
+    );
   }
 
   const dependencies: DependencyCoordinate[] = [];

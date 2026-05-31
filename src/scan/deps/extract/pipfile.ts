@@ -1,9 +1,14 @@
 import path from "node:path";
 import { DependencyCoordinate } from "../types";
-import { DependencyExtractionResult, dedupeCoordinates, readManifestSource } from "./shared";
+import {
+  DependencyExtractionResult,
+  dedupeCoordinates,
+  manifestReadWarning,
+  nonExactSpecWarning,
+  readManifestSource
+} from "./shared";
 import { PYPI_ECOSYSTEM } from "./requirementsTxt";
 
-const PIPFILE_HINT = "Skipped non-exact Pipfile dependency specs; pin versions with == to enable OSV lookups.";
 const PACKAGE_SECTIONS = new Set(["packages", "dev-packages"]);
 
 function normalizePipfileVersion(raw: string): string | null {
@@ -25,7 +30,10 @@ function parsePipfileVersionValue(rawValue: string): string | null {
 export function extractPipfileDependencies(manifestPath: string): DependencyExtractionResult {
   const readResult = readManifestSource(manifestPath);
   if (!readResult.source) {
-    return { dependencies: [], warnings: readResult.warning ? [readResult.warning] : [] };
+    return {
+      dependencies: [],
+      warnings: readResult.warning ? [manifestReadWarning(readResult.absolutePath, readResult.warning)] : []
+    };
   }
 
   const dependencies: DependencyCoordinate[] = [];
@@ -70,7 +78,7 @@ export function extractPipfileDependencies(manifestPath: string): DependencyExtr
     });
   }
 
-  const warnings = skippedNonExact ? [`${PIPFILE_HINT} (${path.basename(readResult.absolutePath)})`] : [];
+  const warnings = skippedNonExact ? [nonExactSpecWarning(readResult.absolutePath, "Pipfile")] : [];
   return {
     dependencies: dedupeCoordinates(dependencies),
     warnings

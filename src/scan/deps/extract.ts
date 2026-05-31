@@ -2,9 +2,12 @@ import path from "node:path";
 import { DependencyCoordinate } from "./types";
 import { extractPackageLockDependencies } from "./extract/packageLock";
 import { extractPipfileDependencies } from "./extract/pipfile";
+import { extractPipfileLockDependencies } from "./extract/pipfileLock";
+import { extractPoetryLockDependencies } from "./extract/poetryLock";
 import { extractPnpmLockDependencies } from "./extract/pnpmLock";
 import { extractPyprojectTomlDependencies } from "./extract/pyprojectToml";
 import { extractRequirementsTxtDependencies } from "./extract/requirementsTxt";
+import { extractUvLockDependencies } from "./extract/uvLock";
 import {
   DependencyExtractionResult,
   NPM_ECOSYSTEM,
@@ -85,6 +88,15 @@ export function extractDependenciesForManifestWithDiagnostics(
   }
   if (baseName === "pipfile") {
     return extractPipfileDependencies(manifestPath);
+  }
+  if (baseName === "pipfile.lock") {
+    return extractPipfileLockDependencies(manifestPath);
+  }
+  if (baseName === "poetry.lock") {
+    return extractPoetryLockDependencies(manifestPath);
+  }
+  if (baseName === "uv.lock") {
+    return extractUvLockDependencies(manifestPath);
   }
   if (baseName === "pyproject.toml") {
     return extractPyprojectTomlDependencies(manifestPath);

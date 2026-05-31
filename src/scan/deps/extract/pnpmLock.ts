@@ -5,8 +5,10 @@ import {
   MAX_LOCKFILE_BYTES,
   NPM_ECOSYSTEM,
   dedupeCoordinates,
+  depsExtractionWarning,
   emptyExtractionResult,
   findBestEffortLine,
+  manifestReadWarning,
   normalizeInstalledVersion,
   readManifestSource
 } from "./shared";
@@ -72,14 +74,22 @@ function importerVersion(entry: string | ImporterDependencyEntry): string | null
 export function extractPnpmLockDependencies(manifestPath: string): DependencyExtractionResult {
   const readResult = readManifestSource(manifestPath, { maxBytes: MAX_LOCKFILE_BYTES });
   if (!readResult.source) {
-    return emptyExtractionResult(readResult.warning);
+    return emptyExtractionResult(
+      readResult.warning ? manifestReadWarning(readResult.absolutePath, readResult.warning) : undefined
+    );
   }
 
   let parsed: PnpmLockShape;
   try {
     parsed = parse(readResult.source) as PnpmLockShape;
   } catch {
-    return emptyExtractionResult("Malformed pnpm-lock.yaml; skipping dependency extraction.");
+    return emptyExtractionResult(
+      depsExtractionWarning(
+        readResult.absolutePath,
+        "deps.malformed-lockfile",
+        "Malformed pnpm-lock.yaml; skipping dependency extraction."
+      )
+    );
   }
 
   const dependencies: DependencyCoordinate[] = [];
