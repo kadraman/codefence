@@ -12,7 +12,7 @@ export const GO_ECOSYSTEM = "Go";
 // Matches a module path + semver version tag on a require line.
 // Module path: printable, no whitespace; version: v<major>.<minor>.<patch>[prerelease/build]
 const GO_REQUIRE_LINE_RE =
-  /^([A-Za-z0-9][A-Za-z0-9.\-_/]*(?:\/v\d+)?)\s+(v\d+\.\d+\.\d+(?:[.\-][0-9A-Za-z._-]*)*)/;
+  /^([A-Za-z0-9][A-Za-z0-9.\-_/]*(?:\/v\d+)?)\s+(v\d+\.\d+\.\d+(?:[.\-][0-9A-Za-z.-]*)*)/;
 
 // Pseudo-version pattern — skip these as they carry no meaningful semver for OSV.
 const GO_PSEUDO_VERSION_RE = /^v\d+\.\d+\.\d+-\d{14}-[0-9a-f]{12}$/;
@@ -22,7 +22,7 @@ function parseGoVersion(rawVersion: string): string | null {
     return null;
   }
   // Strip the mandatory 'v' prefix; OSV Go ecosystem uses bare semver.
-  const match = rawVersion.match(/^v(\d+\.\d+\.\d+(?:[.\-][0-9A-Za-z._-]*)?)$/);
+  const match = rawVersion.match(/^v(\d+\.\d+\.\d+(?:[.\-][0-9A-Za-z.-]*)?)$/);
   return match?.[1] ?? null;
 }
 
