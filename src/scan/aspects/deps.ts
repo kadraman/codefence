@@ -180,7 +180,7 @@ function warnUnscopedSiblingLockfiles(
 
   for (const [root, rootManifests] of pythonRoots) {
     if (rootManifests.has("pipfile") && !rootManifests.has("pipfile.lock")) {
-      const lockfilesOnDisk = findSiblingLockfilesOnDisk(root, ["pipfile.lock"]);
+      const lockfilesOnDisk = findSiblingLockfilesOnDisk(root, ["Pipfile.lock"]);
       const pipfile = rootManifests.get("pipfile");
       if (pipfile && lockfilesOnDisk.length > 0) {
         warnings.push(
