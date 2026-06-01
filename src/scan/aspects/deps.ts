@@ -6,6 +6,7 @@ import { AspectOutcome, ScanAspect, ScanContext } from "../types";
 import { isDepsCacheFresh, readDepsCache, writeDepsCache } from "../deps/cache";
 import { resolveDepsProviderUrl } from "../deps/config";
 import { extractDependenciesForManifestWithDiagnostics } from "../deps/extract";
+import { buildDepsSkipMessage } from "../deps/extract/manifestSupport";
 import { depsExtractionWarning, type DepsExtractionWarning } from "../deps/extract/shared";
 import { queryDependencies } from "../deps/query";
 import { DepsFinding, DependencyCoordinate, DEPS_FINDING_RULE_ID } from "../deps/types";
@@ -22,6 +23,8 @@ const PYTHON_MANIFEST_BASENAMES = new Set([
   "uv.lock",
   "requirements.txt"
 ]);
+
+const RUBY_MANIFEST_BASENAMES = new Set(["gemfile", "gemfile.lock"]);
 
 function groupManifestsByRoot(
   manifests: string[],
@@ -134,6 +137,26 @@ function selectPythonManifests(
   return { selected, warnings };
 }
 
+function selectRubyManifests(
+  rubyRoots: Map<string, Map<string, string>>
+): { selected: string[]; warnings: DepsExtractionWarning[] } {
+  const selected: string[] = [];
+  const warnings: DepsExtractionWarning[] = [];
+
+  for (const [root, rootManifests] of rubyRoots) {
+    const gemfileLock = rootManifests.get("gemfile.lock");
+    const gemfile = rootManifests.get("gemfile");
+
+    if (gemfileLock) {
+      selected.push(gemfileLock);
+    } else if (gemfile) {
+      selected.push(gemfile);
+    }
+  }
+
+  return { selected, warnings };
+}
+
 function findSiblingLockfilesOnDisk(root: string, lockfileNames: readonly string[]): string[] {
   const found: string[] = [];
   for (const lockfileName of lockfileNames) {
@@ -148,6 +171,7 @@ function findSiblingLockfilesOnDisk(root: string, lockfileNames: readonly string
 function warnUnscopedSiblingLockfiles(
   npmRoots: Map<string, Map<string, string>>,
   pythonRoots: Map<string, Map<string, string>>,
+  rubyRoots: Map<string, Map<string, string>>,
   cwd: string
 ): DepsExtractionWarning[] {
   const warnings: DepsExtractionWarning[] = [];
@@ -211,6 +235,23 @@ function warnUnscopedSiblingLockfiles(
     }
   }
 
+  for (const [root, rootManifests] of rubyRoots) {
+    if (rootManifests.has("gemfile") && !rootManifests.has("gemfile.lock")) {
+      const lockfilesOnDisk = findSiblingLockfilesOnDisk(root, ["Gemfile.lock"]);
+      const gemfile = rootManifests.get("gemfile");
+      if (gemfile && lockfilesOnDisk.length > 0) {
+        warnings.push(
+          depsExtractionWarning(
+            gemfile,
+            "deps.lockfile-not-in-scope",
+            `Gemfile.lock exists in ${path.relative(cwd, root) || "."} but is not in scan scope; ranged Gemfile entries may be skipped.`,
+            "Stage or commit Gemfile.lock, include it in --paths, or scan with --deps-scope tree."
+          )
+        );
+      }
+    }
+  }
+
   return warnings;
 }
 
@@ -220,7 +261,12 @@ function selectDependencyManifests(
 ): { selected: string[]; warnings: DepsExtractionWarning[] } {
   const npmRoots = groupManifestsByRoot(manifests, context.cwd, NPM_MANIFEST_BASENAMES);
   const pythonRoots = groupManifestsByRoot(manifests, context.cwd, PYTHON_MANIFEST_BASENAMES);
-  const groupedBasenames = new Set([...NPM_MANIFEST_BASENAMES, ...PYTHON_MANIFEST_BASENAMES]);
+  const rubyRoots = groupManifestsByRoot(manifests, context.cwd, RUBY_MANIFEST_BASENAMES);
+  const groupedBasenames = new Set([
+    ...NPM_MANIFEST_BASENAMES,
+    ...PYTHON_MANIFEST_BASENAMES,
+    ...RUBY_MANIFEST_BASENAMES
+  ]);
 
   const selected: string[] = [];
   for (const manifestPath of manifests) {
@@ -234,14 +280,17 @@ function selectDependencyManifests(
 
   const npmSelection = selectNpmManifests(npmRoots, context.cwd);
   const pythonSelection = selectPythonManifests(pythonRoots, context.cwd);
+  const rubySelection = selectRubyManifests(rubyRoots);
   selected.push(...npmSelection.selected);
   selected.push(...pythonSelection.selected);
+  selected.push(...rubySelection.selected);
   return {
     selected,
     warnings: [
       ...npmSelection.warnings,
       ...pythonSelection.warnings,
-      ...warnUnscopedSiblingLockfiles(npmRoots, pythonRoots, context.cwd)
+      ...rubySelection.warnings,
+      ...warnUnscopedSiblingLockfiles(npmRoots, pythonRoots, rubyRoots, context.cwd)
     ]
   };
 }
@@ -270,7 +319,23 @@ export function collectDependencies(context: ScanContext, manifests: string[]): 
       deduped.push(dep);
     }
   }
-  return { dependencies: deduped, warnings };
+  return { dependencies: deduped, warnings: filterRedundantLockfileWarnings(warnings) };
+}
+
+function filterRedundantLockfileWarnings(warnings: DepsExtractionWarning[]): DepsExtractionWarning[] {
+  const lockfileWarningPaths = new Set(
+    warnings
+      .filter((warning) => warning.code === "deps.lockfile-not-in-scope")
+      .map((warning) => warning.manifestPath)
+  );
+  if (lockfileWarningPaths.size === 0) {
+    return warnings;
+  }
+
+  return warnings.filter(
+    (warning) =>
+      warning.code !== "deps.non-exact-spec" || !lockfileWarningPaths.has(warning.manifestPath)
+  );
 }
 
 function resolveDepsManifests(context: ScanContext): string[] {
@@ -305,7 +370,7 @@ export const depsAspect: ScanAspect = {
         aspect: "deps",
         status: "skipped",
         exitCode: 0,
-        message: "No exact-version dependencies extracted from changed manifests."
+        message: buildDepsSkipMessage(manifests)
       };
     }
 

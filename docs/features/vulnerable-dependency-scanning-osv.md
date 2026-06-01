@@ -3,7 +3,7 @@ title: "Vulnerable Dependency Scanning With OSV Default"
 status: partial
 owners: ["@kadraman"]
 created: 2026-05-25
-updated: 2026-05-30
+updated: 2026-06-02
 issue: "TBD"
 scope: "scan|cli|hooks|docs"
 ---
@@ -12,7 +12,7 @@ scope: "scan|cli|hooks|docs"
 
 This feature adds dependency vulnerability scanning to Codefence using an external vulnerability source, with OSV as the default provider. The scanner should detect when dependency manifests change, resolve affected packages, and query the provider API for known vulnerabilities. The provider integration must be configurable, but work out of the box against OSV.
 
-**Implementation status (2026-05-27):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, npm `package.json` extraction (exact versions), and npm lockfile-aware resolution are **shipped**. Non-npm ecosystems and custom providers remain **open** (see checklist below). Ecosystem support matrix: [dependency-support.md](../dependency-support.md).
+**Implementation status (2026-06-02):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, npm extraction (exact `package.json` pins + lockfiles), **Python** (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), **Go** (`go.mod`), **Ruby** (`Gemfile`, `Gemfile.lock`), **PHP** (`composer.json`), and **.NET** (`*.csproj` `PackageReference`) are **shipped**. JVM, Rust, Swift, `packages.config`, and `.sln` remain **trigger-only**; custom providers remain **open** (see checklist). Ecosystem matrix: [dependency-support.md](../dependency-support.md).
 
 ## Problem Statement
 
@@ -164,7 +164,7 @@ Expected implementation areas:
 4. [x] Define provider abstraction and normalized finding schema.
 5. [x] Implement OSV provider client with HTTP/2 preference and HTTP/1.1 size-limit-safe behavior.
 6. [x] Implement caching with TTL and refresh controls.
-7. [x] Add retries/timeouts/error handling policy — timeouts + limited GET retry (`RETRY_DELAYS_MS`); batch POST has no retry loop.
+7. [x] Add retries/timeouts/error handling policy — configurable timeout; `RETRY_DELAYS_MS` (immediate + 300ms) on batch POST, GET enrichment, and per-advisory fetches; bounded enrichment concurrency.
 8. [x] Wire new CLI flags and environment variable support (including `--deps-scope tree`).
 9. [x] Add documentation and usage examples.
 10. [x] Add end-to-end tests for manifest change scenarios — npm fixtures + stubbed/live OSV tests; not every manifest type.
@@ -215,7 +215,7 @@ Suggested files (actual):
 | File | Status |
 | ---- | ------ |
 | `tests/manifests.test.ts` | [x] Manifest name detection |
-| `tests/depsExtraction.test.ts` | [x] npm `package.json`, lockfiles, merge precedence |
+| `tests/depsExtraction.test.ts` | [x] npm, Python, Go, Ruby, PHP, `*.csproj`; lockfiles and merge precedence |
 | `tests/depsProviderOsv.test.ts` | [x] OSV batch/normalization/enrichment |
 | `tests/depsHttpClient.test.ts` | [x] HTTP/2 transport |
 | `tests/depsQuery.test.ts` | [x] Provider dispatch; custom rejected |
@@ -227,7 +227,7 @@ Suggested files (actual):
 ### CLI/Integration Tests
 
 1. [x] Staged / explicit `package.json` paths trigger OSV query flow (`examples/deps`, `runScan` json test).
-2. [x] Staged npm lockfiles and `package.json` trigger extraction + OSV query flow; other manifest names in `src/manifests.ts` trigger the aspect but have no extraction yet.
+2. [x] Staged manifests with extractors trigger OSV query flow (`examples/deps` covers npm, Python, Go, Ruby, PHP, .NET); JVM, Rust, Swift, `packages.config`, and `.sln` trigger the aspect but yield no coordinates until parsers land.
 3. [x] `--deps-refresh` bypasses cache (wired in `deps` aspect).
 4. [x] `--deps-http2 on` uses HTTP/2 transport path (`tests/depsHttpClient.test.ts`).
 5. [x] Provider errors produce deterministic, actionable output (failed aspect + message).
@@ -258,7 +258,7 @@ Feature is not complete until both commands pass.
 - [x] OSV provider integration implemented (`src/scan/deps/provider.ts`, `querybatch` + conditional per-advisory GET)
 - [x] HTTP/2 preference and transport controls implemented (`--deps-http2`, `src/scan/deps/httpClient.ts`)
 - [x] Cache and refresh behavior implemented (`src/scan/deps/cache.ts`, `--deps-refresh`, `--deps-cache-ttl`)
-- [x] Timeouts and limited retry on provider GETs (`--deps-timeout`, `RETRY_DELAYS_MS` in provider)
+- [x] Timeouts and limited retry on provider calls (`--deps-timeout`, `RETRY_DELAYS_MS` on batch POST and GET enrichment)
 - [x] Bounded concurrency for per-advisory enrichment (`VULN_DETAIL_CONCURRENCY`)
 - [x] Findings normalized with remediation guidance (`DepsFinding`, table/json output, four severity levels)
 - [x] CLI and environment variables (`--only`/`--skip deps`, provider URL, cache, HTTP/2, `--deps-scope`)
@@ -272,18 +272,20 @@ Feature is not complete until both commands pass.
 ### Open / partial
 
 - [x] **npm lockfile extraction** — `package-lock.json` (v2/v3), `yarn.lock` (Classic), `pnpm-lock.yaml`; see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
-- [ ] **Dependency extraction** for non-npm manifests — [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md) (Python `requirements.txt`, `Pipfile`, and `pyproject.toml` shipped; other ecosystems remain open)
+- [x] **Python, Go, Ruby, PHP, and .NET (`*.csproj`) extraction** — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md) and [dependency-support.md](../dependency-support.md)
+- [ ] **Dependency extraction** for remaining ecosystems (JVM, Rust, Swift, `packages.config`, `.sln`, `composer.lock`) — trigger-only or lockfile parsers not shipped
+- [x] **Clearer deps skip messages** when manifests have no extractor (`buildDepsSkipMessage` in deps aspect)
+- [x] **Example fixtures** for Ruby, PHP, and .NET under [examples/deps/](../../examples/deps/)
 - [ ] **Custom provider** (`--deps-provider custom`) — CLI flag exists; `queryDependencies` throws until a provider API ships
 - [ ] **Provider authentication** for custom/private endpoints
 - [ ] **Dedicated deps cache unit tests** (`tests/depsCache.test.ts`)
-- [ ] **Integration tests** per manifest type (extraction + OSV) for non–`package.json` ecosystems
-- [ ] **Retry/backoff on batch POST** (GET enrichment retries once after 300ms today)
+- [ ] **Integration tests** per manifest type (extraction + OSV) for JVM/Rust/Swift and other trigger-only types (Ruby/PHP/.NET covered via `tests/depsExamples.test.ts` + `examples/deps`)
 - [ ] **Raw provider response artifacts** in cache for debugging (optional; see open questions)
 
 ## Future Enhancements
 
 1. Additional npm lockfile coverage (Yarn Berry, `package-lock.json` v1, shrinkwrap) — see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
-2. Additional ecosystems (Python, Go, JVM, .NET, …) — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md)
+2. Additional ecosystems and lockfiles (JVM, `composer.lock`, `packages.config`, Rust, Swift, …) — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md)
 3. Multi-provider aggregation with deduplication
 4. Authenticated provider support with secret-safe credential handling
 5. Baseline/suppressions for accepted dependency risk
@@ -292,7 +294,7 @@ Feature is not complete until both commands pass.
 
 1. ~~Should dependency scanning be included in default scan aspects or opt-in initially?~~ **Resolved:** Default aspect is `code` only; `deps` auto-runs when dependency manifests are in the git/`--paths` scope, or when `--deps-scope tree` is set (unless `--only` / `--skip deps`).
 2. ~~Which lockfiles are in scope for initial implementation?~~ **Resolved:** All names in [Manifest Triggers](#manifest-triggers) trigger scans and tree discovery; npm version resolution from `package-lock.json`, `yarn.lock` (Classic), and `pnpm-lock.yaml` is shipped — see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md).
-3. ~~What is the exact timeout/retry policy for provider calls?~~ **Resolved (v1):** Configurable timeout via `--deps-timeout` (default 15s); GET retries once after 300ms; batch query uses single attempt with abort timeout; enrichment concurrency capped at 8.
+3. ~~What is the exact timeout/retry policy for provider calls?~~ **Resolved (v1):** Configurable timeout via `--deps-timeout` (default 15s); batch POST and GET enrichment each use `RETRY_DELAYS_MS` (immediate attempt + one retry after 300ms); enrichment concurrency capped at 8. No exponential backoff in v1.
 4. Should provider responses be persisted as raw cache artifacts for debugging? **Open.**
 5. ~~How should severity be mapped when provider metadata is incomplete?~~ **Resolved:** OSV text labels map directly; numeric CVSS uses ≥9 critical, ≥7 high, ≥4 medium, &lt;4 low; unknown metadata defaults to `medium`.
 

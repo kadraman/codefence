@@ -8,6 +8,10 @@ import { extractPnpmLockDependencies } from "./extract/pnpmLock";
 import { extractPyprojectTomlDependencies } from "./extract/pyprojectToml";
 import { extractRequirementsTxtDependencies } from "./extract/requirementsTxt";
 import { extractUvLockDependencies } from "./extract/uvLock";
+import { extractComposerJsonDependencies } from "./extract/composerJson";
+import { extractGemfileDependencies } from "./extract/gemfile";
+import { extractGemfileLockDependencies } from "./extract/gemfileLock";
+import { extractCsprojDependencies } from "./extract/csproj";
 import { extractGoModDependencies } from "./extract/goMod";
 import {
   DependencyExtractionResult,
@@ -104,6 +108,18 @@ export function extractDependenciesForManifestWithDiagnostics(
   }
   if (baseName === "go.mod") {
     return extractGoModDependencies(manifestPath);
+  }
+  if (baseName === "gemfile") {
+    return extractGemfileDependencies(manifestPath);
+  }
+  if (baseName === "gemfile.lock") {
+    return extractGemfileLockDependencies(manifestPath);
+  }
+  if (baseName === "composer.json") {
+    return extractComposerJsonDependencies(manifestPath);
+  }
+  if (baseName.endsWith(".csproj")) {
+    return extractCsprojDependencies(manifestPath);
   }
   return { dependencies: [], warnings: [] };
 }

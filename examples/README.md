@@ -41,10 +41,16 @@ Scans against these fixtures are expected to **exit with code 1** (findings are 
 
 Path: `examples/deps/`
 
-Sample `package.json` manifests pin exact versions of packages with known OSV advisories. See [examples/deps/README.md](deps/README.md) for the fixture list and commands.
+Sample dependency manifests (npm, Python, Go, Ruby, PHP, .NET) pin exact or lockfile-resolved versions of packages with known OSV advisories. See [examples/deps/README.md](deps/README.md) for the fixture list and commands.
 
 ```bash
 node dist/src/cli.js scan --only deps --paths examples/deps
+```
+
+Ecosystem-specific subtrees:
+
+```bash
+node dist/src/cli.js scan --only deps --paths examples/deps/ruby examples/deps/php examples/deps/dotnet
 ```
 
 Scans against these fixtures are expected to **exit with code 1** (findings are intentional).
