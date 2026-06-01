@@ -8,6 +8,7 @@ import { extractPnpmLockDependencies } from "./extract/pnpmLock";
 import { extractPyprojectTomlDependencies } from "./extract/pyprojectToml";
 import { extractRequirementsTxtDependencies } from "./extract/requirementsTxt";
 import { extractUvLockDependencies } from "./extract/uvLock";
+import { extractGoModDependencies } from "./extract/goMod";
 import {
   DependencyExtractionResult,
   NPM_ECOSYSTEM,
@@ -100,6 +101,9 @@ export function extractDependenciesForManifestWithDiagnostics(
   }
   if (baseName === "pyproject.toml") {
     return extractPyprojectTomlDependencies(manifestPath);
+  }
+  if (baseName === "go.mod") {
+    return extractGoModDependencies(manifestPath);
   }
   return { dependencies: [], warnings: [] };
 }

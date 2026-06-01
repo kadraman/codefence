@@ -19,6 +19,9 @@ These manifests pin **exact versions** (or lockfile-resolved versions) of packag
 | `python/pyproject-app/poetry.lock` | resolved | `requests` | `2.31.0` | (from lock; resolves `>=2.31.0` in pyproject.toml) | — |
 | `python/uv-app/pyproject.toml` / `uv.lock` | `[project.dependencies]` | `urllib3` | `1.26.4` | `CVE-2021-33503` | `>= 1.26.5` |
 | `python/uv-app/uv.lock` | resolved | `requests` | `2.31.0` | (from lock; resolves `>=2.31.0` in pyproject.toml) | — |
+| `go/mod-app/go.mod` | `require` (direct) | `golang.org/x/crypto` | `0.16.0` | `CVE-2023-48795` | `>= 0.17.0` |
+| `go/mod-app/go.mod` | `require` (direct) | `github.com/go-jose/go-jose/v3` | `3.0.0` | `CVE-2024-28176` | `>= 3.0.3` |
+| `go/mod-app/go.mod` | `require` (indirect) | `github.com/google/uuid` | `1.6.0` | (no known advisory) | — |
 
 Run against the full fixture tree:
 

@@ -11,6 +11,7 @@ import { ScanContext } from "../src/scan/types";
 
 const FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "npm");
 const PYTHON_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "python");
+const GO_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "go");
 const OSV_RUNTIME_APP_BATCH = path.join(
   process.cwd(),
   "tests",
@@ -176,4 +177,18 @@ test("examples deps fixtures normalize stubbed OSV batch into findings with CVE 
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+test("examples go deps fixtures expose exact Go coordinates", () => {
+  const manifests = [path.join(GO_FIXTURE_ROOT, "mod-app", "go.mod")];
+
+  const coordinates = manifests.flatMap((manifestPath) => extractDependenciesForManifest(manifestPath));
+  const labels = coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort();
+
+  assert.deepEqual(labels, [
+    "Go:github.com/go-jose/go-jose/v3@3.0.0",
+    "Go:github.com/google/uuid@1.6.0",
+    "Go:golang.org/x/crypto@0.16.0"
+  ]);
+  assert.ok(coordinates.every((dep) => dep.manifestLine > 0));
 });
