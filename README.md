@@ -293,7 +293,7 @@ Hook details: [docs/HOOKS.md](docs/HOOKS.md).
 | [README.md](README.md) | Install, `codefence scan`, release |
 | [docs/AI-ASSISTANTS.md](docs/AI-ASSISTANTS.md) | Cursor, Claude, Copilot, `codefence install` |
 | [docs/HOOKS.md](docs/HOOKS.md) | Git pre-commit, background scanner, cache |
-| [docs/dependency-support.md](docs/dependency-support.md) | Dependency ecosystems: npm shipped, others planned |
+| [docs/dependency-support.md](docs/dependency-support.md) | Dependency ecosystems: npm, Python, and Go shipped; JVM/Ruby/PHP/.NET planned |
 | [docs/README.md](docs/README.md) | Documentation index |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development, tests, npm publish |
 

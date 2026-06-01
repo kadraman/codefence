@@ -12,6 +12,8 @@ import { ScanContext } from "../src/scan/types";
 const FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "npm");
 const PYTHON_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "python");
 const GO_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "go");
+const RUBY_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "ruby");
+const PHP_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "php");
 const OSV_RUNTIME_APP_BATCH = path.join(
   process.cwd(),
   "tests",
@@ -189,6 +191,44 @@ test("examples go deps fixtures expose exact Go coordinates", () => {
     "Go:github.com/go-jose/go-jose/v3@3.0.0",
     "Go:github.com/google/uuid@1.6.0",
     "Go:golang.org/x/crypto@0.16.0"
+  ]);
+  assert.ok(coordinates.every((dep) => dep.manifestLine > 0));
+});
+
+test("examples ruby deps fixtures expose exact RubyGems coordinates", () => {
+  const manifestPath = path.join(RUBY_FIXTURE_ROOT, "gemfile-app", "Gemfile");
+  const coordinates = extractDependenciesForManifest(manifestPath);
+  const labels = coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort();
+
+  assert.deepEqual(labels, ["RubyGems:rack@2.2.2", "RubyGems:rexml@3.2.5"]);
+  assert.ok(coordinates.every((dep) => dep.manifestLine > 0));
+});
+
+test("examples ruby lockfile fixtures expose resolved RubyGems coordinates", () => {
+  const repoRoot = process.cwd();
+  const gemfileLockApp = path.join(RUBY_FIXTURE_ROOT, "gemfile-lock-app");
+
+  const coordinates = collectDependencies(makeExampleContext(repoRoot), [
+    path.relative(repoRoot, path.join(gemfileLockApp, "Gemfile")),
+    path.relative(repoRoot, path.join(gemfileLockApp, "Gemfile.lock"))
+  ]).dependencies;
+
+  assert.deepEqual(
+    coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["RubyGems:nokogiri@1.11.4", "RubyGems:rack@2.2.2"]
+  );
+  assert.ok(coordinates.every((dep) => dep.manifestPath.endsWith("Gemfile.lock")));
+});
+
+test("examples php deps fixtures expose exact Packagist coordinates", () => {
+  const manifestPath = path.join(PHP_FIXTURE_ROOT, "composer-app", "composer.json");
+  const coordinates = extractDependenciesForManifest(manifestPath);
+  const labels = coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort();
+
+  assert.deepEqual(labels, [
+    "Packagist:guzzlehttp/guzzle@6.5.0",
+    "Packagist:phpunit/phpunit@9.5.0",
+    "Packagist:symfony/http-foundation@5.0.0"
   ]);
   assert.ok(coordinates.every((dep) => dep.manifestLine > 0));
 });

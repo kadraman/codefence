@@ -2,7 +2,7 @@
 
 Path: `examples/deps/`
 
-These manifests pin **exact versions** (or lockfile-resolved versions) of packages with known [OSV](https://osv.dev/) advisories and CVEs. Each npm example includes a sibling `package-lock.json`; Python Pipenv, Poetry, and uv examples include `Pipfile.lock`, `poetry.lock`, or `uv.lock` so scans resolve ranged manifest entries the same way real projects do. The `requirements.txt` fixture uses direct `==` pins only. These are fake projects for local testing only — do not install or publish them.
+These manifests pin **exact versions** (or lockfile-resolved versions) of packages with known [OSV](https://osv.dev/) advisories and CVEs. Each npm example includes a sibling `package-lock.json`; Python Pipenv, Poetry, and uv examples include `Pipfile.lock`, `poetry.lock`, or `uv.lock`; Ruby examples include `Gemfile.lock` where ranges are used. These are fake projects for local testing only — do not install or publish them.
 
 | Fixture | Section | Package | Version | Example CVE | Fixed |
 | ------- | ------- | ------- | ------- | ----------- | ----- |
@@ -22,6 +22,13 @@ These manifests pin **exact versions** (or lockfile-resolved versions) of packag
 | `go/mod-app/go.mod` | `require` (direct) | `golang.org/x/crypto` | `0.16.0` | `CVE-2023-48795` | `>= 0.17.0` |
 | `go/mod-app/go.mod` | `require` (direct) | `github.com/go-jose/go-jose/v3` | `3.0.0` | `CVE-2024-28176` | `>= 3.0.3` |
 | `go/mod-app/go.mod` | `require` (indirect) | `github.com/google/uuid` | `1.6.0` | (no known advisory) | — |
+| `ruby/gemfile-app/Gemfile` | `gem` (exact) | `rack` | `2.2.2` | `CVE-2024-25126` | `>= 2.2.8` |
+| `ruby/gemfile-app/Gemfile` | `gem` (exact) | `rexml` | `3.2.5` | `CVE-2024-49761` | `>= 3.3.9` |
+| `ruby/gemfile-lock-app/Gemfile` / `Gemfile.lock` | ranged `gem` / resolved | `rack` | `2.2.2` | `CVE-2024-25126` | `>= 2.2.8` |
+| `ruby/gemfile-lock-app/Gemfile.lock` | resolved | `nokogiri` | `1.11.4` | `CVE-2021-30560` (from lock; resolves `~> 1.11` in Gemfile) | `>= 1.19.3` |
+| `php/composer-app/composer.json` | `require` | `symfony/http-foundation` | `5.0.0` | `CVE-2025-64500` | (see OSV advisory) |
+| `php/composer-app/composer.json` | `require` | `guzzlehttp/guzzle` | `6.5.0` | `CVE-2022-31090` | `>= 6.5.8` |
+| `php/composer-app/composer.json` | `require-dev` | `phpunit/phpunit` | `9.5.0` | `CVE-2026-24765` | (see OSV advisory) |
 
 Run against the full fixture tree:
 

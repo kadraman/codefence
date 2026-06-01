@@ -10,6 +10,7 @@ import {
   extractDependenciesForManifestWithDiagnostics,
   extractPackageJsonDependencies
 } from "../src/scan/deps/extract";
+import { buildDepsSkipMessage } from "../src/scan/deps/extract/manifestSupport";
 import { normalizeInstalledVersion } from "../src/scan/deps/extract/shared";
 import { defaultSecretScanOptions } from "../src/scan/secret/config";
 import { ScanContext } from "../src/scan/types";
@@ -781,4 +782,147 @@ test("extractDependenciesForManifest deduplicates go.mod entries", () => {
   assert.equal(result.dependencies[0]?.name, "golang.org/x/crypto");
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads Gemfile exact version pins", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-gemfile-"));
+  const manifestPath = path.join(tmpDir, "Gemfile");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "source 'https://rubygems.org'",
+      "",
+      "gem 'rails', '7.0.4.2'",
+      'gem "nokogiri", "~> 1.15"',
+      "gem 'rake', '13.0.6'",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["RubyGems:rails@7.0.4.2", "RubyGems:rake@13.0.6"]
+  );
+  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings[0]?.code, "deps.non-exact-spec");
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads Gemfile.lock resolved versions", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-gemfile-lock-"));
+  const manifestPath = path.join(tmpDir, "Gemfile.lock");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "GEM",
+      "  remote: https://rubygems.org/",
+      "  specs:",
+      "    rake (13.0.6)",
+      "    rails (7.0.4.2)",
+      "      actionpack (= 7.0.4.2)",
+      "      rack (~> 2.0, >= 2.0.9)",
+      "",
+      "PLATFORMS",
+      "  ruby",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["RubyGems:actionpack@7.0.4.2", "RubyGems:rails@7.0.4.2", "RubyGems:rake@13.0.6"]
+  );
+  assert.equal(result.warnings.length, 0);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads composer.json exact require versions", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-composer-"));
+  const manifestPath = path.join(tmpDir, "composer.json");
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify(
+      {
+        require: {
+          php: ">=8.1",
+          "monolog/monolog": "2.9.1",
+          "symfony/http-foundation": "^6.0"
+        },
+        "require-dev": {
+          phpunit: "9.6.0"
+        }
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["Packagist:monolog/monolog@2.9.1", "Packagist:phpunit@9.6.0"]
+  );
+  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings[0]?.code, "deps.non-exact-spec");
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("collectDependencies prefers Gemfile.lock over ranged Gemfile entries", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-gemfile-lock-precedence-"));
+  fs.writeFileSync(
+    path.join(tmpDir, "Gemfile"),
+    ["source 'https://rubygems.org'", "", "gem 'rails', '~> 7.0'", "gem 'rake', '13.0.6'", ""].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(tmpDir, "Gemfile.lock"),
+    ["GEM", "  specs:", "    rake (13.0.6)", "    rails (7.0.4.2)", ""].join("\n"),
+    "utf8"
+  );
+
+  const result = collectDependencies(makeContext(tmpDir), ["Gemfile", "Gemfile.lock"]);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.name}@${dep.version}`).sort(),
+    ["rails@7.0.4.2", "rake@13.0.6"]
+  );
+  assert.ok(result.dependencies.every((dep) => dep.manifestPath === path.join(tmpDir, "Gemfile.lock")));
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("collectDependencies warns when Gemfile.lock exists on disk but is not in scan scope", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-gemfile-lock-scope-"));
+  fs.writeFileSync(
+    path.join(tmpDir, "Gemfile"),
+    ["gem 'rails', '~> 7.0'", ""].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(path.join(tmpDir, "Gemfile.lock"), ["GEM", "  specs:", "    rails (7.0.4.2)", ""].join("\n"), "utf8");
+
+  const result = collectDependencies(makeContext(tmpDir), ["Gemfile"]);
+  assert.equal(result.dependencies.length, 0);
+  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings[0]?.code, "deps.lockfile-not-in-scope");
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("buildDepsSkipMessage names manifests without extractors", () => {
+  assert.equal(
+    buildDepsSkipMessage(["pom.xml"]),
+    "No dependency extractor for: pom.xml. See docs/dependency-support.md."
+  );
+  assert.equal(
+    buildDepsSkipMessage(["Gemfile", "pom.xml"]),
+    "No exact-version dependencies extracted from changed manifests. No extractor yet for: pom.xml."
+  );
+  assert.equal(buildDepsSkipMessage(["Gemfile"]), "No exact-version dependencies extracted from changed manifests.");
 });

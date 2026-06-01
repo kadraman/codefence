@@ -1,0 +1,5 @@
+# Fixture: ranged gems resolved via Gemfile.lock (fake project, not installable).
+source "https://rubygems.org"
+
+gem "rack", "~> 2.2"
+gem "nokogiri", "~> 1.11"
