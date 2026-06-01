@@ -133,7 +133,7 @@ codefence scan --help
 
 Git-based scans skip fixture trees such as `examples/` (see `codefence scan --help`). Explicit `--paths` still scans those files.
 
-Dependency extraction prefers resolved npm versions from sibling `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml` files when those lockfiles are in scope. If only `package.json` is in scope, Codefence keeps the existing exact-version-only behavior for manifest pins.
+Dependency extraction prefers resolved versions from lockfiles when they are in scope (npm: `package-lock.json` / `yarn.lock` / `pnpm-lock.yaml`; Ruby: `Gemfile.lock`; Python: `Pipfile.lock` / `poetry.lock` / `uv.lock`). Manifest-only pins work for exact versions in `package.json`, `Gemfile`, `composer.json`, `*.csproj` `PackageReference`, and other supported formats — see [dependency-support.md](docs/dependency-support.md).
 
 For which package managers and manifest types are supported today (vs trigger-only), see **[docs/dependency-support.md](docs/dependency-support.md)**.
 
@@ -169,7 +169,7 @@ secret:
 
 By default, dependency scanning only considers manifests that appear in the **git change set** or in explicit `--paths`. That matches pre-commit and PR workflows but skips unchanged lockfiles and does not walk `yarn.lock` when you only pass `--paths .` (code scans use source extensions, not all manifest types).
 
-Use **`--deps-scope tree`** to discover every dependency manifest under the repository (or under each `--paths` directory), including `package.json`, `package-lock.json`, `yarn.lock`, and `pnpm-lock.yaml`. Common vendor directories (`node_modules`, `.git`, `.codefence`, etc.) are skipped.
+Use **`--deps-scope tree`** to discover every dependency manifest under the repository (or under each `--paths` directory), including npm, Python, Go, Ruby, PHP, and `.csproj` files (see [dependency-support.md](docs/dependency-support.md)). Common vendor directories (`node_modules`, `.git`, `.codefence`, etc.) are skipped.
 
 ```bash
 # Audit all npm manifests in the repo (deps aspect only)
@@ -293,7 +293,7 @@ Hook details: [docs/HOOKS.md](docs/HOOKS.md).
 | [README.md](README.md) | Install, `codefence scan`, release |
 | [docs/AI-ASSISTANTS.md](docs/AI-ASSISTANTS.md) | Cursor, Claude, Copilot, `codefence install` |
 | [docs/HOOKS.md](docs/HOOKS.md) | Git pre-commit, background scanner, cache |
-| [docs/dependency-support.md](docs/dependency-support.md) | Dependency ecosystems: npm, Python, and Go shipped; JVM/Ruby/PHP/.NET planned |
+| [docs/dependency-support.md](docs/dependency-support.md) | Dependency ecosystems: npm, Python, Go, Ruby, PHP, and `*.csproj` shipped; JVM/Rust/Swift planned |
 | [docs/README.md](docs/README.md) | Documentation index |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development, tests, npm publish |
 

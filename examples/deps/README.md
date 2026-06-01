@@ -2,7 +2,18 @@
 
 Path: `examples/deps/`
 
-These manifests pin **exact versions** (or lockfile-resolved versions) of packages with known [OSV](https://osv.dev/) advisories and CVEs. Each npm example includes a sibling `package-lock.json`; Python Pipenv, Poetry, and uv examples include `Pipfile.lock`, `poetry.lock`, or `uv.lock`; Ruby examples include `Gemfile.lock` where ranges are used. These are fake projects for local testing only — do not install or publish them.
+These manifests pin **exact versions** (or lockfile-resolved versions) of packages with known [OSV](https://osv.dev/) advisories and CVEs.
+
+| Ecosystem | Layout | Resolution |
+| --------- | ------ | ---------- |
+| npm | `npm/*/package.json` + `package-lock.json` | Lockfile when in scope |
+| Python | `python/*` | `Pipfile.lock`, `poetry.lock`, `uv.lock`, or `==` pins in `requirements.txt` |
+| Go | `go/mod-app/go.mod` | Semver `require` lines |
+| Ruby | `ruby/gemfile-app`, `ruby/gemfile-lock-app` | Exact `Gemfile` pins or `Gemfile.lock` |
+| PHP | `php/composer-app/composer.json` | Exact `require` / `require-dev` |
+| .NET | `dotnet/app/App.csproj` | `PackageReference` attribute or child `Version` |
+
+These are fake projects for local testing only — do not install or publish them.
 
 | Fixture | Section | Package | Version | Example CVE | Fixed |
 | ------- | ------- | ------- | ------- | ----------- | ----- |
@@ -29,12 +40,21 @@ These manifests pin **exact versions** (or lockfile-resolved versions) of packag
 | `php/composer-app/composer.json` | `require` | `symfony/http-foundation` | `5.0.0` | `CVE-2025-64500` | (see OSV advisory) |
 | `php/composer-app/composer.json` | `require` | `guzzlehttp/guzzle` | `6.5.0` | `CVE-2022-31090` | `>= 6.5.8` |
 | `php/composer-app/composer.json` | `require-dev` | `phpunit/phpunit` | `9.5.0` | `CVE-2026-24765` | (see OSV advisory) |
+| `dotnet/app/App.csproj` | `PackageReference` (attribute) | `Newtonsoft.Json` | `12.0.3` | `CVE-2024-21907` | `>= 13.0.1` |
+| `dotnet/app/App.csproj` | `PackageReference` (attribute) | `System.Text.Json` | `6.0.0` | `CVE-2024-43485` | `>= 6.0.10` |
+| `dotnet/app/App.csproj` | `PackageReference` (child `Version`) | `Microsoft.Extensions.Caching.Memory` | `6.0.0` | `CVE-2024-43483` | `>= 6.0.2` |
 
 Run against the full fixture tree:
 
 ```bash
 npm run build
 node dist/src/cli.js scan --only deps --paths examples/deps
+```
+
+Ruby, PHP, or .NET only:
+
+```bash
+node dist/src/cli.js scan --only deps --paths examples/deps/ruby examples/deps/php examples/deps/dotnet
 ```
 
 Discover all manifests under `examples/deps` without listing each path:

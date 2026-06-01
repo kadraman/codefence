@@ -54,7 +54,9 @@ export function nonExactSpecWarning(manifestPath: string, manifestKind: string):
             ? "Commit Gemfile.lock or pin gems with an exact version string in the Gemfile, then re-scan."
             : manifestKind === "composer.json"
               ? "Commit composer.lock or pin packages with an exact version in composer.json, then re-scan."
-              : "Pin dependencies with an exact version or commit a lockfile, then re-scan.";
+              : manifestKind === "csproj"
+                ? "Pin PackageReference Version attributes or commit packages.lock.json, then re-scan."
+                : "Pin dependencies with an exact version or commit a lockfile, then re-scan.";
 
   return depsExtractionWarning(
     manifestPath,

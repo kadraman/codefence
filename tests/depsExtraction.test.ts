@@ -925,4 +925,88 @@ test("buildDepsSkipMessage names manifests without extractors", () => {
     "No exact-version dependencies extracted from changed manifests. No extractor yet for: pom.xml."
   );
   assert.equal(buildDepsSkipMessage(["Gemfile"]), "No exact-version dependencies extracted from changed manifests.");
+  assert.equal(
+    buildDepsSkipMessage(["src/App.csproj"]),
+    "No exact-version dependencies extracted from changed manifests."
+  );
+});
+
+test("extractDependenciesForManifest reads csproj PackageReference inline versions", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-csproj-inline-"));
+  const manifestPath = path.join(tmpDir, "App.csproj");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      '<Project Sdk="Microsoft.NET.Sdk">',
+      "  <ItemGroup>",
+      '    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />',
+      '    <PackageReference Version="6.0.0" Include="System.Text.Json" />',
+      "  </ItemGroup>",
+      "</Project>",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["NuGet:Newtonsoft.Json@12.0.3", "NuGet:System.Text.Json@6.0.0"]
+  );
+  assert.ok(result.dependencies.every((dep) => dep.manifestLine > 0));
+  assert.equal(result.warnings.length, 0);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads csproj PackageReference child Version elements", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-csproj-child-"));
+  const manifestPath = path.join(tmpDir, "App.csproj");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "<Project>",
+      "  <ItemGroup>",
+      '    <PackageReference Include="Microsoft.Extensions.Caching.Memory">',
+      "      <Version>6.0.0</Version>",
+      "    </PackageReference>",
+      "  </ItemGroup>",
+      "</Project>",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(result.dependencies.map((dep) => `${dep.name}@${dep.version}`), [
+    "Microsoft.Extensions.Caching.Memory@6.0.0"
+  ]);
+  assert.equal(result.dependencies[0]?.manifestLine, 3);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest skips ranged csproj PackageReference versions", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-csproj-range-"));
+  const manifestPath = path.join(tmpDir, "App.csproj");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "<Project>",
+      "  <ItemGroup>",
+      '    <PackageReference Include="Serilog" Version="2.*" />',
+      '    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />',
+      "  </ItemGroup>",
+      "</Project>",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(result.dependencies.map((dep) => `${dep.name}@${dep.version}`), ["Newtonsoft.Json@12.0.3"]);
+  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings[0]?.code, "deps.non-exact-spec");
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
 });

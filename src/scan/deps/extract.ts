@@ -11,6 +11,7 @@ import { extractUvLockDependencies } from "./extract/uvLock";
 import { extractComposerJsonDependencies } from "./extract/composerJson";
 import { extractGemfileDependencies } from "./extract/gemfile";
 import { extractGemfileLockDependencies } from "./extract/gemfileLock";
+import { extractCsprojDependencies } from "./extract/csproj";
 import { extractGoModDependencies } from "./extract/goMod";
 import {
   DependencyExtractionResult,
@@ -116,6 +117,9 @@ export function extractDependenciesForManifestWithDiagnostics(
   }
   if (baseName === "composer.json") {
     return extractComposerJsonDependencies(manifestPath);
+  }
+  if (baseName.endsWith(".csproj")) {
+    return extractCsprojDependencies(manifestPath);
   }
   return { dependencies: [], warnings: [] };
 }

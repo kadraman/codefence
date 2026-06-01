@@ -14,6 +14,7 @@ const PYTHON_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "python
 const GO_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "go");
 const RUBY_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "ruby");
 const PHP_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "php");
+const DOTNET_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "dotnet");
 const OSV_RUNTIME_APP_BATCH = path.join(
   process.cwd(),
   "tests",
@@ -229,6 +230,19 @@ test("examples php deps fixtures expose exact Packagist coordinates", () => {
     "Packagist:guzzlehttp/guzzle@6.5.0",
     "Packagist:phpunit/phpunit@9.5.0",
     "Packagist:symfony/http-foundation@5.0.0"
+  ]);
+  assert.ok(coordinates.every((dep) => dep.manifestLine > 0));
+});
+
+test("examples dotnet deps fixtures expose exact NuGet coordinates", () => {
+  const manifestPath = path.join(DOTNET_FIXTURE_ROOT, "app", "App.csproj");
+  const coordinates = extractDependenciesForManifest(manifestPath);
+  const labels = coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort();
+
+  assert.deepEqual(labels, [
+    "NuGet:Microsoft.Extensions.Caching.Memory@6.0.0",
+    "NuGet:Newtonsoft.Json@12.0.3",
+    "NuGet:System.Text.Json@6.0.0"
   ]);
   assert.ok(coordinates.every((dep) => dep.manifestLine > 0));
 });

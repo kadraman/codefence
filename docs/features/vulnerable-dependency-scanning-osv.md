@@ -3,7 +3,7 @@ title: "Vulnerable Dependency Scanning With OSV Default"
 status: partial
 owners: ["@kadraman"]
 created: 2026-05-25
-updated: 2026-06-01
+updated: 2026-06-02
 issue: "TBD"
 scope: "scan|cli|hooks|docs"
 ---
@@ -12,7 +12,7 @@ scope: "scan|cli|hooks|docs"
 
 This feature adds dependency vulnerability scanning to Codefence using an external vulnerability source, with OSV as the default provider. The scanner should detect when dependency manifests change, resolve affected packages, and query the provider API for known vulnerabilities. The provider integration must be configurable, but work out of the box against OSV.
 
-**Implementation status (2026-06-01):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, npm extraction (exact `package.json` pins + lockfiles), **Python** (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), **Go** (`go.mod`), **Ruby** (`Gemfile`, `Gemfile.lock`), and **PHP** (`composer.json` exact requires) are **shipped**. JVM, .NET, Rust, and Swift manifests **trigger** scans but have no extractors yet; custom providers remain **open** (see checklist). Ecosystem matrix: [dependency-support.md](../dependency-support.md).
+**Implementation status (2026-06-02):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, npm extraction (exact `package.json` pins + lockfiles), **Python** (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), **Go** (`go.mod`), **Ruby** (`Gemfile`, `Gemfile.lock`), **PHP** (`composer.json`), and **.NET** (`*.csproj` `PackageReference`) are **shipped**. JVM, Rust, Swift, `packages.config`, and `.sln` remain **trigger-only**; custom providers remain **open** (see checklist). Ecosystem matrix: [dependency-support.md](../dependency-support.md).
 
 ## Problem Statement
 
@@ -215,7 +215,7 @@ Suggested files (actual):
 | File | Status |
 | ---- | ------ |
 | `tests/manifests.test.ts` | [x] Manifest name detection |
-| `tests/depsExtraction.test.ts` | [x] npm, Python, `go.mod`; lockfiles and merge precedence |
+| `tests/depsExtraction.test.ts` | [x] npm, Python, Go, Ruby, PHP, `*.csproj`; lockfiles and merge precedence |
 | `tests/depsProviderOsv.test.ts` | [x] OSV batch/normalization/enrichment |
 | `tests/depsHttpClient.test.ts` | [x] HTTP/2 transport |
 | `tests/depsQuery.test.ts` | [x] Provider dispatch; custom rejected |
@@ -227,7 +227,7 @@ Suggested files (actual):
 ### CLI/Integration Tests
 
 1. [x] Staged / explicit `package.json` paths trigger OSV query flow (`examples/deps`, `runScan` json test).
-2. [x] Staged npm/Python/Go manifests with extractors trigger OSV query flow; other names in `src/manifests.ts` (JVM, Ruby, PHP, .NET, Rust, Swift) trigger the aspect but yield no coordinates until parsers land.
+2. [x] Staged manifests with extractors trigger OSV query flow (`examples/deps` covers npm, Python, Go, Ruby, PHP, .NET); JVM, Rust, Swift, `packages.config`, and `.sln` trigger the aspect but yield no coordinates until parsers land.
 3. [x] `--deps-refresh` bypasses cache (wired in `deps` aspect).
 4. [x] `--deps-http2 on` uses HTTP/2 transport path (`tests/depsHttpClient.test.ts`).
 5. [x] Provider errors produce deterministic, actionable output (failed aspect + message).
@@ -272,19 +272,20 @@ Feature is not complete until both commands pass.
 ### Open / partial
 
 - [x] **npm lockfile extraction** — `package-lock.json` (v2/v3), `yarn.lock` (Classic), `pnpm-lock.yaml`; see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
-- [x] **Python, Go, Ruby, and PHP extraction** — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md) and [dependency-support.md](../dependency-support.md)
-- [ ] **Dependency extraction** for remaining ecosystems (JVM, .NET, Rust, Swift) — trigger-only today
+- [x] **Python, Go, Ruby, PHP, and .NET (`*.csproj`) extraction** — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md) and [dependency-support.md](../dependency-support.md)
+- [ ] **Dependency extraction** for remaining ecosystems (JVM, Rust, Swift, `packages.config`, `.sln`, `composer.lock`) — trigger-only or lockfile parsers not shipped
 - [x] **Clearer deps skip messages** when manifests have no extractor (`buildDepsSkipMessage` in deps aspect)
+- [x] **Example fixtures** for Ruby, PHP, and .NET under [examples/deps/](../../examples/deps/)
 - [ ] **Custom provider** (`--deps-provider custom`) — CLI flag exists; `queryDependencies` throws until a provider API ships
 - [ ] **Provider authentication** for custom/private endpoints
 - [ ] **Dedicated deps cache unit tests** (`tests/depsCache.test.ts`)
-- [ ] **Integration tests** per manifest type (extraction + OSV) for JVM/Ruby/PHP/.NET and other trigger-only types
+- [ ] **Integration tests** per manifest type (extraction + OSV) for JVM/Rust/Swift and other trigger-only types (Ruby/PHP/.NET covered via `tests/depsExamples.test.ts` + `examples/deps`)
 - [ ] **Raw provider response artifacts** in cache for debugging (optional; see open questions)
 
 ## Future Enhancements
 
 1. Additional npm lockfile coverage (Yarn Berry, `package-lock.json` v1, shrinkwrap) — see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
-2. Additional ecosystems (JVM, Ruby, PHP, .NET, Rust, Swift, …) — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md)
+2. Additional ecosystems and lockfiles (JVM, `composer.lock`, `packages.config`, Rust, Swift, …) — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md)
 3. Multi-provider aggregation with deduplication
 4. Authenticated provider support with secret-safe credential handling
 5. Baseline/suppressions for accepted dependency risk

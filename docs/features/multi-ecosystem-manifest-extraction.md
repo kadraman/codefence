@@ -3,7 +3,7 @@ title: "Multi-Ecosystem Manifest Extraction"
 status: partial
 owners: ["@kadraman"]
 created: 2026-05-27
-updated: 2026-06-01
+updated: 2026-06-02
 issue: "TBD"
 scope: "scan|deps|docs"
 ---
@@ -14,13 +14,13 @@ Extend Codefence dependency extraction so each **language manifest** listed in `
 
 ## Problem Statement
 
-**Shipped (2026-06-01):** npm (`package.json` + lockfiles), Python (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), and Go (`go.mod` semver requires) — see [`src/scan/deps/extract.ts`](../../src/scan/deps/extract.ts) and [dependency-support.md](../dependency-support.md).
+**Shipped (2026-06-02):** npm (`package.json` + lockfiles), Python (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), Go (`go.mod`), Ruby (`Gemfile`, `Gemfile.lock`), PHP (`composer.json`), and .NET (`*.csproj` `PackageReference`) — see [`src/scan/deps/extract.ts`](../../src/scan/deps/extract.ts) and [dependency-support.md](../dependency-support.md). Example fixtures: [examples/deps/](../../examples/deps/).
 
 **Remaining gaps:**
 
-1. **Triggers without extraction** — `isDependencyManifest` recognizes JVM, Ruby, PHP, .NET, Rust, and Swift manifests (`pom.xml`, `Gemfile`, `composer.json`, `.csproj`, `Cargo.toml`, …), but `extractDependenciesForManifest` returns no coordinates for them yet.
-2. **False skips** — Changing only trigger-only manifests still yields `[deps] SKIPPED — No exact-version dependencies extracted`.
-3. **Polyglot repos** — Java, Ruby, PHP, .NET, and Rust teams get no dependency vulnerability signal until parsers land (Python/Go/npm are covered).
+1. **Triggers without extraction** — JVM, Rust, Swift, `packages.config`, `.sln`, and lockfiles such as `composer.lock` / `packages.lock.json` are recognized but not parsed yet.
+2. **False skips** — Changing only trigger-only manifests yields a clear skip message (`buildDepsSkipMessage`); ranged entries without a lockfile still skip with `deps.non-exact-spec` warnings.
+3. **Polyglot repos** — Java and Rust teams still need parsers for `pom.xml`, `Cargo.toml`, etc.
 4. **OSV already supports these ecosystems** — The provider accepts `package.ecosystem` and `version`; the gap is local parsing, not the API.
 
 Related but **out of scope for this feature** (separate specs):
@@ -55,11 +55,14 @@ Use [OSV supported ecosystems](https://google.github.io/osv.dev/) names in `Depe
 | Python | `Pipfile.lock`, `poetry.lock`, `uv.lock` | `PyPI` | **Shipped** |
 | Go | `go.mod` | `Go` | **Shipped:** `require` lines with semver (pseudo-versions skipped) |
 | Rust | `Cargo.toml` | `crates.io` | `Cargo.lock` |
-| Ruby | `Gemfile` | `RubyGems` | `Gemfile.lock` |
-| PHP | `composer.json` | `Packagist` | `composer.lock` (future) |
+| Ruby | `Gemfile` | `RubyGems` | **Shipped:** exact pins; prefer `Gemfile.lock` in scope |
+| Ruby | `Gemfile.lock` | `RubyGems` | **Shipped** |
+| PHP | `composer.json` | `Packagist` | **Shipped:** exact `require` / `require-dev` |
+| PHP | `composer.lock` | `Packagist` | Planned |
 | Java (Maven) | `pom.xml` | `Maven` | Resolved `${revision}` / BOM imports v2 |
 | Java (Gradle) | `build.gradle`, `build.gradle.kts` | `Maven` | Gradle lockfiles v2 |
-| .NET | `packages.config`, `*.csproj`, `*.sln` | `NuGet` | `packages.lock.json` / project assets v2 |
+| .NET | `*.csproj` | `NuGet` | **Shipped:** `PackageReference` with `Version` |
+| .NET | `packages.config`, `*.sln` | `NuGet` | Planned (`packages.config` pins; `.sln` → `.csproj` discovery) |
 | Swift | `Package.swift` | `SwiftURL` (confirm OSV name) | `Package.resolved` v2 |
 
 **Note:** Confirm exact OSV ecosystem strings against the API before each parser ships; add a single `OSV_ECOSYSTEM` constant per extractor module.
@@ -75,12 +78,15 @@ Use [OSV supported ecosystems](https://google.github.io/osv.dev/) names in `Depe
 | `Pipfile` | 2 | **Done** — exact `==` pins |
 | `pyproject.toml` | 2 | **Done** — PEP 621 exact pins |
 | `Pipfile.lock`, `poetry.lock`, `uv.lock` | 2 | **Done** |
-| `Gemfile` | 2 | Open — exact pins; else `Gemfile.lock` |
-| `composer.json` | 2 | Open — exact `require` versions |
-| `Cargo.lock`, `Gemfile.lock`, `go.sum` | 2–3 | Open — lockfile parsers |
+| `Gemfile` | 2 | **Done** — exact pins |
+| `Gemfile.lock` | 2 | **Done** |
+| `composer.json` | 2 | **Done** — exact `require` versions |
+| `Cargo.lock`, `go.sum` | 2–3 | Open — lockfile parsers |
+| `composer.lock` | 2–3 | Open |
 | `pom.xml` | 3 | Dependencies with explicit `<version>` |
 | `build.gradle`, `build.gradle.kts` | 3 | Limited: explicit `implementation "g:a:1.2.3"` |
-| `packages.config`, `*.csproj` | 3 | `PackageReference` with `Version=` |
+| `packages.config` | 3 | Open — pinned `package` entries |
+| `*.csproj` | 3 | **Done** — `PackageReference` with `Version` attribute or child element |
 | `*.sln` | 3 | Discover referenced `.csproj` paths only (no OSV query on `.sln` itself) |
 | `Package.swift` | 4 | `.exact("1.2.3")` pins; `Package.resolved` later |
 
@@ -94,7 +100,9 @@ src/scan/deps/extract/
   shared.ts, packageLock.ts, yarnLock.ts, pnpmLock.ts   # npm lockfiles
   requirementsTxt.ts, pipfile.ts, pyprojectToml.ts     # Python
   pipfileLock.ts, poetryLock.ts, uvLock.ts
-  goMod.ts
+  goMod.ts, gemfile.ts, gemfileLock.ts                 # Ruby
+  composerJson.ts, csproj.ts                           # PHP, .NET
+  manifestSupport.ts                                   # extractor registry / skip messages
 ```
 
 1. **`extractDependenciesForManifest(path)`** in [`extract.ts`](../../src/scan/deps/extract.ts) — basename → extractor (inline dispatch today).
@@ -111,7 +119,7 @@ When multiple manifests describe the same project root `D`:
 | Python | `poetry.lock` / `Pipfile.lock` over `pyproject.toml` / `Pipfile` |
 | Go | `go.sum` does not replace `go.mod`; both may contribute validation later |
 | Rust | `Cargo.lock` over `Cargo.toml` |
-| Ruby | `Gemfile.lock` over `Gemfile` |
+| Ruby | `Gemfile.lock` over `Gemfile` (**shipped** in `deps` aspect) |
 | .NET | `packages.lock.json` over `csproj` (future) |
 
 v1 may implement **manifest-only** parsers first, then add lockfile parsers in the same ecosystem module.
@@ -261,16 +269,16 @@ npm run codefence
 - [x] `Gemfile` exact pins; `Gemfile.lock` resolved versions → `RubyGems`
 - [x] `pyproject.toml` — PEP 621 exact pins → `PyPI`
 - [x] `poetry.lock` / `Pipfile.lock` / `uv.lock` → `PyPI`
-- [ ] Fixtures and tests for Ruby/PHP (when parsers land)
+- [x] Fixtures and tests for Ruby/PHP (`examples/deps/ruby`, `examples/deps/php`, `tests/depsExamples.test.ts`)
 
 ### Tier 3 — JVM + .NET
 
 - [ ] `pom.xml` — explicit dependency versions → `Maven`
 - [ ] `build.gradle` / `build.gradle.kts` — literal version strings → `Maven`
 - [ ] `packages.config` — `package id="..." version="..."` → `NuGet`
-- [ ] `*.csproj` — `PackageReference` with `Version` → `NuGet`
+- [x] `*.csproj` — `PackageReference` with `Version` → `NuGet`
 - [ ] `*.sln` — resolve project paths (or skip with doc)
-- [ ] Fixtures and tests
+- [x] .NET fixture (`examples/deps/dotnet/app/App.csproj`) and `tests/depsExamples.test.ts`
 
 ### Tier 4 — Swift and hard cases
 
@@ -306,7 +314,7 @@ npm run codefence
 1. [Vulnerable Dependency Scanning With OSV](./vulnerable-dependency-scanning-osv.md)
 2. [Lockfile-aware dependency extraction (npm)](./implemented/lockfile-aware-dependency-extraction.md)
 3. `src/manifests.ts` — triggered manifest basenames
-4. `src/scan/deps/extract.ts` — dispatcher (npm, Python, Go shipped; other basenames return empty)
+4. `src/scan/deps/extract.ts` — dispatcher (npm, Python, Go, Ruby, PHP, `*.csproj` shipped; other basenames return empty)
 5. [OSV supported ecosystems](https://google.github.io/osv.dev/)
 6. [OSV query API](https://google.github.io/osv.dev/api/)
 

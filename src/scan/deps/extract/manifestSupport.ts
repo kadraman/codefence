@@ -22,18 +22,28 @@ export function manifestBasename(filePath: string): string {
   return path.basename(filePath).toLowerCase();
 }
 
+export function isExtractorSupportedManifest(filePath: string): boolean {
+  const baseName = manifestBasename(filePath);
+  if (EXTRACTOR_MANIFEST_BASENAMES.has(baseName)) {
+    return true;
+  }
+  return baseName.endsWith(".csproj");
+}
+
 export function manifestBasenameHasExtractor(filePath: string): boolean {
-  return EXTRACTOR_MANIFEST_BASENAMES.has(manifestBasename(filePath));
+  return isExtractorSupportedManifest(filePath);
 }
 
 export function buildDepsSkipMessage(manifestPaths: string[]): string {
   const basenames = manifestPaths.map((manifestPath) => path.basename(manifestPath));
   const withoutExtractor = [
-    ...new Set(basenames.filter((baseName) => !EXTRACTOR_MANIFEST_BASENAMES.has(baseName.toLowerCase())))
+    ...new Set(
+      manifestPaths
+        .filter((manifestPath) => !isExtractorSupportedManifest(manifestPath))
+        .map((manifestPath) => path.basename(manifestPath))
+    )
   ];
-  const withExtractor = basenames.filter((baseName) =>
-    EXTRACTOR_MANIFEST_BASENAMES.has(baseName.toLowerCase())
-  );
+  const withExtractor = manifestPaths.filter((manifestPath) => isExtractorSupportedManifest(manifestPath));
 
   if (withoutExtractor.length > 0 && withExtractor.length === 0) {
     return `No dependency extractor for: ${withoutExtractor.join(", ")}. See docs/dependency-support.md.`;
