@@ -35,7 +35,6 @@ export function manifestBasenameHasExtractor(filePath: string): boolean {
 }
 
 export function buildDepsSkipMessage(manifestPaths: string[]): string {
-  const basenames = manifestPaths.map((manifestPath) => path.basename(manifestPath));
   const withoutExtractor = [
     ...new Set(
       manifestPaths
