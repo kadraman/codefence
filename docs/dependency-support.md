@@ -17,8 +17,8 @@ Implementation source of truth: [`src/manifests.ts`](../src/manifests.ts) (trigg
 | Rust | `crates.io` | Yes | Planned | `Cargo.toml` / `Cargo.lock` |
 | Ruby | `RubyGems` | Yes | **Shipped** (`Gemfile`, `Gemfile.lock`) | Exact pins in Gemfile; lockfile wins when in scope |
 | PHP | `Packagist` | Yes | **Shipped** (`composer.json`) | Exact `require` / `require-dev` versions; `composer.lock` planned |
-| JVM (Maven coordinates) | `Maven` | Yes | Planned | `pom.xml`, `build.gradle`, `build.gradle.kts` |
-| .NET (NuGet) | `NuGet` | Yes | **Shipped** (`*.csproj` `PackageReference`) | `packages.config`, `packages.lock.json`, `*.sln` (discovery) |
+| JVM (Maven coordinates) | `Maven` | Yes | **Shipped** (`pom.xml`, `build.gradle`, `build.gradle.kts`) | Explicit versions / literal GAV strings; BOMs and property indirection deferred |
+| .NET (NuGet) | `NuGet` | Yes | **Shipped** (`*.csproj`, `packages.config`, `*.sln` → `.csproj`) | `packages.lock.json` planned |
 | Swift | `SwiftURL` (TBD) | Yes | Planned | `Package.swift` |
 
 Provider, cache, and CLI behavior: [vulnerable-dependency-scanning-osv.md](features/vulnerable-dependency-scanning-osv.md).
@@ -66,22 +66,32 @@ Fixtures: [examples/deps/ruby/](../examples/deps/ruby/).
 
 `composer.lock` is not parsed yet (planned). Fixtures: [examples/deps/php/](../examples/deps/php/).
 
-## .NET / NuGet (partial — `*.csproj` shipped)
+## .NET / NuGet (shipped)
 
 | Manifest | Triggers `deps` | Extracts versions | Notes |
 | -------- | --------------- | ----------------- | ----- |
 | `*.csproj` | Yes | Yes | `PackageReference` with `Version="…"` on the tag or child `<Version>…</Version>`; skips ranges, floating versions, and `Update`-only entries |
-| `packages.config` | Yes | Planned | Legacy pinned `package` elements |
-| `*.sln` | Yes | Planned | Discover referenced `.csproj` paths only (no OSV query on `.sln` itself) |
+| `packages.config` | Yes | Yes | Legacy pinned `package id="…" version="…"` entries; skips ranges |
+| `*.sln` | Yes | Yes (via `.csproj`) | Discovers referenced `.csproj` paths and extracts from those projects (coordinates use the `.csproj` path) |
 
 `packages.lock.json` / project assets are not parsed yet. Fixtures: [examples/deps/dotnet/](../examples/deps/dotnet/).
+
+## JVM / Maven (shipped — exact pins only)
+
+| Manifest | Triggers `deps` | Extracts versions | Notes |
+| -------- | --------------- | ----------------- | ----- |
+| `pom.xml` | Yes | Yes | `<dependency>` entries with explicit `<version>`; skips `${property}` placeholders and ranges; ignores `<dependencyManagement>` |
+| `build.gradle` | Yes | Yes | Literal `implementation "g:a:1.2.3"` / map `group/name/version` forms |
+| `build.gradle.kts` | Yes | Yes | Literal `implementation("g:a:1.2.3")` and named-arg map forms |
+
+OSV package names use `groupId:artifactId`. Property/BOM resolution and Gradle lockfiles are deferred. Fixtures: [examples/deps/jvm/](../examples/deps/jvm/).
 
 ## Trigger-only and planned manifests
 
 These files are recognized in [`src/manifests.ts`](../src/manifests.ts) and can start a dependency scan, but have **no extractor** yet:
 
 ```text
-[deps] SKIPPED — No dependency extractor for: pom.xml. See docs/dependency-support.md.
+[deps] SKIPPED — No dependency extractor for: Cargo.toml. See docs/dependency-support.md.
 ```
 
 When an extractor exists but only ranged/unpinned entries are in scope:
@@ -94,10 +104,6 @@ When an extractor exists but only ranged/unpinned entries are in scope:
 | -------- | --------- | ------ |
 | `Cargo.toml` | crates.io | Planned (exact pins) |
 | `Cargo.lock` | crates.io | Planned |
-| `pom.xml` | Maven | Planned (explicit `<version>`) |
-| `build.gradle`, `build.gradle.kts` | Maven | Planned (explicit coordinates) |
-| `packages.config` | NuGet | Planned |
-| `*.sln` | — | Planned (`.csproj` discovery) |
 | `Package.swift` | SwiftURL | Planned |
 
 Delivery order and OSV ecosystem strings: [multi-ecosystem-manifest-extraction.md](features/multi-ecosystem-manifest-extraction.md).
@@ -107,7 +113,7 @@ Delivery order and OSV ecosystem strings: [multi-ecosystem-manifest-extraction.m
 | Document | Purpose |
 | -------- | ------- |
 | [lockfile-aware-dependency-extraction.md](features/implemented/lockfile-aware-dependency-extraction.md) | npm lockfile parsers (shipped) |
-| [multi-ecosystem-manifest-extraction.md](features/multi-ecosystem-manifest-extraction.md) | Non-npm parsers (partial: Python, Go, Ruby, PHP, `*.csproj` shipped) |
+| [multi-ecosystem-manifest-extraction.md](features/multi-ecosystem-manifest-extraction.md) | Non-npm parsers (partial: Python, Go, Ruby, PHP, JVM, .NET shipped; Rust/Swift open) |
 | [vulnerable-dependency-scanning-osv.md](features/vulnerable-dependency-scanning-osv.md) | OSV provider, cache, CLI, `--deps-scope tree` |
 
 When adding a parser, update this matrix, the relevant feature spec checklist, and [`src/scan/deps/extract.ts`](../src/scan/deps/extract.ts) in the same change.
