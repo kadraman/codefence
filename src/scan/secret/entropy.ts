@@ -14,8 +14,27 @@ const BENIGN_ASSIGNMENT_KEYS = new Set([
   "image",
   "sha",
   "digest",
-  "color"
+  "color",
+  // Package-manager / lockfile metadata — high entropy but not secrets.
+  "source",
+  "checksum",
+  "hash",
+  "integrity",
+  "registry",
+  "resolved"
 ]);
+
+/** Values that are clearly public registry/URL metadata, not credentials. */
+const BENIGN_VALUE_PATTERNS: RegExp[] = [
+  /^https?:\/\//i,
+  /^registry\+https?:\/\//i,
+  /^git\+https?:\/\//i,
+  /^ssh:\/\//i
+];
+
+function isBenignAssignmentValue(value: string): boolean {
+  return BENIGN_VALUE_PATTERNS.some((pattern) => pattern.test(value));
+}
 
 function shannonEntropy(input: string): number {
   const counts = new Map<string, number>();
@@ -56,6 +75,9 @@ export function findEntropySecrets(
         continue;
       }
       if (key && BENIGN_ASSIGNMENT_KEYS.has(key)) {
+        continue;
+      }
+      if (isBenignAssignmentValue(value)) {
         continue;
       }
 
