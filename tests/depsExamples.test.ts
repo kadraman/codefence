@@ -15,6 +15,7 @@ const GO_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "go");
 const RUBY_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "ruby");
 const PHP_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "php");
 const DOTNET_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "dotnet");
+const JVM_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "jvm");
 const OSV_RUNTIME_APP_BATCH = path.join(
   process.cwd(),
   "tests",
@@ -245,4 +246,60 @@ test("examples dotnet deps fixtures expose exact NuGet coordinates", () => {
     "NuGet:System.Text.Json@6.0.0"
   ]);
   assert.ok(coordinates.every((dep) => dep.manifestLine > 0));
+});
+
+test("examples jvm maven fixture exposes exact Maven coordinates", () => {
+  const manifestPath = path.join(JVM_FIXTURE_ROOT, "maven-app", "pom.xml");
+  const coordinates = extractDependenciesForManifest(manifestPath);
+  const labels = coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort();
+
+  assert.deepEqual(labels, [
+    "Maven:com.fasterxml.jackson.core:jackson-databind@2.9.10",
+    "Maven:org.apache.logging.log4j:log4j-core@2.14.1"
+  ]);
+  assert.ok(coordinates.every((dep) => dep.manifestLine > 0));
+});
+
+test("examples jvm gradle fixtures expose exact Maven coordinates", () => {
+  const groovy = extractDependenciesForManifest(path.join(JVM_FIXTURE_ROOT, "gradle-groovy-app", "build.gradle"));
+  const kotlin = extractDependenciesForManifest(path.join(JVM_FIXTURE_ROOT, "gradle-kotlin-app", "build.gradle.kts"));
+
+  assert.deepEqual(
+    groovy.map((dep) => `${dep.name}@${dep.version}`).sort(),
+    [
+      "com.fasterxml.jackson.core:jackson-databind@2.9.10",
+      "junit:junit@4.13.2",
+      "org.apache.logging.log4j:log4j-core@2.14.1"
+    ]
+  );
+  assert.deepEqual(
+    kotlin.map((dep) => `${dep.name}@${dep.version}`).sort(),
+    [
+      "com.fasterxml.jackson.core:jackson-databind@2.9.10",
+      "junit:junit@4.13.2",
+      "org.apache.logging.log4j:log4j-core@2.14.1"
+    ]
+  );
+});
+
+test("examples packages.config fixture exposes exact NuGet coordinates", () => {
+  const manifestPath = path.join(DOTNET_FIXTURE_ROOT, "packages-config-app", "packages.config");
+  const coordinates = extractDependenciesForManifest(manifestPath);
+  assert.deepEqual(
+    coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["NuGet:Newtonsoft.Json@12.0.3", "NuGet:System.Text.Json@6.0.0"]
+  );
+});
+
+test("examples sln fixture discovers PackageReference coordinates from referenced csproj", () => {
+  const slnPath = path.join(DOTNET_FIXTURE_ROOT, "sln-app", "Example.sln");
+  const coordinates = extractDependenciesForManifest(slnPath);
+  const labels = coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort();
+
+  assert.deepEqual(labels, [
+    "NuGet:Microsoft.Extensions.Caching.Memory@6.0.0",
+    "NuGet:Newtonsoft.Json@12.0.3",
+    "NuGet:System.Text.Json@6.0.0"
+  ]);
+  assert.ok(coordinates.every((dep) => dep.manifestPath.endsWith("App.csproj")));
 });

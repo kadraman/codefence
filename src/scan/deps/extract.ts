@@ -13,6 +13,10 @@ import { extractGemfileDependencies } from "./extract/gemfile";
 import { extractGemfileLockDependencies } from "./extract/gemfileLock";
 import { extractCsprojDependencies } from "./extract/csproj";
 import { extractGoModDependencies } from "./extract/goMod";
+import { extractGradleDependencies } from "./extract/gradle";
+import { extractPackagesConfigDependencies } from "./extract/packagesConfig";
+import { extractPomXmlDependencies } from "./extract/pomXml";
+import { extractSlnDependencies } from "./extract/sln";
 import {
   DependencyExtractionResult,
   NPM_ECOSYSTEM,
@@ -118,8 +122,20 @@ export function extractDependenciesForManifestWithDiagnostics(
   if (baseName === "composer.json") {
     return extractComposerJsonDependencies(manifestPath);
   }
+  if (baseName === "pom.xml") {
+    return extractPomXmlDependencies(manifestPath);
+  }
+  if (baseName === "build.gradle" || baseName === "build.gradle.kts") {
+    return extractGradleDependencies(manifestPath);
+  }
+  if (baseName === "packages.config") {
+    return extractPackagesConfigDependencies(manifestPath);
+  }
   if (baseName.endsWith(".csproj")) {
     return extractCsprojDependencies(manifestPath);
+  }
+  if (baseName.endsWith(".sln")) {
+    return extractSlnDependencies(manifestPath);
   }
   return { dependencies: [], warnings: [] };
 }

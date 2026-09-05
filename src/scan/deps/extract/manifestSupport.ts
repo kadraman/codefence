@@ -15,7 +15,11 @@ export const EXTRACTOR_MANIFEST_BASENAMES = new Set([
   "go.mod",
   "gemfile",
   "gemfile.lock",
-  "composer.json"
+  "composer.json",
+  "pom.xml",
+  "build.gradle",
+  "build.gradle.kts",
+  "packages.config"
 ]);
 
 export function manifestBasename(filePath: string): string {
@@ -27,7 +31,7 @@ export function isExtractorSupportedManifest(filePath: string): boolean {
   if (EXTRACTOR_MANIFEST_BASENAMES.has(baseName)) {
     return true;
   }
-  return baseName.endsWith(".csproj");
+  return baseName.endsWith(".csproj") || baseName.endsWith(".sln");
 }
 
 export function manifestBasenameHasExtractor(filePath: string): boolean {

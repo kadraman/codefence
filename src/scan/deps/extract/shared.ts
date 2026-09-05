@@ -56,7 +56,13 @@ export function nonExactSpecWarning(manifestPath: string, manifestKind: string):
               ? "Commit composer.lock or pin packages with an exact version in composer.json, then re-scan."
               : manifestKind === "csproj"
                 ? "Pin PackageReference Version attributes or commit packages.lock.json, then re-scan."
-                : "Pin dependencies with an exact version or commit a lockfile, then re-scan.";
+                : manifestKind === "packages.config"
+                  ? "Pin package version attributes in packages.config, then re-scan."
+                  : manifestKind === "pom.xml"
+                    ? "Pin explicit <version> elements in pom.xml dependencies (no ${properties} or ranges), then re-scan."
+                    : manifestKind === "build.gradle"
+                      ? "Use literal group:name:version strings in Gradle dependencies, then re-scan."
+                      : "Pin dependencies with an exact version or commit a lockfile, then re-scan.";
 
   return depsExtractionWarning(
     manifestPath,

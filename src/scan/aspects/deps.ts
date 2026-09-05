@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { filterDependencyManifests } from "../../manifests";
+import { isIgnoredScanPath } from "../../scanner";
 import type { Finding } from "../../types";
 import { AspectOutcome, ScanAspect, ScanContext } from "../types";
 import { isDepsCacheFresh, readDepsCache, writeDepsCache } from "../deps/cache";
@@ -342,7 +343,17 @@ function resolveDepsManifests(context: ScanContext): string[] {
   if (context.depsManifestPaths !== null) {
     return context.depsManifestPaths;
   }
-  return filterDependencyManifests(context.files);
+
+  const manifests = filterDependencyManifests(context.files);
+  // Git-based scans honor git_ignored_prefixes (for example examples/).
+  // Explicit --paths and --deps-scope tree keep those fixtures scannable.
+  if (context.explicitPaths) {
+    return manifests;
+  }
+
+  return manifests.filter(
+    (manifestPath) => !isIgnoredScanPath(manifestPath, context.cwd, context.options.gitIgnoredPrefixes)
+  );
 }
 
 export const depsAspect: ScanAspect = {

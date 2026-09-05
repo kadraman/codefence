@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { collectDependencies } from "../src/scan/aspects/deps";
+import { collectDependencies, depsAspect } from "../src/scan/aspects/deps";
 import { defaultDepsScanOptions } from "../src/scan/deps/config";
 import {
   extractDependenciesForManifest,
@@ -917,16 +917,20 @@ test("collectDependencies warns when Gemfile.lock exists on disk but is not in s
 
 test("buildDepsSkipMessage names manifests without extractors", () => {
   assert.equal(
-    buildDepsSkipMessage(["pom.xml"]),
-    "No dependency extractor for: pom.xml. See docs/dependency-support.md."
+    buildDepsSkipMessage(["Cargo.toml"]),
+    "No dependency extractor for: Cargo.toml. See docs/dependency-support.md."
   );
   assert.equal(
-    buildDepsSkipMessage(["Gemfile", "pom.xml"]),
-    "No exact-version dependencies extracted from changed manifests. No extractor yet for: pom.xml."
+    buildDepsSkipMessage(["Gemfile", "Cargo.toml"]),
+    "No exact-version dependencies extracted from changed manifests. No extractor yet for: Cargo.toml."
   );
   assert.equal(buildDepsSkipMessage(["Gemfile"]), "No exact-version dependencies extracted from changed manifests.");
   assert.equal(
     buildDepsSkipMessage(["src/App.csproj"]),
+    "No exact-version dependencies extracted from changed manifests."
+  );
+  assert.equal(
+    buildDepsSkipMessage(["pom.xml"]),
     "No exact-version dependencies extracted from changed manifests."
   );
 });
@@ -1009,4 +1013,222 @@ test("extractDependenciesForManifest skips ranged csproj PackageReference versio
   assert.equal(result.warnings[0]?.code, "deps.non-exact-spec");
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads pom.xml explicit dependency versions", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-pom-"));
+  const manifestPath = path.join(tmpDir, "pom.xml");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "<project>",
+      "  <dependencies>",
+      "    <dependency>",
+      "      <groupId>org.apache.logging.log4j</groupId>",
+      "      <artifactId>log4j-core</artifactId>",
+      "      <version>2.14.1</version>",
+      "    </dependency>",
+      "    <dependency>",
+      "      <groupId>commons-collections</groupId>",
+      "      <artifactId>commons-collections</artifactId>",
+      "      <version>${collections.version}</version>",
+      "    </dependency>",
+      "  </dependencies>",
+      "  <dependencyManagement>",
+      "    <dependencies>",
+      "      <dependency>",
+      "        <groupId>org.springframework.boot</groupId>",
+      "        <artifactId>spring-boot-dependencies</artifactId>",
+      "        <version>2.7.0</version>",
+      "        <type>pom</type>",
+      "        <scope>import</scope>",
+      "      </dependency>",
+      "    </dependencies>",
+      "  </dependencyManagement>",
+      "</project>",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`), [
+    "Maven:org.apache.logging.log4j:log4j-core@2.14.1"
+  ]);
+  assert.equal(result.dependencies[0]?.manifestLine, 3);
+  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings[0]?.code, "deps.non-exact-spec");
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads build.gradle string and map coordinates", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-gradle-"));
+  const manifestPath = path.join(tmpDir, "build.gradle");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "dependencies {",
+      "  implementation 'org.apache.logging.log4j:log4j-core:2.14.1'",
+      '  api("com.fasterxml.jackson.core:jackson-databind:2.9.10")',
+      "  testImplementation group: 'junit', name: 'junit', version: '4.13.2'",
+      '  implementation "commons-collections:commons-collections:${ver}"',
+      "}",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.name}@${dep.version}`).sort(),
+    [
+      "com.fasterxml.jackson.core:jackson-databind@2.9.10",
+      "junit:junit@4.13.2",
+      "org.apache.logging.log4j:log4j-core@2.14.1"
+    ]
+  );
+  assert.ok(result.dependencies.every((dep) => dep.ecosystem === "Maven" && dep.manifestLine > 0));
+  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings[0]?.code, "deps.non-exact-spec");
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads build.gradle.kts named-arg coordinates", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-gradle-kts-"));
+  const manifestPath = path.join(tmpDir, "build.gradle.kts");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "dependencies {",
+      '  implementation("org.apache.logging.log4j:log4j-core:2.14.1")',
+      '  testImplementation(group = "junit", name = "junit", version = "4.13.2")',
+      "}",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.name}@${dep.version}`).sort(),
+    ["junit:junit@4.13.2", "org.apache.logging.log4j:log4j-core@2.14.1"]
+  );
+  assert.equal(result.warnings.length, 0);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads packages.config pinned packages", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-packages-config-"));
+  const manifestPath = path.join(tmpDir, "packages.config");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      '<?xml version="1.0" encoding="utf-8"?>',
+      "<packages>",
+      '  <package id="Newtonsoft.Json" version="12.0.3" targetFramework="net48" />',
+      '  <package id="Serilog" version="2.*" targetFramework="net48" />',
+      "</packages>",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`), [
+    "NuGet:Newtonsoft.Json@12.0.3"
+  ]);
+  assert.equal(result.dependencies[0]?.manifestLine, 3);
+  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings[0]?.code, "deps.non-exact-spec");
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest discovers csproj packages from .sln", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-sln-"));
+  const projectDir = path.join(tmpDir, "src", "App");
+  fs.mkdirSync(projectDir, { recursive: true });
+  const csprojPath = path.join(projectDir, "App.csproj");
+  const slnPath = path.join(tmpDir, "App.sln");
+  fs.writeFileSync(
+    csprojPath,
+    [
+      "<Project>",
+      "  <ItemGroup>",
+      '    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />',
+      "  </ItemGroup>",
+      "</Project>",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(
+    slnPath,
+    [
+      'Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App", "src\\App\\App.csproj", "{11111111-1111-1111-1111-111111111111}"',
+      "EndProject",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(slnPath);
+  assert.deepEqual(result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`), [
+    "NuGet:Newtonsoft.Json@12.0.3"
+  ]);
+  assert.equal(result.dependencies[0]?.manifestPath, path.resolve(csprojPath));
+  assert.equal(result.warnings.length, 0);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest returns warning when .sln has no readable csproj", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-sln-missing-"));
+  const slnPath = path.join(tmpDir, "Missing.sln");
+  fs.writeFileSync(
+    slnPath,
+    [
+      'Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App", "Missing\\App.csproj", "{11111111-1111-1111-1111-111111111111}"',
+      "EndProject",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(slnPath);
+  assert.equal(result.dependencies.length, 0);
+  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings[0]?.code, "deps.sln-no-csproj");
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("deps aspect skips git_ignored_prefixes manifests on git-based scans", async () => {
+  const context: ScanContext = {
+    cwd: process.cwd(),
+    files: ["examples/deps/jvm/maven-app/pom.xml", "examples/deps/dotnet/app/App.csproj"],
+    staged: true,
+    explicitPaths: false,
+    depsManifestPaths: null,
+    options: {
+      staged: true,
+      paths: [],
+      gitIgnoredPrefixes: ["examples/"],
+      defaultAspects: ["code"],
+      only: ["deps"],
+      skip: [],
+      secret: defaultSecretScanOptions(),
+      deps: defaultDepsScanOptions(),
+      outputFormat: "json",
+      quiet: true,
+      verbose: false
+    }
+  };
+
+  const outcome = await depsAspect.run(context);
+  assert.equal(outcome.status, "skipped");
+  assert.equal(outcome.message, "No dependency manifests changed.");
 });

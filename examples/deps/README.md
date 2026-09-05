@@ -11,7 +11,9 @@ These manifests pin **exact versions** (or lockfile-resolved versions) of packag
 | Go | `go/mod-app/go.mod` | Semver `require` lines |
 | Ruby | `ruby/gemfile-app`, `ruby/gemfile-lock-app` | Exact `Gemfile` pins or `Gemfile.lock` |
 | PHP | `php/composer-app/composer.json` | Exact `require` / `require-dev` |
-| .NET | `dotnet/app/App.csproj` | `PackageReference` attribute or child `Version` |
+| JVM | `jvm/maven-app`, `jvm/gradle-*-app` | Explicit `pom.xml` / Gradle GAV literals |
+| .NET | `dotnet/app`, `dotnet/packages-config-app`, `dotnet/sln-app` | `PackageReference`, `packages.config`, or `.sln` → `.csproj` |
+
 
 These are fake projects for local testing only — do not install or publish them.
 
@@ -43,6 +45,13 @@ These are fake projects for local testing only — do not install or publish the
 | `dotnet/app/App.csproj` | `PackageReference` (attribute) | `Newtonsoft.Json` | `12.0.3` | `CVE-2024-21907` | `>= 13.0.1` |
 | `dotnet/app/App.csproj` | `PackageReference` (attribute) | `System.Text.Json` | `6.0.0` | `CVE-2024-43485` | `>= 6.0.10` |
 | `dotnet/app/App.csproj` | `PackageReference` (child `Version`) | `Microsoft.Extensions.Caching.Memory` | `6.0.0` | `CVE-2024-43483` | `>= 6.0.2` |
+| `dotnet/packages-config-app/packages.config` | `package` | `Newtonsoft.Json` | `12.0.3` | `CVE-2024-21907` | `>= 13.0.1` |
+| `dotnet/sln-app/Example.sln` | via `src/App/App.csproj` | `Newtonsoft.Json` | `12.0.3` | `CVE-2024-21907` | `>= 13.0.1` |
+| `jvm/maven-app/pom.xml` | `<dependency>` | `org.apache.logging.log4j:log4j-core` | `2.14.1` | `CVE-2021-44228` | `>= 2.17.0` |
+| `jvm/maven-app/pom.xml` | `<dependency>` | `com.fasterxml.jackson.core:jackson-databind` | `2.9.10` | (see OSV advisories) | — |
+| `jvm/gradle-groovy-app/build.gradle` | `implementation` | `org.apache.logging.log4j:log4j-core` | `2.14.1` | `CVE-2021-44228` | `>= 2.17.0` |
+| `jvm/gradle-kotlin-app/build.gradle.kts` | `implementation` / `api` | `org.apache.logging.log4j:log4j-core` | `2.14.1` | `CVE-2021-44228` | `>= 2.17.0` |
+
 
 Run against the full fixture tree:
 
@@ -51,10 +60,10 @@ npm run build
 node dist/src/cli.js scan --only deps --paths examples/deps
 ```
 
-Ruby, PHP, or .NET only:
+Ruby, PHP, JVM, or .NET only:
 
 ```bash
-node dist/src/cli.js scan --only deps --paths examples/deps/ruby examples/deps/php examples/deps/dotnet
+node dist/src/cli.js scan --only deps --paths examples/deps/ruby examples/deps/php examples/deps/jvm examples/deps/dotnet
 ```
 
 Discover all manifests under `examples/deps` without listing each path:
