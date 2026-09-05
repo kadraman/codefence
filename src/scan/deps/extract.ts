@@ -8,6 +8,8 @@ import { extractPnpmLockDependencies } from "./extract/pnpmLock";
 import { extractPyprojectTomlDependencies } from "./extract/pyprojectToml";
 import { extractRequirementsTxtDependencies } from "./extract/requirementsTxt";
 import { extractUvLockDependencies } from "./extract/uvLock";
+import { extractCargoLockDependencies } from "./extract/cargoLock";
+import { extractCargoTomlDependencies } from "./extract/cargoToml";
 import { extractComposerJsonDependencies } from "./extract/composerJson";
 import { extractGemfileDependencies } from "./extract/gemfile";
 import { extractGemfileLockDependencies } from "./extract/gemfileLock";
@@ -121,6 +123,12 @@ export function extractDependenciesForManifestWithDiagnostics(
   }
   if (baseName === "composer.json") {
     return extractComposerJsonDependencies(manifestPath);
+  }
+  if (baseName === "cargo.toml") {
+    return extractCargoTomlDependencies(manifestPath);
+  }
+  if (baseName === "cargo.lock") {
+    return extractCargoLockDependencies(manifestPath);
   }
   if (baseName === "pom.xml") {
     return extractPomXmlDependencies(manifestPath);

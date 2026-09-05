@@ -3,7 +3,7 @@ title: "Multi-Ecosystem Manifest Extraction"
 status: partial
 owners: ["@kadraman"]
 created: 2026-05-27
-updated: 2026-07-11
+updated: 2026-09-05
 issue: "TBD"
 scope: "scan|deps|docs"
 ---
@@ -14,13 +14,13 @@ Extend Codefence dependency extraction so each **language manifest** listed in `
 
 ## Problem Statement
 
-**Shipped (2026-07-11):** npm (`package.json` + lockfiles), Python (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), Go (`go.mod`), Ruby (`Gemfile`, `Gemfile.lock`), PHP (`composer.json`), JVM (`pom.xml`, `build.gradle`, `build.gradle.kts`), and .NET (`*.csproj`, `packages.config`, `*.sln` → `.csproj`) — see [`src/scan/deps/extract.ts`](../../src/scan/deps/extract.ts) and [dependency-support.md](../dependency-support.md). Example fixtures: [examples/deps/](../../examples/deps/).
+**Shipped (2026-09-05):** npm (`package.json` + lockfiles), Python (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), Go (`go.mod`), Ruby (`Gemfile`, `Gemfile.lock`), PHP (`composer.json`), JVM (`pom.xml`, `build.gradle`, `build.gradle.kts`), .NET (`*.csproj`, `packages.config`, `*.sln` → `.csproj`), and Rust (`Cargo.toml`, `Cargo.lock`) — see [`src/scan/deps/extract.ts`](../../src/scan/deps/extract.ts) and [dependency-support.md](../dependency-support.md). Example fixtures: [examples/deps/](../../examples/deps/).
 
 **Remaining gaps:**
 
-1. **Triggers without extraction** — Rust, Swift, and lockfiles such as `composer.lock` / `packages.lock.json` / `Cargo.lock` are recognized but not parsed yet.
+1. **Triggers without extraction** — Swift and lockfiles such as `composer.lock` / `packages.lock.json` are recognized but not parsed yet.
 2. **False skips** — Changing only trigger-only manifests yields a clear skip message (`buildDepsSkipMessage`); ranged entries without a lockfile still skip with `deps.non-exact-spec` warnings.
-3. **Polyglot repos** — Rust and Swift teams still need parsers for `Cargo.toml`, `Package.swift`, etc.
+3. **Polyglot repos** — Swift teams still need parsers for `Package.swift` / `Package.resolved`.
 4. **OSV already supports these ecosystems** — The provider accepts `package.ecosystem` and `version`; the gap is local parsing, not the API.
 
 Related but **out of scope for this feature** (separate specs):
@@ -54,7 +54,7 @@ Use [OSV supported ecosystems](https://google.github.io/osv.dev/) names in `Depe
 | Python | `pyproject.toml` | `PyPI` | **Shipped:** PEP 621 exact pins; prefer `poetry.lock` / `uv.lock` |
 | Python | `Pipfile.lock`, `poetry.lock`, `uv.lock` | `PyPI` | **Shipped** |
 | Go | `go.mod` | `Go` | **Shipped:** `require` lines with semver (pseudo-versions skipped) |
-| Rust | `Cargo.toml` | `crates.io` | `Cargo.lock` |
+| Rust | `Cargo.toml` | `crates.io` | **Shipped:** exact `=` pins; prefer `Cargo.lock` in scope |
 | Ruby | `Gemfile` | `RubyGems` | **Shipped:** exact pins; prefer `Gemfile.lock` in scope |
 | Ruby | `Gemfile.lock` | `RubyGems` | **Shipped** |
 | PHP | `composer.json` | `Packagist` | **Shipped:** exact `require` / `require-dev` |
@@ -81,7 +81,8 @@ Use [OSV supported ecosystems](https://google.github.io/osv.dev/) names in `Depe
 | `Gemfile` | 2 | **Done** — exact pins |
 | `Gemfile.lock` | 2 | **Done** |
 | `composer.json` | 2 | **Done** — exact `require` versions |
-| `Cargo.lock`, `go.sum` | 2–3 | Open — lockfile parsers |
+| `Cargo.lock` | 2–3 | **Done** |
+| `go.sum` | 2–3 | Open — checksum companion |
 | `composer.lock` | 2–3 | Open |
 | `pom.xml` | 3 | **Done** — dependencies with explicit `<version>` |
 | `build.gradle`, `build.gradle.kts` | 3 | **Done** — literal `implementation "g:a:1.2.3"` / map forms |
@@ -103,6 +104,7 @@ src/scan/deps/extract/
   goMod.ts, gemfile.ts, gemfileLock.ts                 # Ruby
   composerJson.ts, csproj.ts, packagesConfig.ts, sln.ts   # PHP, .NET
   pomXml.ts, gradle.ts                                   # JVM
+  cargoToml.ts, cargoLock.ts                             # Rust
   manifestSupport.ts                                     # extractor registry / skip messages
 ```
 
@@ -281,8 +283,11 @@ npm run codefence
 - [x] `*.sln` — resolve project paths and extract from `.csproj`
 - [x] .NET / JVM fixtures (`examples/deps/dotnet/`, `examples/deps/jvm/`) and `tests/depsExamples.test.ts`
 
-### Tier 4 — Swift and hard cases
+### Tier 4 — Rust (shipped) + Swift and hard cases
 
+- [x] `Cargo.toml` — exact `=` pins → `crates.io`
+- [x] `Cargo.lock` — crates.io registry packages → `crates.io`
+- [x] Fixtures and tests (`examples/deps/rust/`, `tests/depsExtraction.test.ts`, `tests/depsExamples.test.ts`)
 - [ ] `Package.swift` — `.exact("x.y.z")` → confirm OSV `SwiftURL` / ecosystem name
 - [ ] `Package.resolved` parser (optional)
 - [ ] Gradle/Maven BOM and property indirection (explicitly deferred or partial)
@@ -315,7 +320,7 @@ npm run codefence
 1. [Vulnerable Dependency Scanning With OSV](./vulnerable-dependency-scanning-osv.md)
 2. [Lockfile-aware dependency extraction (npm)](./implemented/lockfile-aware-dependency-extraction.md)
 3. `src/manifests.ts` — triggered manifest basenames
-4. `src/scan/deps/extract.ts` — dispatcher (npm, Python, Go, Ruby, PHP, JVM, .NET shipped; other basenames return empty)
+4. `src/scan/deps/extract.ts` — dispatcher (npm, Python, Go, Ruby, PHP, JVM, .NET, Rust shipped; other basenames return empty)
 5. [OSV supported ecosystems](https://google.github.io/osv.dev/)
 6. [OSV query API](https://google.github.io/osv.dev/api/)
 
@@ -323,4 +328,4 @@ npm run codefence
 
 - Prefer **small, exact-pin parsers** over full package-manager emulation; lockfiles are the source of truth for ranges.
 - Each ecosystem should be shippable independently—avoid a big-bang release.
-- ~~When a manifest type is triggered but not yet implemented, improve the skip message~~ **Shipped:** `buildDepsSkipMessage` lists manifests without extractors (for example `Cargo.toml`).
+- ~~When a manifest type is triggered but not yet implemented, improve the skip message~~ **Shipped:** `buildDepsSkipMessage` lists manifests without extractors (for example `Package.swift`).

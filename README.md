@@ -133,7 +133,7 @@ codefence scan --help
 
 Git-based scans skip fixture trees such as `examples/` (see `codefence scan --help`). Explicit `--paths` still scans those files.
 
-Dependency extraction prefers resolved versions from lockfiles when they are in scope (npm: `package-lock.json` / `yarn.lock` / `pnpm-lock.yaml`; Ruby: `Gemfile.lock`; Python: `Pipfile.lock` / `poetry.lock` / `uv.lock`). Manifest-only pins work for exact versions in `package.json`, `Gemfile`, `composer.json`, `pom.xml`, Gradle, `*.csproj` / `packages.config`, and other supported formats — see [dependency-support.md](docs/dependency-support.md).
+Dependency extraction prefers resolved versions from lockfiles when they are in scope (npm: `package-lock.json` / `yarn.lock` / `pnpm-lock.yaml`; Ruby: `Gemfile.lock`; Python: `Pipfile.lock` / `poetry.lock` / `uv.lock`; Rust: `Cargo.lock`). Manifest-only pins work for exact versions in `package.json`, `Gemfile`, `composer.json`, `Cargo.toml` (`=1.2.3`), `pom.xml`, Gradle, `*.csproj` / `packages.config`, and other supported formats — see [dependency-support.md](docs/dependency-support.md).
 
 For which package managers and manifest types are supported today (vs trigger-only), see **[docs/dependency-support.md](docs/dependency-support.md)**.
 
@@ -293,7 +293,7 @@ Hook details: [docs/HOOKS.md](docs/HOOKS.md).
 | [README.md](README.md) | Install, `codefence scan`, release |
 | [docs/AI-ASSISTANTS.md](docs/AI-ASSISTANTS.md) | Cursor, Claude, Copilot, `codefence install` |
 | [docs/HOOKS.md](docs/HOOKS.md) | Git pre-commit, background scanner, cache |
-| [docs/dependency-support.md](docs/dependency-support.md) | Dependency ecosystems: npm, Python, Go, Ruby, PHP, JVM, and .NET shipped; Rust/Swift planned |
+| [docs/dependency-support.md](docs/dependency-support.md) | Dependency ecosystems: npm, Python, Go, Ruby, PHP, JVM, .NET, and Rust shipped; Swift planned |
 | [docs/README.md](docs/README.md) | Documentation index |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Development, tests, npm publish |
 

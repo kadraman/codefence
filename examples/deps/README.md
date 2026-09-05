@@ -10,6 +10,7 @@ These manifests pin **exact versions** (or lockfile-resolved versions) of packag
 | Python | `python/*` | `Pipfile.lock`, `poetry.lock`, `uv.lock`, or `==` pins in `requirements.txt` |
 | Go | `go/mod-app/go.mod` | Semver `require` lines |
 | Ruby | `ruby/gemfile-app`, `ruby/gemfile-lock-app` | Exact `Gemfile` pins or `Gemfile.lock` |
+| Rust | `rust/cargo-toml-app`, `rust/cargo-lock-app` | Exact `=` pins in `Cargo.toml` or `Cargo.lock` |
 | PHP | `php/composer-app/composer.json` | Exact `require` / `require-dev` |
 | JVM | `jvm/maven-app`, `jvm/gradle-*-app` | Explicit `pom.xml` / Gradle GAV literals |
 | .NET | `dotnet/app`, `dotnet/packages-config-app`, `dotnet/sln-app` | `PackageReference`, `packages.config`, or `.sln` → `.csproj` |
@@ -39,6 +40,9 @@ These are fake projects for local testing only — do not install or publish the
 | `ruby/gemfile-app/Gemfile` | `gem` (exact) | `rexml` | `3.2.5` | `CVE-2024-49761` | `>= 3.3.9` |
 | `ruby/gemfile-lock-app/Gemfile` / `Gemfile.lock` | ranged `gem` / resolved | `rack` | `2.2.2` | `CVE-2024-25126` | `>= 2.2.8` |
 | `ruby/gemfile-lock-app/Gemfile.lock` | resolved | `nokogiri` | `1.11.4` | `CVE-2021-30560` (from lock; resolves `~> 1.11` in Gemfile) | `>= 1.19.3` |
+| `rust/cargo-toml-app/Cargo.toml` | `[dependencies]` exact | `time` | `0.1.44` | `RUSTSEC-2020-0071` | `>= 0.2.23` |
+| `rust/cargo-toml-app/Cargo.toml` | `[dependencies]` exact | `chrono` | `0.4.19` | `RUSTSEC-2020-0159` | `>= 0.4.20` |
+| `rust/cargo-lock-app/Cargo.lock` | resolved | `time` | `0.1.44` | `RUSTSEC-2020-0071` (from lock; resolves `0.1` in Cargo.toml) | `>= 0.2.23` |
 | `php/composer-app/composer.json` | `require` | `symfony/http-foundation` | `5.0.0` | `CVE-2025-64500` | (see OSV advisory) |
 | `php/composer-app/composer.json` | `require` | `guzzlehttp/guzzle` | `6.5.0` | `CVE-2022-31090` | `>= 6.5.8` |
 | `php/composer-app/composer.json` | `require-dev` | `phpunit/phpunit` | `9.5.0` | `CVE-2026-24765` | (see OSV advisory) |
@@ -60,10 +64,10 @@ npm run build
 node dist/src/cli.js scan --only deps --paths examples/deps
 ```
 
-Ruby, PHP, JVM, or .NET only:
+Ruby, Rust, PHP, JVM, or .NET only:
 
 ```bash
-node dist/src/cli.js scan --only deps --paths examples/deps/ruby examples/deps/php examples/deps/jvm examples/deps/dotnet
+node dist/src/cli.js scan --only deps --paths examples/deps/ruby examples/deps/rust examples/deps/php examples/deps/jvm examples/deps/dotnet
 ```
 
 Discover all manifests under `examples/deps` without listing each path:

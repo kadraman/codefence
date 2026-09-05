@@ -1,0 +1,9 @@
+# Fixture: ranged crates resolved via Cargo.lock (fake project, not installable).
+[package]
+name = "vulnerable-cargo-lock-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+time = "0.1"
+chrono = "0.4"

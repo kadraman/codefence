@@ -1,0 +1,13 @@
+# Fixture: exact Cargo.toml pins with known OSV advisories (fake project, not installable).
+[package]
+name = "vulnerable-cargo-toml-app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+time = "=0.1.44"
+chrono = "=0.4.19"
+serde = "1.0.188"
+
+[dev-dependencies]
+tempfile = "=3.3.0"
