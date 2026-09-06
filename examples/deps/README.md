@@ -11,9 +11,10 @@ These manifests pin **exact versions** (or lockfile-resolved versions) of packag
 | Go | `go/mod-app/go.mod` | Semver `require` lines |
 | Ruby | `ruby/gemfile-app`, `ruby/gemfile-lock-app` | Exact `Gemfile` pins or `Gemfile.lock` |
 | Rust | `rust/cargo-toml-app`, `rust/cargo-lock-app` | Exact `=` pins in `Cargo.toml` or `Cargo.lock` |
-| PHP | `php/composer-app/composer.json` | Exact `require` / `require-dev` |
+| PHP | `php/composer-app`, `php/composer-lock-app` | Exact `composer.json` pins or `composer.lock` |
 | JVM | `jvm/maven-app`, `jvm/gradle-*-app` | Explicit `pom.xml` / Gradle GAV literals |
-| .NET | `dotnet/app`, `dotnet/packages-config-app`, `dotnet/sln-app` | `PackageReference`, `packages.config`, or `.sln` → `.csproj` |
+| .NET | `dotnet/app`, `dotnet/packages-config-app`, `dotnet/sln-app`, `dotnet/packages-lock-app` | `PackageReference`, `packages.config`, `.sln` → `.csproj`, or `packages.lock.json` |
+| Swift | `swift/package-swift-app`, `swift/package-resolved-app` | `.exact` / `exact:` pins or `Package.resolved` |
 
 
 These are fake projects for local testing only — do not install or publish them.
@@ -46,15 +47,19 @@ These are fake projects for local testing only — do not install or publish the
 | `php/composer-app/composer.json` | `require` | `symfony/http-foundation` | `5.0.0` | `CVE-2025-64500` | (see OSV advisory) |
 | `php/composer-app/composer.json` | `require` | `guzzlehttp/guzzle` | `6.5.0` | `CVE-2022-31090` | `>= 6.5.8` |
 | `php/composer-app/composer.json` | `require-dev` | `phpunit/phpunit` | `9.5.0` | `CVE-2026-24765` | (see OSV advisory) |
+| `php/composer-lock-app/composer.lock` | resolved | `symfony/http-foundation` | `5.0.0` | `CVE-2025-64500` (from lock; resolves `^5.0` in composer.json) | (see OSV advisory) |
 | `dotnet/app/App.csproj` | `PackageReference` (attribute) | `Newtonsoft.Json` | `12.0.3` | `CVE-2024-21907` | `>= 13.0.1` |
 | `dotnet/app/App.csproj` | `PackageReference` (attribute) | `System.Text.Json` | `6.0.0` | `CVE-2024-43485` | `>= 6.0.10` |
 | `dotnet/app/App.csproj` | `PackageReference` (child `Version`) | `Microsoft.Extensions.Caching.Memory` | `6.0.0` | `CVE-2024-43483` | `>= 6.0.2` |
 | `dotnet/packages-config-app/packages.config` | `package` | `Newtonsoft.Json` | `12.0.3` | `CVE-2024-21907` | `>= 13.0.1` |
 | `dotnet/sln-app/Example.sln` | via `src/App/App.csproj` | `Newtonsoft.Json` | `12.0.3` | `CVE-2024-21907` | `>= 13.0.1` |
+| `dotnet/packages-lock-app/packages.lock.json` | resolved | `Newtonsoft.Json` | `12.0.3` | `CVE-2024-21907` (from lock; resolves `12.0.*` in App.csproj) | `>= 13.0.1` |
 | `jvm/maven-app/pom.xml` | `<dependency>` | `org.apache.logging.log4j:log4j-core` | `2.14.1` | `CVE-2021-44228` | `>= 2.17.0` |
 | `jvm/maven-app/pom.xml` | `<dependency>` | `com.fasterxml.jackson.core:jackson-databind` | `2.9.10` | (see OSV advisories) | — |
 | `jvm/gradle-groovy-app/build.gradle` | `implementation` | `org.apache.logging.log4j:log4j-core` | `2.14.1` | `CVE-2021-44228` | `>= 2.17.0` |
 | `jvm/gradle-kotlin-app/build.gradle.kts` | `implementation` / `api` | `org.apache.logging.log4j:log4j-core` | `2.14.1` | `CVE-2021-44228` | `>= 2.17.0` |
+| `swift/package-swift-app/Package.swift` | `.exact` / `exact:` | `github.com/apple/swift-nio-http2` | `1.37.0` | `GHSA-xvr7-p2c6-j83w` | `>= 1.38.0` |
+| `swift/package-resolved-app/Package.resolved` | resolved | `github.com/apple/swift-nio-http2` | `1.37.0` | `GHSA-xvr7-p2c6-j83w` | `>= 1.38.0` |
 
 
 Run against the full fixture tree:
@@ -64,10 +69,10 @@ npm run build
 node dist/src/cli.js scan --only deps --paths examples/deps
 ```
 
-Ruby, Rust, PHP, JVM, or .NET only:
+Ruby, Rust, PHP, JVM, .NET, or Swift only:
 
 ```bash
-node dist/src/cli.js scan --only deps --paths examples/deps/ruby examples/deps/rust examples/deps/php examples/deps/jvm examples/deps/dotnet
+node dist/src/cli.js scan --only deps --paths examples/deps/ruby examples/deps/rust examples/deps/php examples/deps/jvm examples/deps/dotnet examples/deps/swift
 ```
 
 Discover all manifests under `examples/deps` without listing each path:

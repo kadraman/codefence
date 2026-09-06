@@ -17,6 +17,7 @@ const RUST_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "rust");
 const PHP_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "php");
 const DOTNET_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "dotnet");
 const JVM_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "jvm");
+const SWIFT_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "swift");
 const OSV_RUNTIME_APP_BATCH = path.join(
   process.cwd(),
   "tests",
@@ -271,6 +272,55 @@ test("examples php deps fixtures expose exact Packagist coordinates", () => {
   assert.ok(coordinates.every((dep) => dep.manifestLine > 0));
 });
 
+test("examples php lockfile fixtures expose resolved Packagist coordinates", () => {
+  const repoRoot = process.cwd();
+  const lockApp = path.join(PHP_FIXTURE_ROOT, "composer-lock-app");
+  const coordinates = collectDependencies(makeExampleContext(repoRoot), [
+    path.relative(repoRoot, path.join(lockApp, "composer.json")),
+    path.relative(repoRoot, path.join(lockApp, "composer.lock"))
+  ]).dependencies;
+
+  assert.deepEqual(
+    coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    [
+      "Packagist:guzzlehttp/guzzle@6.5.0",
+      "Packagist:phpunit/phpunit@9.5.0",
+      "Packagist:symfony/http-foundation@5.0.0"
+    ]
+  );
+  assert.ok(coordinates.every((dep) => dep.manifestPath.endsWith("composer.lock")));
+});
+
+test("examples swift Package.swift fixtures expose exact SwiftURL coordinates", () => {
+  const manifestPath = path.join(SWIFT_FIXTURE_ROOT, "package-swift-app", "Package.swift");
+  const coordinates = extractDependenciesForManifest(manifestPath);
+  assert.deepEqual(
+    coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    [
+      "SwiftURL:github.com/apple/swift-nio-http2@1.37.0",
+      "SwiftURL:github.com/apple/swift-nio@2.65.0"
+    ]
+  );
+});
+
+test("examples swift Package.resolved fixtures expose resolved SwiftURL coordinates", () => {
+  const repoRoot = process.cwd();
+  const resolvedApp = path.join(SWIFT_FIXTURE_ROOT, "package-resolved-app");
+  const coordinates = collectDependencies(makeExampleContext(repoRoot), [
+    path.relative(repoRoot, path.join(resolvedApp, "Package.swift")),
+    path.relative(repoRoot, path.join(resolvedApp, "Package.resolved"))
+  ]).dependencies;
+
+  assert.deepEqual(
+    coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    [
+      "SwiftURL:github.com/apple/swift-nio-http2@1.37.0",
+      "SwiftURL:github.com/apple/swift-nio@2.65.0"
+    ]
+  );
+  assert.ok(coordinates.every((dep) => dep.manifestPath.endsWith("Package.resolved")));
+});
+
 test("examples dotnet deps fixtures expose exact NuGet coordinates", () => {
   const manifestPath = path.join(DOTNET_FIXTURE_ROOT, "app", "App.csproj");
   const coordinates = extractDependenciesForManifest(manifestPath);
@@ -282,6 +332,25 @@ test("examples dotnet deps fixtures expose exact NuGet coordinates", () => {
     "NuGet:System.Text.Json@6.0.0"
   ]);
   assert.ok(coordinates.every((dep) => dep.manifestLine > 0));
+});
+
+test("examples dotnet packages.lock.json fixtures expose resolved NuGet coordinates", () => {
+  const repoRoot = process.cwd();
+  const lockApp = path.join(DOTNET_FIXTURE_ROOT, "packages-lock-app");
+  const coordinates = collectDependencies(makeExampleContext(repoRoot), [
+    path.relative(repoRoot, path.join(lockApp, "App.csproj")),
+    path.relative(repoRoot, path.join(lockApp, "packages.lock.json"))
+  ]).dependencies;
+
+  assert.deepEqual(
+    coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    [
+      "NuGet:Microsoft.Extensions.Caching.Memory@6.0.0",
+      "NuGet:Newtonsoft.Json@12.0.3",
+      "NuGet:System.Text.Json@6.0.0"
+    ]
+  );
+  assert.ok(coordinates.every((dep) => dep.manifestPath.endsWith("packages.lock.json")));
 });
 
 test("examples jvm maven fixture exposes exact Maven coordinates", () => {

@@ -1,0 +1,44 @@
+{
+  "_readme": [
+    "Fixture composer.lock for Codefence deps examples (not installable)."
+  ],
+  "content-hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "packages": [
+    {
+      "name": "guzzlehttp/guzzle",
+      "version": "v6.5.0",
+      "require": {
+        "php": ">=5.5"
+      },
+      "type": "library"
+    },
+    {
+      "name": "symfony/http-foundation",
+      "version": "v5.0.0",
+      "require": {
+        "php": ">=7.2.5"
+      },
+      "type": "library"
+    }
+  ],
+  "packages-dev": [
+    {
+      "name": "phpunit/phpunit",
+      "version": "9.5.0",
+      "require": {
+        "php": ">=7.3"
+      },
+      "type": "library"
+    }
+  ],
+  "aliases": [],
+  "minimum-stability": "stable",
+  "stability-flags": [],
+  "prefer-stable": false,
+  "prefer-lowest": false,
+  "platform": {
+    "php": ">=8.1"
+  },
+  "platform-dev": [],
+  "plugin-api-version": "2.3.0"
+}

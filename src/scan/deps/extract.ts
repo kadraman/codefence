@@ -11,12 +11,16 @@ import { extractUvLockDependencies } from "./extract/uvLock";
 import { extractCargoLockDependencies } from "./extract/cargoLock";
 import { extractCargoTomlDependencies } from "./extract/cargoToml";
 import { extractComposerJsonDependencies } from "./extract/composerJson";
+import { extractComposerLockDependencies } from "./extract/composerLock";
 import { extractGemfileDependencies } from "./extract/gemfile";
 import { extractGemfileLockDependencies } from "./extract/gemfileLock";
 import { extractCsprojDependencies } from "./extract/csproj";
 import { extractGoModDependencies } from "./extract/goMod";
 import { extractGradleDependencies } from "./extract/gradle";
 import { extractPackagesConfigDependencies } from "./extract/packagesConfig";
+import { extractPackagesLockJsonDependencies } from "./extract/packagesLockJson";
+import { extractPackageResolvedDependencies } from "./extract/packageResolved";
+import { extractPackageSwiftDependencies } from "./extract/packageSwift";
 import { extractPomXmlDependencies } from "./extract/pomXml";
 import { extractSlnDependencies } from "./extract/sln";
 import {
@@ -34,6 +38,39 @@ interface PackageJsonShape {
   optionalDependencies?: Record<string, string>;
   peerDependencies?: Record<string, string>;
 }
+
+type ManifestExtractor = (manifestPath: string) => DependencyExtractionResult;
+
+/** Exact basename → extractor (lowercase). Extension-based manifests are handled separately. */
+const BASENAME_EXTRACTORS: Record<string, ManifestExtractor> = {
+  "package.json": (manifestPath) => ({
+    dependencies: extractPackageJsonDependencies(manifestPath),
+    warnings: []
+  }),
+  "package-lock.json": extractPackageLockDependencies,
+  "yarn.lock": extractYarnLockDependencies,
+  "pnpm-lock.yaml": extractPnpmLockDependencies,
+  "requirements.txt": extractRequirementsTxtDependencies,
+  pipfile: extractPipfileDependencies,
+  "pipfile.lock": extractPipfileLockDependencies,
+  "poetry.lock": extractPoetryLockDependencies,
+  "uv.lock": extractUvLockDependencies,
+  "pyproject.toml": extractPyprojectTomlDependencies,
+  "go.mod": extractGoModDependencies,
+  gemfile: extractGemfileDependencies,
+  "gemfile.lock": extractGemfileLockDependencies,
+  "composer.json": extractComposerJsonDependencies,
+  "composer.lock": extractComposerLockDependencies,
+  "cargo.toml": extractCargoTomlDependencies,
+  "cargo.lock": extractCargoLockDependencies,
+  "pom.xml": extractPomXmlDependencies,
+  "build.gradle": extractGradleDependencies,
+  "build.gradle.kts": extractGradleDependencies,
+  "packages.config": extractPackagesConfigDependencies,
+  "packages.lock.json": extractPackagesLockJsonDependencies,
+  "package.swift": extractPackageSwiftDependencies,
+  "package.resolved": extractPackageResolvedDependencies
+};
 
 export { normalizeExactVersion } from "./extract/shared";
 
@@ -79,65 +116,9 @@ export function extractDependenciesForManifestWithDiagnostics(
   manifestPath: string
 ): DependencyExtractionResult {
   const baseName = path.basename(manifestPath).toLowerCase();
-  if (baseName === "package.json") {
-    return {
-      dependencies: extractPackageJsonDependencies(manifestPath),
-      warnings: []
-    };
-  }
-  if (baseName === "package-lock.json") {
-    return extractPackageLockDependencies(manifestPath);
-  }
-  if (baseName === "yarn.lock") {
-    return extractYarnLockDependencies(manifestPath);
-  }
-  if (baseName === "pnpm-lock.yaml") {
-    return extractPnpmLockDependencies(manifestPath);
-  }
-  if (baseName === "requirements.txt") {
-    return extractRequirementsTxtDependencies(manifestPath);
-  }
-  if (baseName === "pipfile") {
-    return extractPipfileDependencies(manifestPath);
-  }
-  if (baseName === "pipfile.lock") {
-    return extractPipfileLockDependencies(manifestPath);
-  }
-  if (baseName === "poetry.lock") {
-    return extractPoetryLockDependencies(manifestPath);
-  }
-  if (baseName === "uv.lock") {
-    return extractUvLockDependencies(manifestPath);
-  }
-  if (baseName === "pyproject.toml") {
-    return extractPyprojectTomlDependencies(manifestPath);
-  }
-  if (baseName === "go.mod") {
-    return extractGoModDependencies(manifestPath);
-  }
-  if (baseName === "gemfile") {
-    return extractGemfileDependencies(manifestPath);
-  }
-  if (baseName === "gemfile.lock") {
-    return extractGemfileLockDependencies(manifestPath);
-  }
-  if (baseName === "composer.json") {
-    return extractComposerJsonDependencies(manifestPath);
-  }
-  if (baseName === "cargo.toml") {
-    return extractCargoTomlDependencies(manifestPath);
-  }
-  if (baseName === "cargo.lock") {
-    return extractCargoLockDependencies(manifestPath);
-  }
-  if (baseName === "pom.xml") {
-    return extractPomXmlDependencies(manifestPath);
-  }
-  if (baseName === "build.gradle" || baseName === "build.gradle.kts") {
-    return extractGradleDependencies(manifestPath);
-  }
-  if (baseName === "packages.config") {
-    return extractPackagesConfigDependencies(manifestPath);
+  const byBasename = BASENAME_EXTRACTORS[baseName];
+  if (byBasename) {
+    return byBasename(manifestPath);
   }
   if (baseName.endsWith(".csproj")) {
     return extractCsprojDependencies(manifestPath);

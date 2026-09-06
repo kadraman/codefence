@@ -1075,12 +1075,12 @@ test("collectDependencies warns when Cargo.lock exists on disk but is not in sca
 
 test("buildDepsSkipMessage names manifests without extractors", () => {
   assert.equal(
-    buildDepsSkipMessage(["Package.swift"]),
-    "No dependency extractor for: Package.swift. See docs/dependency-support.md."
+    buildDepsSkipMessage(["go.sum"]),
+    "No dependency extractor for: go.sum. See docs/dependency-support.md."
   );
   assert.equal(
-    buildDepsSkipMessage(["Gemfile", "Package.swift"]),
-    "No exact-version dependencies extracted from changed manifests. No extractor yet for: Package.swift."
+    buildDepsSkipMessage(["Gemfile", "go.sum"]),
+    "No exact-version dependencies extracted from changed manifests. No extractor yet for: go.sum."
   );
   assert.equal(buildDepsSkipMessage(["Gemfile"]), "No exact-version dependencies extracted from changed manifests.");
   assert.equal(
@@ -1089,6 +1089,10 @@ test("buildDepsSkipMessage names manifests without extractors", () => {
   );
   assert.equal(
     buildDepsSkipMessage(["pom.xml"]),
+    "No exact-version dependencies extracted from changed manifests."
+  );
+  assert.equal(
+    buildDepsSkipMessage(["Package.swift"]),
     "No exact-version dependencies extracted from changed manifests."
   );
 });
@@ -1389,4 +1393,222 @@ test("deps aspect skips git_ignored_prefixes manifests on git-based scans", asyn
   const outcome = await depsAspect.run(context);
   assert.equal(outcome.status, "skipped");
   assert.equal(outcome.message, "No dependency manifests changed.");
+});
+
+test("extractDependenciesForManifest reads Package.swift exact pins", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-package-swift-"));
+  const manifestPath = path.join(tmpDir, "Package.swift");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "import PackageDescription",
+      "let package = Package(",
+      "  name: \"demo\",",
+      "  dependencies: [",
+      '    .package(url: "https://github.com/apple/swift-nio-http2.git", .exact("1.37.0")),',
+      '    .package(url: "https://github.com/apple/swift-nio.git", exact: "2.65.0"),',
+      '    .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0")',
+      "  ]",
+      ")",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    [
+      "SwiftURL:github.com/apple/swift-nio-http2@1.37.0",
+      "SwiftURL:github.com/apple/swift-nio@2.65.0"
+    ]
+  );
+  assert.equal(result.warnings.length, 1);
+  assert.equal(result.warnings[0]?.code, "deps.non-exact-spec");
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads Package.resolved pins", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-package-resolved-"));
+  const manifestPath = path.join(tmpDir, "Package.resolved");
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify(
+      {
+        pins: [
+          {
+            identity: "swift-nio-http2",
+            location: "https://github.com/apple/swift-nio-http2.git",
+            state: { version: "1.37.0" }
+          },
+          {
+            identity: "local-only",
+            location: "",
+            state: { revision: "abc123" }
+          }
+        ],
+        version: 2
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["SwiftURL:github.com/apple/swift-nio-http2@1.37.0"]
+  );
+  assert.equal(result.warnings.length, 0);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("collectDependencies prefers Package.resolved over ranged Package.swift", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-swift-lock-"));
+  fs.writeFileSync(
+    path.join(tmpDir, "Package.swift"),
+    [
+      "import PackageDescription",
+      "let package = Package(",
+      "  dependencies: [",
+      '    .package(url: "https://github.com/apple/swift-nio-http2.git", from: "1.0.0")',
+      "  ]",
+      ")",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(tmpDir, "Package.resolved"),
+    JSON.stringify({
+      pins: [
+        {
+          identity: "swift-nio-http2",
+          location: "https://github.com/apple/swift-nio-http2.git",
+          state: { version: "1.37.0" }
+        }
+      ],
+      version: 2
+    }),
+    "utf8"
+  );
+
+  const result = collectDependencies(makeContext(tmpDir), ["Package.swift", "Package.resolved"]);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["SwiftURL:github.com/apple/swift-nio-http2@1.37.0"]
+  );
+  assert.ok(result.dependencies.every((dep) => dep.manifestPath.endsWith("Package.resolved")));
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads composer.lock packages", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-composer-lock-"));
+  const manifestPath = path.join(tmpDir, "composer.lock");
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify({
+      packages: [{ name: "symfony/http-foundation", version: "v5.0.0" }],
+      "packages-dev": [{ name: "phpunit/phpunit", version: "9.5.0" }]
+    }),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    ["Packagist:phpunit/phpunit@9.5.0", "Packagist:symfony/http-foundation@5.0.0"]
+  );
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("collectDependencies prefers composer.lock over ranged composer.json", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-composer-lock-pref-"));
+  fs.writeFileSync(
+    path.join(tmpDir, "composer.json"),
+    JSON.stringify({ require: { "symfony/http-foundation": "^5.0" } }),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(tmpDir, "composer.lock"),
+    JSON.stringify({ packages: [{ name: "symfony/http-foundation", version: "v5.0.0" }] }),
+    "utf8"
+  );
+
+  const result = collectDependencies(makeContext(tmpDir), ["composer.json", "composer.lock"]);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.name}@${dep.version}`),
+    ["symfony/http-foundation@5.0.0"]
+  );
+  assert.ok(result.dependencies.every((dep) => dep.manifestPath.endsWith("composer.lock")));
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("extractDependenciesForManifest reads packages.lock.json resolved versions", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-packages-lock-"));
+  const manifestPath = path.join(tmpDir, "packages.lock.json");
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify({
+      version: 1,
+      dependencies: {
+        "net8.0": {
+          "Newtonsoft.Json": { type: "Direct", resolved: "12.0.3" },
+          App: { type: "Project" }
+        }
+      }
+    }),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`),
+    ["NuGet:Newtonsoft.Json@12.0.3"]
+  );
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("collectDependencies prefers packages.lock.json over ranged csproj", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-nuget-lock-pref-"));
+  fs.writeFileSync(
+    path.join(tmpDir, "App.csproj"),
+    [
+      '<Project Sdk="Microsoft.NET.Sdk">',
+      '  <ItemGroup>',
+      '    <PackageReference Include="Newtonsoft.Json" Version="12.0.*" />',
+      "  </ItemGroup>",
+      "</Project>",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(tmpDir, "packages.lock.json"),
+    JSON.stringify({
+      version: 1,
+      dependencies: {
+        "net8.0": {
+          "Newtonsoft.Json": { type: "Direct", resolved: "12.0.3" }
+        }
+      }
+    }),
+    "utf8"
+  );
+
+  const result = collectDependencies(makeContext(tmpDir), ["App.csproj", "packages.lock.json"]);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.name}@${dep.version}`),
+    ["Newtonsoft.Json@12.0.3"]
+  );
+  assert.ok(result.dependencies.every((dep) => dep.manifestPath.endsWith("packages.lock.json")));
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
 });

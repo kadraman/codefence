@@ -11,7 +11,7 @@
 | Document | Status | Topics |
 | -------- | ------ | ------ |
 | [vulnerable-dependency-scanning-osv.md](features/vulnerable-dependency-scanning-osv.md) | Partial (see checklist) | OSV provider, deps aspect, cache, HTTP/2, `--deps-scope tree` |
-| [multi-ecosystem-manifest-extraction.md](features/multi-ecosystem-manifest-extraction.md) | Partial | Non-npm parsers; Ruby, PHP, JVM, .NET, Rust shipped; Swift open |
+| [multi-ecosystem-manifest-extraction.md](features/multi-ecosystem-manifest-extraction.md) | Shipped | Non-npm parsers (Swift, PHP/NuGet lockfiles included; BOM deferred) |
 | [implemented/lockfile-aware-dependency-extraction.md](features/implemented/lockfile-aware-dependency-extraction.md) | Shipped | npm lockfile parsing, version resolution for OSV |
 | [implemented/semgrep-compatible-secret-engine.md](features/implemented/semgrep-compatible-secret-engine.md) | Implemented | YAML secret rules, entropy, remote bundles |
 

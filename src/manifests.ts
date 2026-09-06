@@ -19,8 +19,11 @@ export const dependencyManifestNames = new Set([
   "Gemfile",
   "Gemfile.lock",
   "composer.json",
+  "composer.lock",
   "packages.config",
-  "Package.swift"
+  "packages.lock.json",
+  "Package.swift",
+  "Package.resolved"
 ]);
 
 /** @deprecated Use dependencyManifestNames */

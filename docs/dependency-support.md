@@ -16,10 +16,10 @@ Implementation source of truth: [`src/manifests.ts`](../src/manifests.ts) (trigg
 | Go | `Go` | Yes | **Shipped** (`go.mod`) | `go.sum` (checksum companion; not used for versions yet) |
 | Rust | `crates.io` | Yes | **Shipped** (`Cargo.toml`, `Cargo.lock`) | Exact `=` pins in Cargo.toml; `Cargo.lock` wins when in scope |
 | Ruby | `RubyGems` | Yes | **Shipped** (`Gemfile`, `Gemfile.lock`) | Exact pins in Gemfile; lockfile wins when in scope |
-| PHP | `Packagist` | Yes | **Shipped** (`composer.json`) | Exact `require` / `require-dev` versions; `composer.lock` planned |
+| PHP | `Packagist` | Yes | **Shipped** (`composer.json`, `composer.lock`) | Exact `require` / `require-dev`; lockfile wins when in scope |
 | JVM (Maven coordinates) | `Maven` | Yes | **Shipped** (`pom.xml`, `build.gradle`, `build.gradle.kts`) | Explicit versions / literal GAV strings; BOMs and property indirection deferred |
-| .NET (NuGet) | `NuGet` | Yes | **Shipped** (`*.csproj`, `packages.config`, `*.sln` → `.csproj`) | `packages.lock.json` planned |
-| Swift | `SwiftURL` (TBD) | Yes | Planned | `Package.swift` |
+| .NET (NuGet) | `NuGet` | Yes | **Shipped** (`*.csproj`, `packages.config`, `*.sln` → `.csproj`, `packages.lock.json`) | Lockfile preferred over sibling `.csproj` |
+| Swift | `SwiftURL` | Yes | **Shipped** (`Package.swift`, `Package.resolved`) | `.exact` / `exact:` pins; normalized Git URL names; lockfile preferred |
 
 Provider, cache, and CLI behavior: [vulnerable-dependency-scanning-osv.md](features/vulnerable-dependency-scanning-osv.md).
 
@@ -63,8 +63,11 @@ Fixtures: [examples/deps/ruby/](../examples/deps/ruby/).
 | Manifest | Triggers `deps` | Extracts versions | Notes |
 | -------- | --------------- | ----------------- | ----- |
 | `composer.json` | Yes | Exact pins only | `require` and `require-dev` with literal versions; skips `php`, `ext-*`, `lib-*`, and constraint ranges (`^`, `~`, `*`, …) |
+| `composer.lock` | Yes | Yes | Resolved `packages` / `packages-dev` versions (`v` prefix stripped) |
 
-`composer.lock` is not parsed yet (planned). Fixtures: [examples/deps/php/](../examples/deps/php/).
+**Merge rules** (same directory): when `composer.lock` is in scope, it is used instead of `composer.json`. If only `composer.json` is in scope but `composer.lock` exists on disk, Codefence warns that ranged entries may be skipped.
+
+Fixtures: [examples/deps/php/](../examples/deps/php/).
 
 ## .NET / NuGet (shipped)
 
@@ -73,8 +76,11 @@ Fixtures: [examples/deps/ruby/](../examples/deps/ruby/).
 | `*.csproj` | Yes | Yes | `PackageReference` with `Version="…"` on the tag or child `<Version>…</Version>`; skips ranges, floating versions, and `Update`-only entries |
 | `packages.config` | Yes | Yes | Legacy pinned `package id="…" version="…"` entries; skips ranges |
 | `*.sln` | Yes | Yes (via `.csproj`) | Discovers referenced `.csproj` paths and extracts from those projects (coordinates use the `.csproj` path) |
+| `packages.lock.json` | Yes | Yes | Resolved NuGet package versions per TFM; skips `type: Project` |
 
-`packages.lock.json` / project assets are not parsed yet. Fixtures: [examples/deps/dotnet/](../examples/deps/dotnet/).
+**Merge rules** (same directory): when `packages.lock.json` is in scope beside a `.csproj`, the lockfile is used instead of the project file.
+
+Fixtures: [examples/deps/dotnet/](../examples/deps/dotnet/).
 
 ## JVM / Maven (shipped — exact pins only)
 
@@ -98,12 +104,23 @@ OSV package names use `groupId:artifactId`. Property/BOM resolution and Gradle l
 
 Fixtures: [examples/deps/rust/](../examples/deps/rust/).
 
+## Swift / SwiftURL (shipped)
+
+| Manifest | Triggers `deps` | Extracts versions | Notes |
+| -------- | --------------- | ----------------- | ----- |
+| `Package.swift` | Yes | Exact pins only | `.package(url:…, .exact("1.2.3"))` and `exact: "1.2.3"`; package names are normalized Git URLs (`github.com/org/repo`) |
+| `Package.resolved` | Yes | Yes | Resolved pins with `state.version`; location URL normalized to SwiftURL identity |
+
+**Merge rules** (same directory): when `Package.resolved` is in scope, it is used instead of `Package.swift`.
+
+Fixtures: [examples/deps/swift/](../examples/deps/swift/).
+
 ## Trigger-only and planned manifests
 
 These files are recognized in [`src/manifests.ts`](../src/manifests.ts) and can start a dependency scan, but have **no extractor** yet:
 
 ```text
-[deps] SKIPPED — No dependency extractor for: Package.swift. See docs/dependency-support.md.
+[deps] SKIPPED — No dependency extractor for: go.sum. See docs/dependency-support.md.
 ```
 
 When an extractor exists but only ranged/unpinned entries are in scope:
@@ -114,7 +131,7 @@ When an extractor exists but only ranged/unpinned entries are in scope:
 
 | Manifest | Ecosystem | Status |
 | -------- | --------- | ------ |
-| `Package.swift` | SwiftURL | Planned |
+| `go.sum` | Go | Trigger only (checksum companion; no version extraction) |
 
 Delivery order and OSV ecosystem strings: [multi-ecosystem-manifest-extraction.md](features/multi-ecosystem-manifest-extraction.md).
 
@@ -123,7 +140,7 @@ Delivery order and OSV ecosystem strings: [multi-ecosystem-manifest-extraction.m
 | Document | Purpose |
 | -------- | ------- |
 | [lockfile-aware-dependency-extraction.md](features/implemented/lockfile-aware-dependency-extraction.md) | npm lockfile parsers (shipped) |
-| [multi-ecosystem-manifest-extraction.md](features/multi-ecosystem-manifest-extraction.md) | Non-npm parsers (partial: Python, Go, Ruby, PHP, JVM, .NET, Rust shipped; Swift open) |
+| [multi-ecosystem-manifest-extraction.md](features/multi-ecosystem-manifest-extraction.md) | Non-npm parsers (shipped; BOM/property resolution deferred) |
 | [vulnerable-dependency-scanning-osv.md](features/vulnerable-dependency-scanning-osv.md) | OSV provider, cache, CLI, `--deps-scope tree` |
 
 When adding a parser, update this matrix, the relevant feature spec checklist, and [`src/scan/deps/extract.ts`](../src/scan/deps/extract.ts) in the same change.
