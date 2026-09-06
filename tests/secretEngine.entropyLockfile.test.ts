@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { scanSecretFindings } from "../src/scan/secret/engine";
 import { defaultSecretScanOptions } from "../src/scan/secret/config";
+import { findEntropySecrets } from "../src/scan/secret/entropy";
 
 // Split so this file itself does not trip staged secret/entropy scanning.
 const HIGH_ENTROPY_SAMPLE = ["Q4z8vB2n", "Lp9sTw7x", "Yk3mHc6r", "Jd1f"].join("");
@@ -76,5 +77,29 @@ test("entropy heuristic skips bare https values even for unknown keys", async ()
   assert.equal(
     findings.filter((finding) => finding.ruleId === "secret-high-entropy").length,
     0
+  );
+});
+
+test("entropy heuristic does not skip https values with userinfo", () => {
+  // Built via join so this test file does not contain a scannable URI-credential assignment.
+  const line = ["endpoint = \"https://alice:", HIGH_ENTROPY_SAMPLE, "@example.com/api\""].join("");
+  const findings = findEntropySecrets("config.toml", [line], defaultSecretScanOptions());
+  assert.ok(findings.some((finding) => finding.ruleId === "secret-high-entropy"));
+});
+
+test("entropy heuristic does not skip https values with query or fragment", () => {
+  const queryLine = ["callback = \"https://example.com/cb?sig=", HIGH_ENTROPY_SAMPLE, "\""].join("");
+  const fragmentLine = ["deeplink = \"https://example.com/app#", HIGH_ENTROPY_SAMPLE, "\""].join("");
+  const options = defaultSecretScanOptions();
+
+  assert.ok(
+    findEntropySecrets("config.toml", [queryLine], options).some(
+      (finding) => finding.ruleId === "secret-high-entropy"
+    )
+  );
+  assert.ok(
+    findEntropySecrets("config.toml", [fragmentLine], options).some(
+      (finding) => finding.ruleId === "secret-high-entropy"
+    )
   );
 });

@@ -200,7 +200,7 @@ Mitigations:
 2. Entropy min-length and threshold controls.
 3. Clear rule schema validation and compatibility warnings.
 4. Optional allowlist/ignore support for known benign tokens.
-5. Entropy assignment scanning skips package-manager metadata keys (`source`, `checksum`, `integrity`, `hash`, `registry`, `resolved`) and URL / `registry+https://` values that commonly appear in lockfiles.
+5. Entropy assignment scanning skips package-manager metadata keys (`source`, `checksum`, `integrity`, `hash`, `registry`, `resolved`) and path-only URL / `registry+https://` values that commonly appear in lockfiles (URLs with userinfo, query, or fragment are still scanned).
 6. Remote rule updates require integrity checks (checksum/signature) before cache activation.
 
 ## Testing Strategy
@@ -220,13 +220,13 @@ Add or update tests for:
 Suggested files:
 
 1. `tests/secretEngine.rules.test.ts`
-2. `tests/secretEngine.entropy.test.ts`
+2. `tests/secretsExamples.test.ts` (entropy heuristic + example fixtures)
 3. `tests/secretEngine.entropyLockfile.test.ts`
 4. `tests/secretEngine.merge.test.ts`
 5. `tests/scanOptions.test.ts` (extend)
 6. `tests/secretEngine.cache.test.ts`
-7. `tests/secretEngine.builtinRules.spec.ts`
-8. `tests/secrets/fixtures/*` sample files for built-in rule triggers
+7. `tests/secretEngine.builtinRules.test.ts`
+8. `examples/secrets/*` sample files for built-in rule triggers
 
 ### CLI/Integration Tests
 

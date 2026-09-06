@@ -24,12 +24,13 @@ const BENIGN_ASSIGNMENT_KEYS = new Set([
   "resolved"
 ]);
 
-/** Values that are clearly public registry/URL metadata, not credentials. */
+/** Values that are clearly public registry/URL metadata, not credentials.
+ *  Require path-only URLs: no userinfo (`@`), query (`?`), or fragment (`#`). */
 const BENIGN_VALUE_PATTERNS: RegExp[] = [
-  /^https?:\/\//i,
-  /^registry\+https?:\/\//i,
-  /^git\+https?:\/\//i,
-  /^ssh:\/\//i
+  /^https?:\/\/[^?#@]+$/i,
+  /^registry\+https?:\/\/[^?#@]+$/i,
+  /^git\+https?:\/\/[^?#@]+$/i,
+  /^ssh:\/\/[^?#@]+$/i
 ];
 
 function isBenignAssignmentValue(value: string): boolean {
