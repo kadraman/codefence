@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Codefence.PackagesLockApp</RootNamespace>
+    <Description>Fixture: ranged PackageReference resolved by packages.lock.json (fake project).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.*" />
+    <PackageReference Include="System.Text.Json" Version="6.0.*" />
+  </ItemGroup>
+</Project>

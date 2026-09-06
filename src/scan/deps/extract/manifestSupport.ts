@@ -16,12 +16,16 @@ export const EXTRACTOR_MANIFEST_BASENAMES = new Set([
   "gemfile",
   "gemfile.lock",
   "composer.json",
+  "composer.lock",
   "pom.xml",
   "build.gradle",
   "build.gradle.kts",
   "packages.config",
+  "packages.lock.json",
   "cargo.toml",
-  "cargo.lock"
+  "cargo.lock",
+  "package.swift",
+  "package.resolved"
 ]);
 
 export function manifestBasename(filePath: string): string {
