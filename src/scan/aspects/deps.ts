@@ -31,6 +31,11 @@ const PHP_MANIFEST_BASENAMES = new Set(["composer.json", "composer.lock"]);
 const SWIFT_MANIFEST_BASENAMES = new Set(["package.swift", "package.resolved"]);
 const DOTNET_LOCK_BASENAME = "packages.lock.json";
 
+interface DotnetProjectRoot {
+  lockfile: string | null;
+  csprojs: string[];
+}
+
 function groupManifestsByRoot(
   manifests: string[],
   cwd: string,
@@ -54,11 +59,8 @@ function groupManifestsByRoot(
   return roots;
 }
 
-function groupDotnetProjectRoots(
-  manifests: string[],
-  cwd: string
-): Map<string, { lockfile: string | null; csproj: string | null }> {
-  const roots = new Map<string, { lockfile: string | null; csproj: string | null }>();
+function groupDotnetProjectRoots(manifests: string[], cwd: string): Map<string, DotnetProjectRoot> {
+  const roots = new Map<string, DotnetProjectRoot>();
 
   for (const manifestPath of manifests) {
     const absolute = path.resolve(cwd, manifestPath);
@@ -68,11 +70,11 @@ function groupDotnetProjectRoots(
     }
 
     const root = path.dirname(absolute);
-    const entry = roots.get(root) ?? { lockfile: null, csproj: null };
+    const entry = roots.get(root) ?? { lockfile: null, csprojs: [] };
     if (baseName === DOTNET_LOCK_BASENAME) {
       entry.lockfile = absolute;
-    } else {
-      entry.csproj = absolute;
+    } else if (!entry.csprojs.includes(absolute)) {
+      entry.csprojs.push(absolute);
     }
     roots.set(root, entry);
   }
@@ -249,7 +251,7 @@ function selectSwiftManifests(
 }
 
 function selectDotnetManifests(
-  dotnetRoots: Map<string, { lockfile: string | null; csproj: string | null }>
+  dotnetRoots: Map<string, DotnetProjectRoot>
 ): { selected: string[]; warnings: DepsExtractionWarning[] } {
   const selected: string[] = [];
   const warnings: DepsExtractionWarning[] = [];
@@ -257,9 +259,9 @@ function selectDotnetManifests(
   for (const [, entry] of dotnetRoots) {
     if (entry.lockfile) {
       selected.push(entry.lockfile);
-    } else if (entry.csproj) {
-      selected.push(entry.csproj);
+      continue;
     }
+    selected.push(...entry.csprojs);
   }
 
   return { selected, warnings };
@@ -283,7 +285,7 @@ function warnUnscopedSiblingLockfiles(
   rustRoots: Map<string, Map<string, string>>,
   phpRoots: Map<string, Map<string, string>>,
   swiftRoots: Map<string, Map<string, string>>,
-  dotnetRoots: Map<string, { lockfile: string | null; csproj: string | null }>,
+  dotnetRoots: Map<string, DotnetProjectRoot>,
   cwd: string
 ): DepsExtractionWarning[] {
   const warnings: DepsExtractionWarning[] = [];
@@ -416,12 +418,12 @@ function warnUnscopedSiblingLockfiles(
   }
 
   for (const [root, entry] of dotnetRoots) {
-    if (entry.csproj && !entry.lockfile) {
+    if (entry.csprojs.length > 0 && !entry.lockfile) {
       const lockfilesOnDisk = findSiblingLockfilesOnDisk(root, ["packages.lock.json"]);
       if (lockfilesOnDisk.length > 0) {
         warnings.push(
           depsExtractionWarning(
-            entry.csproj,
+            entry.csprojs[0] ?? path.join(root, "packages.lock.json"),
             "deps.lockfile-not-in-scope",
             `packages.lock.json exists in ${path.relative(cwd, root) || "."} but is not in scan scope; ranged PackageReference entries may be skipped.`,
             "Stage or commit packages.lock.json, include it in --paths, or scan with --deps-scope tree."

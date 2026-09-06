@@ -65,7 +65,7 @@ export function nonExactSpecWarning(manifestPath: string, manifestKind: string):
                       : manifestKind === "Cargo.toml"
                         ? "Commit Cargo.lock or pin crates with an exact version (=1.2.3) in Cargo.toml, then re-scan."
                         : manifestKind === "Package.swift"
-                          ? "Commit Package.resolved or pin packages with .exact(\"1.2.3\") in Package.swift, then re-scan."
+                          ? "Commit Package.resolved or pin packages with .exact(\"1.2.3\") / exact: \"1.2.3\" in Package.swift, then re-scan."
                           : "Pin dependencies with an exact version or commit a lockfile, then re-scan.";
 
   return depsExtractionWarning(

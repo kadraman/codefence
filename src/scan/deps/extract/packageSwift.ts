@@ -45,9 +45,77 @@ function normalizeSwiftExactVersion(raw: string): string | null {
   return trimmed;
 }
 
-/** Match `.package(url: "...", .exact("1.2.3"))` and `exact: "1.2.3"` forms. */
-const PACKAGE_EXACT_RE =
-  /\.package\s*\(\s*url\s*:\s*["']([^"']+)["']\s*,\s*(?:\.exact\s*\(\s*["']([^"']+)["']\s*\)|exact\s*:\s*["']([^"']+)["'])/gi;
+const PACKAGE_CALL_START_RE = /\.package\s*\(/gi;
+
+/** Match exact pin forms inside a single `.package(...)` argument list. */
+const PACKAGE_EXACT_IN_ARGS_RE =
+  /url\s*:\s*["']([^"']+)["'][\s\S]*?(?:\.exact\s*\(\s*["']([^"']+)["']\s*\)|exact\s*:\s*["']([^"']+)["'])/i;
+
+function extractBalancedCallArgs(source: string, openParenIndex: number): string | null {
+  let depth = 0;
+  let inSingle = false;
+  let inDouble = false;
+  let escaped = false;
+
+  for (let index = openParenIndex; index < source.length; index++) {
+    const char = source[index] ?? "";
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (char === "\\" && (inSingle || inDouble)) {
+      escaped = true;
+      continue;
+    }
+    if (char === "'" && !inDouble) {
+      inSingle = !inSingle;
+      continue;
+    }
+    if (char === '"' && !inSingle) {
+      inDouble = !inDouble;
+      continue;
+    }
+    if (inSingle || inDouble) {
+      continue;
+    }
+
+    if (char === "(") {
+      depth += 1;
+      continue;
+    }
+    if (char === ")") {
+      depth -= 1;
+      if (depth === 0) {
+        return source.slice(openParenIndex + 1, index);
+      }
+    }
+  }
+
+  return null;
+}
+
+interface PackageSwiftCall {
+  args: string;
+  startIndex: number;
+}
+
+function findPackageCalls(source: string): PackageSwiftCall[] {
+  const calls: PackageSwiftCall[] = [];
+  PACKAGE_CALL_START_RE.lastIndex = 0;
+
+  let match: RegExpExecArray | null;
+  while ((match = PACKAGE_CALL_START_RE.exec(source)) !== null) {
+    const openParenIndex = (match.index ?? 0) + match[0].length - 1;
+    const args = extractBalancedCallArgs(source, openParenIndex);
+    if (args === null) {
+      continue;
+    }
+    calls.push({ args, startIndex: match.index ?? 0 });
+  }
+
+  return calls;
+}
 
 export function extractPackageSwiftDependencies(manifestPath: string): DependencyExtractionResult {
   const readResult = readManifestSource(manifestPath);
@@ -60,12 +128,16 @@ export function extractPackageSwiftDependencies(manifestPath: string): Dependenc
 
   const dependencies: DependencyCoordinate[] = [];
   let skippedNonExact = false;
-  const lines = readResult.source.split(/\r?\n/);
-  const exactMatches = [...readResult.source.matchAll(PACKAGE_EXACT_RE)];
 
-  for (const match of exactMatches) {
-    const url = match[1] ?? "";
-    const versionRaw = match[2] ?? match[3] ?? "";
+  for (const call of findPackageCalls(readResult.source)) {
+    const exactMatch = call.args.match(PACKAGE_EXACT_IN_ARGS_RE);
+    if (!exactMatch) {
+      skippedNonExact = true;
+      continue;
+    }
+
+    const url = exactMatch[1] ?? "";
+    const versionRaw = exactMatch[2] ?? exactMatch[3] ?? "";
     const name = normalizeSwiftUrlPackageName(url);
     const version = normalizeSwiftExactVersion(versionRaw);
     if (!name || !version) {
@@ -73,9 +145,7 @@ export function extractPackageSwiftDependencies(manifestPath: string): Dependenc
       continue;
     }
 
-    const matchIndex = match.index ?? 0;
-    const line = readResult.source.slice(0, matchIndex).split(/\r?\n/).length;
-
+    const line = readResult.source.slice(0, call.startIndex).split(/\r?\n/).length;
     dependencies.push({
       ecosystem: SWIFT_URL_ECOSYSTEM,
       name,
@@ -83,14 +153,6 @@ export function extractPackageSwiftDependencies(manifestPath: string): Dependenc
       manifestPath: readResult.absolutePath,
       manifestLine: line
     });
-  }
-
-  // Detect .package(...) with from:/branch/revision but no exact pin.
-  for (const line of lines) {
-    if (/\.package\s*\(/.test(line) && !/\.exact\s*\(|\bexact\s*:/.test(line)) {
-      skippedNonExact = true;
-      break;
-    }
   }
 
   return {

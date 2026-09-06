@@ -1429,6 +1429,44 @@ test("extractDependenciesForManifest reads Package.swift exact pins", () => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
+test("extractDependenciesForManifest reads multi-line Package.swift exact pins without warning", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-package-swift-multiline-"));
+  const manifestPath = path.join(tmpDir, "Package.swift");
+  fs.writeFileSync(
+    manifestPath,
+    [
+      "import PackageDescription",
+      "let package = Package(",
+      "  name: \"demo\",",
+      "  dependencies: [",
+      "    .package(",
+      '      url: "https://github.com/apple/swift-nio-http2.git",',
+      '      exact: "1.37.0"',
+      "    ),",
+      "    .package(",
+      '      url: "https://github.com/apple/swift-nio.git",',
+      '      .exact("2.65.0")',
+      "    )",
+      "  ]",
+      ")",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = extractDependenciesForManifestWithDiagnostics(manifestPath);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    [
+      "SwiftURL:github.com/apple/swift-nio-http2@1.37.0",
+      "SwiftURL:github.com/apple/swift-nio@2.65.0"
+    ]
+  );
+  assert.equal(result.warnings.length, 0);
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
 test("extractDependenciesForManifest reads Package.resolved pins", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-package-resolved-"));
   const manifestPath = path.join(tmpDir, "Package.resolved");
@@ -1609,6 +1647,43 @@ test("collectDependencies prefers packages.lock.json over ranged csproj", () => 
     ["Newtonsoft.Json@12.0.3"]
   );
   assert.ok(result.dependencies.every((dep) => dep.manifestPath.endsWith("packages.lock.json")));
+
+  fs.rmSync(tmpDir, { recursive: true, force: true });
+});
+
+test("collectDependencies keeps multiple sibling csproj files without packages.lock.json", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "codefence-multi-csproj-"));
+  fs.writeFileSync(
+    path.join(tmpDir, "App.csproj"),
+    [
+      '<Project Sdk="Microsoft.NET.Sdk">',
+      "  <ItemGroup>",
+      '    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />',
+      "  </ItemGroup>",
+      "</Project>",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(tmpDir, "Worker.csproj"),
+    [
+      '<Project Sdk="Microsoft.NET.Sdk">',
+      "  <ItemGroup>",
+      '    <PackageReference Include="System.Text.Json" Version="6.0.0" />',
+      "  </ItemGroup>",
+      "</Project>",
+      ""
+    ].join("\n"),
+    "utf8"
+  );
+
+  const result = collectDependencies(makeContext(tmpDir), ["App.csproj", "Worker.csproj"]);
+  assert.deepEqual(
+    result.dependencies.map((dep) => `${dep.name}@${dep.version}`).sort(),
+    ["Newtonsoft.Json@12.0.3", "System.Text.Json@6.0.0"]
+  );
+  assert.equal(result.dependencies.length, 2);
 
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
