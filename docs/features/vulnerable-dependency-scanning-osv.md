@@ -3,7 +3,7 @@ title: "Vulnerable Dependency Scanning With OSV Default"
 status: partial
 owners: ["@kadraman"]
 created: 2026-05-25
-updated: 2026-09-05
+updated: 2026-09-06
 issue: "TBD"
 scope: "scan|cli|hooks|docs"
 ---
@@ -12,7 +12,7 @@ scope: "scan|cli|hooks|docs"
 
 This feature adds dependency vulnerability scanning to Codefence using an external vulnerability source, with OSV as the default provider. The scanner should detect when dependency manifests change, resolve affected packages, and query the provider API for known vulnerabilities. The provider integration must be configurable, but work out of the box against OSV.
 
-**Implementation status (2026-07-11):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, npm extraction (exact `package.json` pins + lockfiles), **Python** (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), **Go** (`go.mod`), **Ruby** (`Gemfile`, `Gemfile.lock`), **PHP** (`composer.json`), **JVM** (`pom.xml`, `build.gradle`, `build.gradle.kts`), and **.NET** (`*.csproj`, `packages.config`, `*.sln` → `.csproj`) are **shipped**. Swift and remaining lockfiles (`composer.lock`, …) remain **trigger-only** or unparsed; Rust (`Cargo.toml` / `Cargo.lock`) is **shipped**; custom providers remain **open** (see checklist). Ecosystem matrix: [dependency-support.md](../dependency-support.md).
+**Implementation status (2026-09-06):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, npm extraction (exact `package.json` pins + lockfiles), **Python** (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), **Go** (`go.mod`), **Ruby** (`Gemfile`, `Gemfile.lock`), **PHP** (`composer.json`), **JVM** (`pom.xml`, `build.gradle`, `build.gradle.kts`), and **.NET** (`*.csproj`, `packages.config`, `*.sln` → `.csproj`) are **shipped**. Swift and remaining lockfiles (`composer.lock`, …) remain **trigger-only** or unparsed; Rust (`Cargo.toml` / `Cargo.lock`) is **shipped**; custom providers remain **open** (see checklist). Ecosystem matrix: [dependency-support.md](../dependency-support.md).
 
 ## Problem Statement
 

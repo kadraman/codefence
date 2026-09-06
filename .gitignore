@@ -9,6 +9,13 @@ node_modules/
 # Build output (built on npm install/publish via prepack)
 dist/
 
+# Example fixture tool caches / outputs (from local Gradle/Maven/Cargo/.NET runs)
+.gradle/
+examples/**/build/
+examples/**/target/
+examples/**/bin/
+examples/**/obj/
+
 # codefence local state (cache, debounce)
 .codefence/
 

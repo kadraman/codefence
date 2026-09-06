@@ -933,12 +933,25 @@ test("extractDependenciesForManifest reads Cargo.toml exact version pins", () =>
       'tokio = { version = "=1.32.0", features = ["full"] }',
       'regex = "1.9.5"',
       'openssl = { path = "../openssl" }',
+      'local-pin = { version = "=0.10.48", path = "../local-pin" }',
+      'git-pin = { version = "=1.0.0", git = "https://github.com/example/git-pin.git" }',
+      'ws-pin = { workspace = true, version = "=2.0.0" }',
       "",
       "[dev-dependencies]",
       'tempfile = "=3.8.0"',
       "",
       "[dependencies.time]",
       'version = "=0.1.44"',
+      "",
+      "[dependencies.local-named]",
+      'version = "=0.2.0"',
+      'path = "../local-named"',
+      "",
+      "[workspace.dependencies]",
+      'thiserror = "=1.0.48"',
+      "",
+      "[workspace.dependencies.anyhow]",
+      'version = "=1.0.75"',
       ""
     ].join("\n"),
     "utf8"
@@ -948,8 +961,10 @@ test("extractDependenciesForManifest reads Cargo.toml exact version pins", () =>
   assert.deepEqual(
     result.dependencies.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
     [
+      "crates.io:anyhow@1.0.75",
       "crates.io:serde@1.0.188",
       "crates.io:tempfile@3.8.0",
+      "crates.io:thiserror@1.0.48",
       "crates.io:time@0.1.44",
       "crates.io:tokio@1.32.0"
     ]

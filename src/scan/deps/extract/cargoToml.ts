@@ -10,16 +10,31 @@ import {
 /** OSV ecosystem id for crates.io packages. */
 export const CRATES_IO_ECOSYSTEM = "crates.io";
 
-const DEPENDENCY_TABLE_RE =
-  /^(?:(?:build-|dev-)?dependencies|workspace\.dependencies|target\..+\.(?:(?:build-|dev-)?dependencies))$/i;
+const DEPENDENCY_TABLE_PREFIX =
+  "(?:(?:build-|dev-)?dependencies|workspace\\.dependencies|target\\..+\\.(?:(?:build-|dev-)?dependencies))";
 
-const NAMED_DEPENDENCY_TABLE_RE =
-  /^((?:(?:build-|dev-)?dependencies|target\..+\.(?:(?:build-|dev-)?dependencies)))\.([A-Za-z0-9_-]+)$/i;
+const DEPENDENCY_TABLE_RE = new RegExp(`^${DEPENDENCY_TABLE_PREFIX}$`, "i");
+
+const NAMED_DEPENDENCY_TABLE_RE = new RegExp(
+  `^(${DEPENDENCY_TABLE_PREFIX})\\.([A-Za-z0-9_-]+)$`,
+  "i"
+);
 
 const INLINE_ASSIGNMENT_RE = /^\s*(?:["']([A-Za-z0-9_-]+)["']|([A-Za-z0-9_-]+))\s*=\s*(.+?)\s*$/;
 
 /** Cargo exact pin: "=1.2.3" (bare "1.2.3" is a caret range). */
 const EXACT_VERSION_RE = /^=\s*([0-9][0-9A-Za-z.+_-]*)$/;
+
+/** path/git/workspace sources are not fetched from crates.io, even when version is set. */
+const NON_REGISTRY_SOURCE_RE = /(?:^|[{\s,])(?:path|git|workspace)\s*=/;
+
+interface PendingNamedDependency {
+  name: string;
+  version: string | null;
+  versionLine: number;
+  nonRegistry: boolean;
+  skippedNonExact: boolean;
+}
 
 function stripInlineTomlComment(line: string): string {
   let inSingle = false;
@@ -65,8 +80,7 @@ function parseDependencyValue(rawValue: string): { version: string | null; skipp
   }
 
   if (trimmed.startsWith("{")) {
-    // path/git/workspace-only tables have no registry version to query.
-    if (/\b(?:path|git|workspace)\s*=/.test(trimmed) && !/\bversion\s*=/.test(trimmed)) {
+    if (NON_REGISTRY_SOURCE_RE.test(trimmed)) {
       return { version: null, skippedNonExact: true };
     }
 
@@ -100,8 +114,37 @@ export function extractCargoTomlDependencies(manifestPath: string): DependencyEx
   const dependencies: DependencyCoordinate[] = [];
   let skippedNonExact = false;
   let section = "";
-  let namedDependency: string | null = null;
+  let pendingNamed: PendingNamedDependency | null = null;
   const lines = readResult.source.split(/\r?\n/);
+
+  const flushPendingNamed = (): void => {
+    if (!pendingNamed) {
+      return;
+    }
+
+    const pending = pendingNamed;
+    pendingNamed = null;
+
+    if (pending.nonRegistry) {
+      skippedNonExact = true;
+      return;
+    }
+
+    if (pending.version) {
+      dependencies.push({
+        ecosystem: CRATES_IO_ECOSYSTEM,
+        name: pending.name,
+        version: pending.version,
+        manifestPath: readResult.absolutePath,
+        manifestLine: pending.versionLine
+      });
+      return;
+    }
+
+    if (pending.skippedNonExact) {
+      skippedNonExact = true;
+    }
+  };
 
   for (let index = 0; index < lines.length; index++) {
     const rawLine = stripInlineTomlComment(lines[index] ?? "");
@@ -112,40 +155,47 @@ export function extractCargoTomlDependencies(manifestPath: string): DependencyEx
 
     const sectionMatch = line.match(/^\[([^\]]+)\]$/);
     if (sectionMatch) {
+      flushPendingNamed();
       const sectionName = (sectionMatch[1] ?? "").trim();
       const namedMatch = sectionName.match(NAMED_DEPENDENCY_TABLE_RE);
       if (namedMatch) {
         section = (namedMatch[1] ?? "").toLowerCase();
-        namedDependency = namedMatch[2] ?? null;
+        const name = namedMatch[2] ?? "";
+        pendingNamed = name
+          ? {
+              name,
+              version: null,
+              versionLine: 0,
+              nonRegistry: false,
+              skippedNonExact: false
+            }
+          : null;
       } else {
         section = sectionName.toLowerCase();
-        namedDependency = null;
       }
       continue;
     }
 
-    if (namedDependency) {
+    if (pendingNamed) {
+      if (/^\s*(?:path|git|workspace)\s*=/.test(rawLine)) {
+        pendingNamed.nonRegistry = true;
+        pendingNamed.skippedNonExact = true;
+        continue;
+      }
+
       const versionAssignment = rawLine.match(/^\s*version\s*=\s*(.+?)\s*$/i);
       if (!versionAssignment) {
-        if (/^\s*(?:path|git|workspace)\s*=/.test(rawLine)) {
-          skippedNonExact = true;
-        }
         continue;
       }
 
       const parsed = parseDependencyValue(versionAssignment[1] ?? "");
       if (!parsed.version) {
-        skippedNonExact = true;
+        pendingNamed.skippedNonExact = true;
         continue;
       }
 
-      dependencies.push({
-        ecosystem: CRATES_IO_ECOSYSTEM,
-        name: namedDependency,
-        version: parsed.version,
-        manifestPath: readResult.absolutePath,
-        manifestLine: index + 1
-      });
+      pendingNamed.version = parsed.version;
+      pendingNamed.versionLine = index + 1;
       continue;
     }
 
@@ -179,6 +229,8 @@ export function extractCargoTomlDependencies(manifestPath: string): DependencyEx
       manifestLine: index + 1
     });
   }
+
+  flushPendingNamed();
 
   return {
     dependencies: dedupeCoordinates(dependencies),
