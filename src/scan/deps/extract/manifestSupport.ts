@@ -19,7 +19,9 @@ export const EXTRACTOR_MANIFEST_BASENAMES = new Set([
   "pom.xml",
   "build.gradle",
   "build.gradle.kts",
-  "packages.config"
+  "packages.config",
+  "cargo.toml",
+  "cargo.lock"
 ]);
 
 export function manifestBasename(filePath: string): string {

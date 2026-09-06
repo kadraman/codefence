@@ -26,6 +26,7 @@ const PYTHON_MANIFEST_BASENAMES = new Set([
 ]);
 
 const RUBY_MANIFEST_BASENAMES = new Set(["gemfile", "gemfile.lock"]);
+const RUST_MANIFEST_BASENAMES = new Set(["cargo.toml", "cargo.lock"]);
 
 function groupManifestsByRoot(
   manifests: string[],
@@ -158,6 +159,26 @@ function selectRubyManifests(
   return { selected, warnings };
 }
 
+function selectRustManifests(
+  rustRoots: Map<string, Map<string, string>>
+): { selected: string[]; warnings: DepsExtractionWarning[] } {
+  const selected: string[] = [];
+  const warnings: DepsExtractionWarning[] = [];
+
+  for (const [, rootManifests] of rustRoots) {
+    const cargoLock = rootManifests.get("cargo.lock");
+    const cargoToml = rootManifests.get("cargo.toml");
+
+    if (cargoLock) {
+      selected.push(cargoLock);
+    } else if (cargoToml) {
+      selected.push(cargoToml);
+    }
+  }
+
+  return { selected, warnings };
+}
+
 function findSiblingLockfilesOnDisk(root: string, lockfileNames: readonly string[]): string[] {
   const found: string[] = [];
   for (const lockfileName of lockfileNames) {
@@ -173,6 +194,7 @@ function warnUnscopedSiblingLockfiles(
   npmRoots: Map<string, Map<string, string>>,
   pythonRoots: Map<string, Map<string, string>>,
   rubyRoots: Map<string, Map<string, string>>,
+  rustRoots: Map<string, Map<string, string>>,
   cwd: string
 ): DepsExtractionWarning[] {
   const warnings: DepsExtractionWarning[] = [];
@@ -253,6 +275,23 @@ function warnUnscopedSiblingLockfiles(
     }
   }
 
+  for (const [root, rootManifests] of rustRoots) {
+    if (rootManifests.has("cargo.toml") && !rootManifests.has("cargo.lock")) {
+      const lockfilesOnDisk = findSiblingLockfilesOnDisk(root, ["Cargo.lock"]);
+      const cargoToml = rootManifests.get("cargo.toml");
+      if (cargoToml && lockfilesOnDisk.length > 0) {
+        warnings.push(
+          depsExtractionWarning(
+            cargoToml,
+            "deps.lockfile-not-in-scope",
+            `Cargo.lock exists in ${path.relative(cwd, root) || "."} but is not in scan scope; ranged Cargo.toml entries may be skipped.`,
+            "Stage or commit Cargo.lock, include it in --paths, or scan with --deps-scope tree."
+          )
+        );
+      }
+    }
+  }
+
   return warnings;
 }
 
@@ -263,10 +302,12 @@ function selectDependencyManifests(
   const npmRoots = groupManifestsByRoot(manifests, context.cwd, NPM_MANIFEST_BASENAMES);
   const pythonRoots = groupManifestsByRoot(manifests, context.cwd, PYTHON_MANIFEST_BASENAMES);
   const rubyRoots = groupManifestsByRoot(manifests, context.cwd, RUBY_MANIFEST_BASENAMES);
+  const rustRoots = groupManifestsByRoot(manifests, context.cwd, RUST_MANIFEST_BASENAMES);
   const groupedBasenames = new Set([
     ...NPM_MANIFEST_BASENAMES,
     ...PYTHON_MANIFEST_BASENAMES,
-    ...RUBY_MANIFEST_BASENAMES
+    ...RUBY_MANIFEST_BASENAMES,
+    ...RUST_MANIFEST_BASENAMES
   ]);
 
   const selected: string[] = [];
@@ -282,16 +323,19 @@ function selectDependencyManifests(
   const npmSelection = selectNpmManifests(npmRoots, context.cwd);
   const pythonSelection = selectPythonManifests(pythonRoots, context.cwd);
   const rubySelection = selectRubyManifests(rubyRoots);
+  const rustSelection = selectRustManifests(rustRoots);
   selected.push(...npmSelection.selected);
   selected.push(...pythonSelection.selected);
   selected.push(...rubySelection.selected);
+  selected.push(...rustSelection.selected);
   return {
     selected,
     warnings: [
       ...npmSelection.warnings,
       ...pythonSelection.warnings,
       ...rubySelection.warnings,
-      ...warnUnscopedSiblingLockfiles(npmRoots, pythonRoots, rubyRoots, context.cwd)
+      ...rustSelection.warnings,
+      ...warnUnscopedSiblingLockfiles(npmRoots, pythonRoots, rubyRoots, rustRoots, context.cwd)
     ]
   };
 }

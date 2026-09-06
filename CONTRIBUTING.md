@@ -37,7 +37,7 @@ src/              TypeScript source
   scan/           Unified scan orchestrator
     aspects/      secrets and deps (security scanning aspects)
   rules/          Rule implementations (secrets and dependency vulnerability checks)
-dist/             Compiled output (gitignored; included in npm tarball)
+dist/             Compiled output (gitignored; included in npm tarball; `npm run clean`)
 tests/            Node test runner tests
 examples/         Sample hooks and vulnerable fixtures for consumer repos
 templates/ai/     AI assistant instruction templates

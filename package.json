@@ -16,6 +16,7 @@
   "scripts": {
     "test": "npm run build && node --test dist/tests/*.test.js",
     "build": "tsc -p tsconfig.json",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "prepare": "npm run build",
     "prepack": "npm run build",
     "lint": "tsc -p tsconfig.json --noEmit",

@@ -13,6 +13,7 @@ const FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "npm");
 const PYTHON_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "python");
 const GO_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "go");
 const RUBY_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "ruby");
+const RUST_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "rust");
 const PHP_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "php");
 const DOTNET_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "dotnet");
 const JVM_FIXTURE_ROOT = path.join(process.cwd(), "examples", "deps", "jvm");
@@ -220,6 +221,41 @@ test("examples ruby lockfile fixtures expose resolved RubyGems coordinates", () 
     ["RubyGems:nokogiri@1.11.4", "RubyGems:rack@2.2.2"]
   );
   assert.ok(coordinates.every((dep) => dep.manifestPath.endsWith("Gemfile.lock")));
+});
+
+
+test("examples rust deps fixtures expose exact crates.io coordinates", () => {
+  const manifestPath = path.join(RUST_FIXTURE_ROOT, "cargo-toml-app", "Cargo.toml");
+  const coordinates = extractDependenciesForManifest(manifestPath);
+  const labels = coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort();
+
+  assert.deepEqual(labels, [
+    "crates.io:chrono@0.4.19",
+    "crates.io:tempfile@3.3.0",
+    "crates.io:time@0.1.44"
+  ]);
+  assert.ok(coordinates.every((dep) => dep.manifestLine > 0));
+});
+
+test("examples rust lockfile fixtures expose resolved crates.io coordinates", () => {
+  const repoRoot = process.cwd();
+  const cargoLockApp = path.join(RUST_FIXTURE_ROOT, "cargo-lock-app");
+
+  const coordinates = collectDependencies(makeExampleContext(repoRoot), [
+    path.relative(repoRoot, path.join(cargoLockApp, "Cargo.toml")),
+    path.relative(repoRoot, path.join(cargoLockApp, "Cargo.lock"))
+  ]).dependencies;
+
+  assert.deepEqual(
+    coordinates.map((dep) => `${dep.ecosystem}:${dep.name}@${dep.version}`).sort(),
+    [
+      "crates.io:chrono@0.4.19",
+      "crates.io:num-integer@0.1.45",
+      "crates.io:num-traits@0.2.16",
+      "crates.io:time@0.1.44"
+    ]
+  );
+  assert.ok(coordinates.every((dep) => dep.manifestPath.endsWith("Cargo.lock")));
 });
 
 test("examples php deps fixtures expose exact Packagist coordinates", () => {

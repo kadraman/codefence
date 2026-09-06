@@ -3,7 +3,7 @@ title: "Vulnerable Dependency Scanning With OSV Default"
 status: partial
 owners: ["@kadraman"]
 created: 2026-05-25
-updated: 2026-07-11
+updated: 2026-09-06
 issue: "TBD"
 scope: "scan|cli|hooks|docs"
 ---
@@ -12,7 +12,7 @@ scope: "scan|cli|hooks|docs"
 
 This feature adds dependency vulnerability scanning to Codefence using an external vulnerability source, with OSV as the default provider. The scanner should detect when dependency manifests change, resolve affected packages, and query the provider API for known vulnerabilities. The provider integration must be configurable, but work out of the box against OSV.
 
-**Implementation status (2026-07-11):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, npm extraction (exact `package.json` pins + lockfiles), **Python** (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), **Go** (`go.mod`), **Ruby** (`Gemfile`, `Gemfile.lock`), **PHP** (`composer.json`), **JVM** (`pom.xml`, `build.gradle`, `build.gradle.kts`), and **.NET** (`*.csproj`, `packages.config`, `*.sln` → `.csproj`) are **shipped**. Rust, Swift, and remaining lockfiles (`composer.lock`, `Cargo.lock`, …) remain **trigger-only** or unparsed; custom providers remain **open** (see checklist). Ecosystem matrix: [dependency-support.md](../dependency-support.md).
+**Implementation status (2026-09-06):** OSV scanning, CLI, cache, HTTP/2, severity mapping, tree-scope manifest discovery, npm extraction (exact `package.json` pins + lockfiles), **Python** (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), **Go** (`go.mod`), **Ruby** (`Gemfile`, `Gemfile.lock`), **PHP** (`composer.json`), **JVM** (`pom.xml`, `build.gradle`, `build.gradle.kts`), and **.NET** (`*.csproj`, `packages.config`, `*.sln` → `.csproj`) are **shipped**. Swift and remaining lockfiles (`composer.lock`, …) remain **trigger-only** or unparsed; Rust (`Cargo.toml` / `Cargo.lock`) is **shipped**; custom providers remain **open** (see checklist). Ecosystem matrix: [dependency-support.md](../dependency-support.md).
 
 ## Problem Statement
 
@@ -227,7 +227,7 @@ Suggested files (actual):
 ### CLI/Integration Tests
 
 1. [x] Staged / explicit `package.json` paths trigger OSV query flow (`examples/deps`, `runScan` json test).
-2. [x] Staged manifests with extractors trigger OSV query flow (`examples/deps` covers npm, Python, Go, Ruby, PHP, JVM, .NET); Rust, Swift, and remaining lockfiles trigger the aspect but yield no coordinates until parsers land.
+2. [x] Staged manifests with extractors trigger OSV query flow (`examples/deps` covers npm, Python, Go, Ruby, PHP, JVM, .NET); Swift and remaining lockfiles trigger the aspect but yield no coordinates until parsers land; Rust is covered via `examples/deps/rust`.
 3. [x] `--deps-refresh` bypasses cache (wired in `deps` aspect).
 4. [x] `--deps-http2 on` uses HTTP/2 transport path (`tests/depsHttpClient.test.ts`).
 5. [x] Provider errors produce deterministic, actionable output (failed aspect + message).
@@ -273,7 +273,8 @@ Feature is not complete until both commands pass.
 
 - [x] **npm lockfile extraction** — `package-lock.json` (v2/v3), `yarn.lock` (Classic), `pnpm-lock.yaml`; see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
 - [x] **Python, Go, Ruby, PHP, JVM, and .NET extraction** — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md) and [dependency-support.md](../dependency-support.md)
-- [ ] **Dependency extraction** for remaining ecosystems (Rust, Swift, `composer.lock`, `Cargo.lock`, …) — trigger-only or lockfile parsers not shipped
+- [x] **Rust extraction** — `Cargo.toml` exact `=` pins + `Cargo.lock` crates.io packages
+- [ ] **Dependency extraction** for remaining ecosystems (Swift, `composer.lock`, …) — trigger-only or lockfile parsers not shipped
 - [x] **Clearer deps skip messages** when manifests have no extractor (`buildDepsSkipMessage` in deps aspect)
 - [x] **Example fixtures** for Ruby, PHP, JVM, and .NET under [examples/deps/](../../examples/deps/)
 - [ ] **Custom provider** (`--deps-provider custom`) — CLI flag exists; `queryDependencies` throws until a provider API ships
