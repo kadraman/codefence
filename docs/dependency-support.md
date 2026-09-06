@@ -133,14 +133,14 @@ When an extractor exists but only ranged/unpinned entries are in scope:
 | -------- | --------- | ------ |
 | `go.sum` | Go | Trigger only (checksum companion; no version extraction) |
 
-Delivery order and OSV ecosystem strings: [multi-ecosystem-manifest-extraction.md](features/multi-ecosystem-manifest-extraction.md).
+Delivery order and OSV ecosystem strings: [multi-ecosystem-manifest-extraction.md](features/implemented/multi-ecosystem-manifest-extraction.md).
 
 ## Related documentation
 
 | Document | Purpose |
 | -------- | ------- |
 | [lockfile-aware-dependency-extraction.md](features/implemented/lockfile-aware-dependency-extraction.md) | npm lockfile parsers (shipped) |
-| [multi-ecosystem-manifest-extraction.md](features/multi-ecosystem-manifest-extraction.md) | Non-npm parsers (shipped; BOM/property resolution deferred) |
+| [multi-ecosystem-manifest-extraction.md](features/implemented/multi-ecosystem-manifest-extraction.md) | Non-npm parsers (implemented; BOM/property resolution deferred to [#11](https://github.com/kadraman/codefence/issues/11)) |
 | [vulnerable-dependency-scanning-osv.md](features/vulnerable-dependency-scanning-osv.md) | OSV provider, cache, CLI, `--deps-scope tree` |
 
 When adding a parser, update this matrix, the relevant feature spec checklist, and [`src/scan/deps/extract.ts`](../src/scan/deps/extract.ts) in the same change.

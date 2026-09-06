@@ -272,9 +272,9 @@ Feature is not complete until both commands pass.
 ### Open / partial
 
 - [x] **npm lockfile extraction** — `package-lock.json` (v2/v3), `yarn.lock` (Classic), `pnpm-lock.yaml`; see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
-- [x] **Python, Go, Ruby, PHP, JVM, and .NET extraction** — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md) and [dependency-support.md](../dependency-support.md)
+- [x] **Python, Go, Ruby, PHP, JVM, and .NET extraction** — see [multi-ecosystem-manifest-extraction.md](./implemented/multi-ecosystem-manifest-extraction.md) and [dependency-support.md](../dependency-support.md)
 - [x] **Rust extraction** — `Cargo.toml` exact `=` pins + `Cargo.lock` crates.io packages
-- [x] **Dependency extraction** for supported ecosystems (npm, Python, Go, Ruby, PHP, JVM, .NET, Rust, Swift) — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md); Gradle/Maven BOM deferred
+- [x] **Dependency extraction** for supported ecosystems (npm, Python, Go, Ruby, PHP, JVM, .NET, Rust, Swift) — see [multi-ecosystem-manifest-extraction.md](./implemented/multi-ecosystem-manifest-extraction.md); Gradle/Maven BOM deferred to [#11](https://github.com/kadraman/codefence/issues/11)
 - [x] **Clearer deps skip messages** when manifests have no extractor (`buildDepsSkipMessage` in deps aspect)
 - [x] **Example fixtures** for Ruby, PHP, JVM, and .NET under [examples/deps/](../../examples/deps/)
 - [ ] **Custom provider** (`--deps-provider custom`) — CLI flag exists; `queryDependencies` throws until a provider API ships
@@ -286,7 +286,7 @@ Feature is not complete until both commands pass.
 ## Future Enhancements
 
 1. Additional npm lockfile coverage (Yarn Berry, `package-lock.json` v1, shrinkwrap) — see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
-2. Additional ecosystems and harder cases (Gradle/Maven BOM, `go.sum` validation) — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md)
+2. Additional ecosystems and harder cases (Gradle/Maven BOM, `go.sum` validation) — see [multi-ecosystem-manifest-extraction.md](./implemented/multi-ecosystem-manifest-extraction.md) and [#11](https://github.com/kadraman/codefence/issues/11)
 3. Multi-provider aggregation with deduplication
 4. Authenticated provider support with secret-safe credential handling
 5. Baseline/suppressions for accepted dependency risk

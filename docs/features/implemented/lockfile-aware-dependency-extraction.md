@@ -40,7 +40,7 @@ When the `deps` aspect runs, for each dependency manifest in scan scope:
 
 Out of scope for this feature (documented under [Future Enhancements](#future-enhancements)):
 
-- Non-npm lockfiles (`poetry.lock`, `Gemfile.lock`, `go.sum`, etc.) — see [multi-ecosystem-manifest-extraction.md](../multi-ecosystem-manifest-extraction.md)
+- Non-npm lockfiles (`poetry.lock`, `Gemfile.lock`, `go.sum`, etc.) — see [multi-ecosystem-manifest-extraction.md](./multi-ecosystem-manifest-extraction.md)
 - Full semver range resolution without a lockfile
 - Workspace-aware “only changed packages in lockfile diff” optimization
 

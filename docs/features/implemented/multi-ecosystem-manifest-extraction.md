@@ -1,6 +1,6 @@
 ---
 title: "Multi-Ecosystem Manifest Extraction"
-status: shipped
+status: implemented
 owners: ["@kadraman"]
 created: 2026-05-27
 updated: 2026-09-06
@@ -10,22 +10,22 @@ scope: "scan|deps|docs"
 
 ## Summary
 
-Extend Codefence dependency extraction so each **language manifest** listed in `src/manifests.ts` produces OSV-queryable `(ecosystem, name, version)` coordinates—not only npm `package.json` with exact semver. Parsers should plug into the existing `deps` aspect, OSV `querybatch` client, cache, and finding output without new CLI aspects. Work is delivered **incrementally by ecosystem**; npm lockfile resolution is shipped separately — see [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md). Current trigger vs extraction status: [dependency-support.md](../dependency-support.md).
+Extend Codefence dependency extraction so each **language manifest** listed in `src/manifests.ts` produces OSV-queryable `(ecosystem, name, version)` coordinates—not only npm `package.json` with exact semver. Parsers should plug into the existing `deps` aspect, OSV `querybatch` client, cache, and finding output without new CLI aspects. Work is delivered **incrementally by ecosystem**; npm lockfile resolution is shipped separately — see [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md). Current trigger vs extraction status: [dependency-support.md](../../dependency-support.md).
 
 ## Problem Statement
 
-**Shipped (2026-09-06):** npm (`package.json` + lockfiles), Python (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), Go (`go.mod`), Ruby (`Gemfile`, `Gemfile.lock`), PHP (`composer.json`, `composer.lock`), JVM (`pom.xml`, `build.gradle`, `build.gradle.kts`), .NET (`*.csproj`, `packages.config`, `*.sln` → `.csproj`, `packages.lock.json`), Rust (`Cargo.toml`, `Cargo.lock`), and Swift (`Package.swift`, `Package.resolved`) — see [`src/scan/deps/extract.ts`](../../src/scan/deps/extract.ts) and [dependency-support.md](../dependency-support.md). Example fixtures: [examples/deps/](../../examples/deps/).
+**Shipped (2026-09-06):** npm (`package.json` + lockfiles), Python (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`), Go (`go.mod`), Ruby (`Gemfile`, `Gemfile.lock`), PHP (`composer.json`, `composer.lock`), JVM (`pom.xml`, `build.gradle`, `build.gradle.kts`), .NET (`*.csproj`, `packages.config`, `*.sln` → `.csproj`, `packages.lock.json`), Rust (`Cargo.toml`, `Cargo.lock`), and Swift (`Package.swift`, `Package.resolved`) — see [`src/scan/deps/extract.ts`](../../../src/scan/deps/extract.ts) and [dependency-support.md](../../dependency-support.md). Example fixtures: [examples/deps/](../../../examples/deps/).
 
 **Remaining gaps:**
 
-1. **Deferred hard cases** — Gradle/Maven BOM and property indirection remain out of scope for exact-pin v1 parsers.
+1. **Deferred hard cases** — Gradle/Maven BOM and property indirection remain out of scope for exact-pin v1 parsers ([#11](https://github.com/kadraman/codefence/issues/11)).
 2. **Checksum companions** — `go.sum` triggers scans but does not contribute versions (checksum companion only).
-3. **Optional filters** — `--deps-ecosystems` / `CODEFENCE_DEPS_ECOSYSTEMS` are still future enhancements.
+3. **Optional filters** — `--deps-ecosystems` / `CODEFENCE_DEPS_ECOSYSTEMS` are still future enhancements ([#12](https://github.com/kadraman/codefence/issues/12)).
 
 Related but **out of scope for this feature** (separate specs):
 
-- npm lockfiles: [lockfile-aware-dependency-extraction.md](./implemented/lockfile-aware-dependency-extraction.md)
-- OSV transport, cache, severity: [vulnerable-dependency-scanning-osv.md](./vulnerable-dependency-scanning-osv.md)
+- npm lockfiles: [lockfile-aware-dependency-extraction.md](./lockfile-aware-dependency-extraction.md)
+- OSV transport, cache, severity: [vulnerable-dependency-scanning-osv.md](../vulnerable-dependency-scanning-osv.md)
 
 ## Proposed Solution
 
@@ -72,7 +72,7 @@ Use [OSV supported ecosystems](https://google.github.io/osv.dev/) names in `Depe
 | File | Tier | Extraction status |
 | ---- | ---- | ----------------- |
 | `package.json` | — | **Done** (exact semver only) |
-| `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` | npm | **Done** — [lockfile feature](./implemented/lockfile-aware-dependency-extraction.md) |
+| `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` | npm | **Done** — [lockfile feature](./lockfile-aware-dependency-extraction.md) |
 | `requirements.txt` | 1 | **Done** — `name==version` |
 | `go.mod` | 1 | **Done** — `require` with semver (`v` prefix stripped for OSV) |
 | `Pipfile` | 2 | **Done** — exact `==` pins |
@@ -112,7 +112,7 @@ src/scan/deps/extract/
   manifestSupport.ts                                     # extractor registry / skip messages
 ```
 
-1. **`extractDependenciesForManifest(path)`** in [`extract.ts`](../../src/scan/deps/extract.ts) — basename → extractor via `BASENAME_EXTRACTORS` (extension handlers for `.sln` / `.csproj`).
+1. **`extractDependenciesForManifest(path)`** in [`extract.ts`](../../../src/scan/deps/extract.ts) — basename → extractor via `BASENAME_EXTRACTORS` (extension handlers for `.sln` / `.csproj`).
 2. **Per-ecosystem module** — pure functions under `extract/`; covered in `tests/depsExtraction.test.ts`.
 3. **Optional `extractForProjectRoot(dir)`** — npm, Python, Ruby, Rust, PHP, Swift, and .NET use lockfile precedence in the `deps` aspect.
 4. **Registry** — table-driven `manifestBaseName → extractor` in `extract.ts`.
@@ -201,7 +201,7 @@ codefence scan --only deps --deps-scope tree
 4. **Tier 2:** `composer.json`, `Gemfile` (+ `Gemfile.lock`), `pyproject.toml` (+ `poetry.lock` if feasible).
 5. **Tier 3:** `pom.xml`, Gradle Kotlin/Groovy subset, `.csproj` / `packages.config`.
 6. **Tier 4:** `Package.swift`, `.sln` project reference discovery.
-7. Update [vulnerable-dependency-scanning-osv.md](./vulnerable-dependency-scanning-osv.md) checklist as each tier lands.
+7. Update [vulnerable-dependency-scanning-osv.md](../vulnerable-dependency-scanning-osv.md) checklist as each tier lands.
 8. Document supported ecosystems in README.
 
 ### Backward compatibility
@@ -270,7 +270,7 @@ npm run codefence
 - [x] `go.mod` — `require` lines with semver → `Go`
 - [x] `Pipfile` — `[packages]` / `[dev-packages]` exact `==` pins → `PyPI`
 - [x] Fixtures and unit tests (`tests/depsExtraction.test.ts`, `examples/deps`)
-- [x] [dependency-support.md](../dependency-support.md) ecosystem rows
+- [x] [dependency-support.md](../../dependency-support.md) ecosystem rows
 
 ### Tier 2 — Ruby, PHP, Python (remaining)
 
@@ -302,18 +302,18 @@ npm run codefence
 
 ### Docs and release
 
-- [x] Update [vulnerable-dependency-scanning-osv.md](./vulnerable-dependency-scanning-osv.md) checklist (2026-06-01)
+- [x] Update [vulnerable-dependency-scanning-osv.md](../vulnerable-dependency-scanning-osv.md) checklist (2026-06-01)
 - [x] `npm test` / `npm run codefence` pass (CI/local)
-- [x] User-facing matrix in [dependency-support.md](../dependency-support.md); README links to it
+- [x] User-facing matrix in [dependency-support.md](../../dependency-support.md); README links to it
 
 ## Future Enhancements
 
-1. Lockfile parsers shared across ecosystems (see also npm [lockfile doc](./implemented/lockfile-aware-dependency-extraction.md))
-2. `--deps-ecosystems` filter for large monorepos
+1. Lockfile parsers shared across ecosystems (see also npm [lockfile doc](./lockfile-aware-dependency-extraction.md))
+2. `--deps-ecosystems` filter for large monorepos ([#12](https://github.com/kadraman/codefence/issues/12))
 3. Workspace-aware extraction (npm workspaces, Go workspaces, Poetry monorepo)
 4. Private registry aliases in manifests (name mapping only; auth stays out of band)
 5. OSV “query by commit” for Go pseudo-versions (advanced)
-6. Gradle/Maven BOM and property resolution
+6. Gradle/Maven BOM and property resolution ([#11](https://github.com/kadraman/codefence/issues/11))
 
 ## Open Questions
 
@@ -326,8 +326,8 @@ npm run codefence
 
 ## References
 
-1. [Vulnerable Dependency Scanning With OSV](./vulnerable-dependency-scanning-osv.md)
-2. [Lockfile-aware dependency extraction (npm)](./implemented/lockfile-aware-dependency-extraction.md)
+1. [Vulnerable Dependency Scanning With OSV](../vulnerable-dependency-scanning-osv.md)
+2. [Lockfile-aware dependency extraction (npm)](./lockfile-aware-dependency-extraction.md)
 3. `src/manifests.ts` — triggered manifest basenames
 4. `src/scan/deps/extract.ts` — dispatcher (all listed ecosystems shipped; `go.sum` remains trigger-only)
 5. [OSV supported ecosystems](https://google.github.io/osv.dev/)
