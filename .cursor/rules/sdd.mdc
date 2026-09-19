@@ -1,0 +1,10 @@
+---
+description: Spec-driven development — constitution, specs/ tree, no invented behavior
+alwaysApply: true
+---
+
+Engineering source of truth is `specs/` (constitution, `specs/global/`, active `specs/features/NNN-slug/`). Process: `specs/README.md`. Index: `specs/STATUS.md`. Agent authority: `AGENTS.md`.
+
+Do not invent CLI flags, config keys, rule IDs, finding/NDJSON fields, MCP tools, or scan semantics. Do not infer unspecified behavior from code alone. Ask if a spec is missing.
+
+PRs that change user-visible behavior must link `spec.md` (and `plan.md` / `tasks.md` for feature work).
