@@ -105,4 +105,4 @@ Teams need repo-level defaults without wrapping every CLI flag. Agents also set 
 ## References
 
 - Example: `examples/codefence-config.yml.example`
-- Related: [`001-cli-and-commands`](../001-cli-and-commands/)
+- Related: [`001-cli-and-commands`](../../complete/001-cli-and-commands/)

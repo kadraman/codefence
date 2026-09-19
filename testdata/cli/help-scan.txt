@@ -1,0 +1,42 @@
+Usage:
+  codefence scan [flags]
+
+Scan git-changed files (default) or explicit paths for secrets, secure-coding
+issues (aspect "code"), and dependency vulnerabilities (aspect "deps").
+
+Aspects:
+  code   Secure-coding line rules + secret engine (default)
+  deps   Manifest extraction + OSV vulnerability query
+
+Git-based scans skip paths whose prefixes appear in paths.git_ignored_prefixes
+(config / CODEFENCE_GIT_IGNORED_PREFIXES; often includes examples/). Explicit
+--paths still scan those files.
+
+Flags:
+  --staged                         Scan staged git files
+  --paths <files...>               Scan explicit paths (bypass git discovery)
+  --only <aspects>                 Run only listed aspects (comma-separated: code,deps)
+  --skip <aspects>                 Skip selected aspects (comma-separated: code,deps)
+  --format <table|json>            Output format (default: table)
+  --quiet                          Suppress progress messages
+  --verbose                        Show progress on stderr
+  --deps-provider <osv|custom>     Dependency vulnerability provider
+  --deps-provider-url <url>        Override provider API endpoint
+  --deps-refresh                   Ignore deps cache and re-query
+  --deps-cache-ttl <dur>           Deps cache TTL (e.g. 24h, 30m, 15s)
+  --deps-timeout <dur>             Provider request timeout
+  --deps-http2 <auto|on|off>       HTTP/2 for deps API
+  --deps-scope <changed|tree>      Manifest scope (default: changed)
+  --secret-rules <path...>         Extra Semgrep-style YAML secret rules
+  --secret-default-rules <on|off>  Enable or disable bundled secret rules
+  --secret-default-rules-version <v>
+  --secret-rules-update-url <url>  Remote YAML rule bundle URL
+  --secret-rules-refresh           Force remote rule refresh
+  --secret-rules-cache-ttl <dur>   Remote rules cache TTL
+  --secret-entropy-threshold <n>   Entropy detection sensitivity
+  --secret-min-length <n>          Min length for entropy candidates
+  --secret-min-confidence <low|medium|high>
+  -h, --help                       Show this help
+
+Environment mirrors (CLI flags override env; env overrides codefence-config.yml):
+  CODEFENCE_ASPECTS, CODEFENCE_ONLY, CODEFENCE_SKIP, CODEFENCE_FORMAT, CODEFENCE_QUIET, CODEFENCE_VERBOSE, CODEFENCE_GIT_IGNORED_PREFIXES, CODEFENCE_DEPS_PROVIDER, CODEFENCE_DEPS_PROVIDER_URL, CODEFENCE_DEPS_REFRESH, CODEFENCE_DEPS_CACHE_TTL, CODEFENCE_DEPS_TIMEOUT, CODEFENCE_DEPS_HTTP2, CODEFENCE_DEPS_SCOPE, CODEFENCE_SECRET_RULES, CODEFENCE_SECRET_DEFAULT_RULES, CODEFENCE_SECRET_DEFAULT_RULES_VERSION, CODEFENCE_SECRET_RULES_UPDATE_URL, CODEFENCE_SECRET_RULES_REFRESH, CODEFENCE_SECRET_RULES_CACHE_TTL, CODEFENCE_SECRET_ENTROPY_THRESHOLD, CODEFENCE_SECRET_MIN_LENGTH, CODEFENCE_SECRET_MIN_CONFIDENCE

@@ -1,7 +1,7 @@
 # CLI and Commands
 
 - **ID**: 001
-- **Status**: specified
+- **Status**: complete
 - **Area**: cli
 - **Issue**: https://github.com/kadraman/codefence/issues/1
 - [spec.md](spec.md) — WHAT / WHY
