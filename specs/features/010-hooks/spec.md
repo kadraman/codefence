@@ -47,7 +47,7 @@ Hooks must block bad commits and warm IDE caches. Hooks must invoke the `codefen
 3. **Given** further saves within the debounce window (default **2s**), **When** edits continue, **Then** the timer resets and one follow-up runs after edits stop.
 4. **Given** a scan just completed for a target, **When** another identical target would be re-queued immediately, **Then** it is not re-queued immediately after that scan.
 5. **Given** debounce state is needed across invocations, **When** state is persisted, **Then** it lives in `.codefence/debounce.json`.
-6. **Given** `codefence scan-worker` runs, **When** the scan completes, **Then** per-file findings are written to `.codefence/cache/code/`.
+6. **Given** `codefence scan-worker --file <path>` runs, **When** the scan completes, **Then** per-file findings are written to `.codefence/cache/code/`.
 
 ### User Story 3 — Install hooks (invoke binary on PATH) (Priority: P1)
 
@@ -76,7 +76,7 @@ Hooks must block bad commits and warm IDE caches. Hooks must invoke the `codefen
 
 - **FR-001**: System MUST provide `codefence pre-commit` that runs `scan --staged` and exits non-zero on findings to block commits.
 - **FR-002**: System MUST provide `codefence background-scan` accepting file path via flag, stdin JSON, or env; debounce; spawn worker.
-- **FR-003**: System MUST provide `codefence scan-worker` that performs the scan and writes the code cache.
+- **FR-003**: System MUST provide `codefence scan-worker` accepting `--file <path>` that performs the scan and writes the code cache.
 - **FR-004**: System MUST provide `codefence install-hooks` (with `--dry-run`) installing Git hook + optional Cursor/Kiro hooks.json.
 - **FR-005**: Installed hooks MUST invoke the `codefence` binary directly (PATH or absolute path); see `specs/global/compatibility.md`.
 - **FR-006**: Debounce default MUST be **2s** with first-save immediate scan, timer reset on further saves, no immediate re-queue after a just-completed scan, and state in `.codefence/debounce.json`.

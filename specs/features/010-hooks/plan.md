@@ -47,7 +47,7 @@ docs/hooks.md                # PATH / absolute path requirements
 1. `pre-commit`: invoke scan library as `scan --staged`; propagate non-zero exit on findings.
 2. `background-scan`: accept `--file`, stdin JSON (`file_path`), or env; debounce (2s); spawn/detach `scan-worker`.
 3. Debounce state in `.codefence/debounce.json` — first save immediate; resets within window; no immediate re-queue after just-completed scan.
-4. `scan-worker`: run scan for target; write per-file findings to `.codefence/cache/code/`.
+4. `scan-worker`: accept `--file <path>`; run scan for that target; write per-file findings to `.codefence/cache/code/`.
 5. `install-hooks`: write `.git/hooks/pre-commit` script invoking `codefence pre-commit`; create `.cursor/hooks.json` / `.kiro/hooks.json` if missing (never overwrite); `--dry-run`.
 
 ### CLI changes

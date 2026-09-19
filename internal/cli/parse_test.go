@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -224,5 +225,23 @@ func TestParseMCPArgs(t *testing.T) {
 	_, err = parseMCPArgs([]string{"--transport", "http"})
 	if err == nil || !strings.Contains(err.Error(), "stdio only") {
 		t.Fatalf("expected stdio rejection, got %v", err)
+	}
+}
+
+func TestParseMCPArgsDefaultCWD(t *testing.T) {
+	t.Parallel()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	opts, err := parseMCPArgs(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if opts.CWD != wd {
+		t.Fatalf("CWD = %q, want process cwd %q", opts.CWD, wd)
+	}
+	if opts.Transport != "stdio" || opts.LogLevel != "info" {
+		t.Fatalf("%+v", opts)
 	}
 }

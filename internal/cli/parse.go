@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 )
@@ -440,6 +441,13 @@ func parseMCPArgs(args []string) (MCPOptions, error) {
 		default:
 			return opts, fmt.Errorf("unknown flag --%s", name)
 		}
+	}
+	if opts.CWD == "" {
+		wd, err := os.Getwd()
+		if err != nil {
+			return opts, fmt.Errorf("resolve process cwd: %w", err)
+		}
+		opts.CWD = wd
 	}
 	return opts, nil
 }

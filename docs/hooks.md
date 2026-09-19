@@ -90,15 +90,18 @@ codefence background-scan
 ### Worker only (what background-scan spawns)
 
 ```bash
-codefence scan-worker --type code --target src/main.go --workspace .
+codefence scan-worker --file src/main.go
 ```
 
 ### Debounce / pending queue
 
+Pending debounce state is stored in `.codefence/debounce.json` (not a separate CLI command). After queuing a file:
+
 ```bash
 codefence background-scan --file src/foo.go
+# inspect .codefence/debounce.json while the debounce window is open
 sleep 3
-codefence background-scan --check-pending
+# then check .codefence/cache/code/ for worker output
 ```
 
 ## Environment variables
