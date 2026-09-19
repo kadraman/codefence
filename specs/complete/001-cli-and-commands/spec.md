@@ -2,7 +2,7 @@
 title: "CLI and Commands"
 id: 1
 slug: "cli-and-commands"
-status: specified
+status: complete
 authors: ["@kadraman"]
 created: 2026-09-19
 updated: 2026-09-19
@@ -111,4 +111,4 @@ Agents, hooks, and docs document commands (`scan`, `pre-commit`, `background-sca
 
 ## References
 
-- Related: [`002-config-and-env`](../002-config-and-env/), [`012-mcp-server`](../012-mcp-server/), [`global/architecture.md`](../../global/architecture.md)
+- Related: [`002-config-and-env`](../../features/002-config-and-env/), [`012-mcp-server`](../../features/012-mcp-server/), [`global/architecture.md`](../../global/architecture.md)

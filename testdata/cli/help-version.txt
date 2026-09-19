@@ -1,0 +1,6 @@
+Usage:
+  codefence version
+
+Print build version and commit.
+
+  -h, --help   Show this help

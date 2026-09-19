@@ -1,0 +1,16 @@
+# Binaries
+/codefence
+/codefence.exe
+*.exe
+*.test
+*.out
+
+# Local / IDE
+.codefence/
+.idea/
+.vscode/
+*.swp
+*~
+
+# Go
+vendor/

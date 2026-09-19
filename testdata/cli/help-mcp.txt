@@ -1,0 +1,11 @@
+Usage:
+  codefence mcp [flags]
+
+Start the MCP server for AI agents (stdio transport only in v1).
+
+Flags:
+  --cwd <path>                      Working directory (default: process cwd)
+  --transport stdio                 Transport (only stdio is supported)
+  --log-level <error|warn|info|debug>
+                                    Log level on stderr (default: info)
+  -h, --help                        Show this help

@@ -1,0 +1,17 @@
+codefence — security scanning CLI for AI-assisted coding
+
+Usage:
+  codefence <command> [flags]
+
+Commands:
+  scan             Scan git-changed or explicit paths
+  pre-commit       Equivalent to scan --staged (Git hook)
+  background-scan  IDE save debounce entry (spawns scan-worker)
+  scan-worker      Background worker for a single file scan
+  install          Merge AI assistant guardrail files
+  install-hooks    Install Git pre-commit and IDE hooks
+  mcp              Start MCP stdio server for agents
+  version          Print version and commit
+  check-deps       Redirect to scan (removed command)
+
+Use "codefence <command> --help" for command help.

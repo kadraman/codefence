@@ -4,7 +4,6 @@ Assign the next feature id as **013** (one past the highest id below). Process: 
 
 ## Active (`specs/features/`)
 
-- **001** `cli-and-commands` — specified — cli — issue: https://github.com/kadraman/codefence/issues/1 — [specs/features/001-cli-and-commands/](features/001-cli-and-commands/)
 - **002** `config-and-env` — specified — config — issue: https://github.com/kadraman/codefence/issues/2 — [specs/features/002-config-and-env/](features/002-config-and-env/)
 - **003** `finding-model` — specified — findings — issue: https://github.com/kadraman/codefence/issues/3 — [specs/features/003-finding-model/](features/003-finding-model/)
 - **004** `output-formats` — specified — output — issue: https://github.com/kadraman/codefence/issues/4 — [specs/features/004-output-formats/](features/004-output-formats/)
@@ -21,7 +20,7 @@ Assign the next feature id as **013** (one past the highest id below). Process: 
 
 Shipped behavior. Do not load this entire tree into every agent turn.
 
-_(none yet)_
+- **001** `cli-and-commands` — complete — cli — issue: https://github.com/kadraman/codefence/issues/1 — [specs/complete/001-cli-and-commands/](complete/001-cli-and-commands/)
 
 ## Archive (`specs/archive/`)
 

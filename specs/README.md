@@ -69,7 +69,7 @@ go.mod
 
 ## Recommended implementation order
 
-1. CLI + config (`001`, `002`)
+1. CLI + config (`001` complete, then `002`)
 2. Findings + output (`003`, `004`)
 3. Scan orchestrator (`005`)
 4. Secure-coding (`006`)
