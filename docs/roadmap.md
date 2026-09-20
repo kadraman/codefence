@@ -2,7 +2,7 @@
 
 What Codefence aims to ship, in plain language. Engineering detail lives under [`specs/`](../specs/); this page is for users.
 
-**Status today:** features below are **specified** for the first release. CLI command parsing and help (**001**) are shipped; engines and integrations are not yet ([`specs/STATUS.md`](../specs/STATUS.md)). Treat “MVP” as the planned first cut, not a promise of dates.
+**Status today:** CLI, config, findings, output, and scan orchestration (**001–005**) are shipped; engines and integrations (**006–012**) are specified but not yet ([`specs/STATUS.md`](../specs/STATUS.md)). Treat “MVP” as the planned first cut, not a promise of dates.
 
 ## First release (MVP)
 

@@ -69,9 +69,9 @@ go.mod
 
 ## Recommended implementation order
 
-1. CLI + config (`001` complete, then `002`)
-2. Findings + output (`003`, `004`)
-3. Scan orchestrator (`005`)
+1. CLI + config (`001`, `002` complete)
+2. Findings + output (`003`, `004` complete)
+3. Scan orchestrator (`005` complete)
 4. Secure-coding (`006`)
 5. Secret engine (`007`)
 6. Deps extractors + OSV (`008`, `009`)

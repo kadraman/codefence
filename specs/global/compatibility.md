@@ -12,7 +12,7 @@ Distribution: the `codefence` binary is this repository’s product.
 | ----- | ------ |
 | Usage / config CLI exit | Exit code `2` when distinguishable. Finding failures remain `1`. |
 | Hooks | Invoke the `codefence` binary on PATH (or configured absolute path). |
-| MCP | Tools return Finding-shaped JSON ([features/003](../features/003-finding-model/)), not CLI NDJSON. |
+| MCP | Tools return Finding-shaped JSON ([complete/003](../complete/003-finding-model/)), not CLI NDJSON. |
 | `version` command | Build identity for the binary. |
 
 ## Stability non-goals to protect

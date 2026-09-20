@@ -1,7 +1,7 @@
 # Config and Environment
 
 - **ID**: 002
-- **Status**: specified
+- **Status**: complete
 - **Area**: config
 - **Issue**: https://github.com/kadraman/codefence/issues/2
 - [spec.md](spec.md) — WHAT / WHY
