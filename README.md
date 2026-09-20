@@ -95,7 +95,7 @@ codefence scan --help
 
 Git-based scans skip fixture trees such as `examples/` (see `codefence scan --help`). Explicit `--paths` still scans those files.
 
-Dependency extraction (MVP: npm for JS/TS, and Go) prefers resolved versions from lockfiles when they are in scope (`package-lock.json` / `yarn.lock` / `pnpm-lock.yaml`; Go via `go.mod`). Manifest-only pins work for exact versions in `package.json`. See [dependency-support.md](docs/dependency-support.md).
+Dependency extraction (MVP: npm for JS/TS, Go, and Python / PyPI) prefers resolved versions from lockfiles when they are in scope (`package-lock.json` / `yarn.lock` / `pnpm-lock.yaml`; Go via `go.mod`; Python via `uv.lock` / `poetry.lock` / `Pipfile.lock`, plus exact pins in `requirements.txt` / `Pipfile` / `pyproject.toml`). Manifest-only pins work for exact versions in `package.json` and Python pin files. See [dependency-support.md](docs/dependency-support.md).
 
 For the MVP ecosystem matrix (trigger vs extraction), see **[docs/dependency-support.md](docs/dependency-support.md)**.
 
@@ -131,7 +131,7 @@ secret:
 
 By default, dependency scanning only considers manifests that appear in the **git change set** or in explicit `--paths`. That matches pre-commit and PR workflows but skips unchanged lockfiles and does not walk `yarn.lock` when you only pass `--paths .` (code scans use source extensions, not all manifest types).
 
-Use **`--deps-scope tree`** to discover every dependency manifest under the repository (or under each `--paths` directory) for ecosystems in the v1 matrix (see [dependency-support.md](docs/dependency-support.md)). Common vendor directories (`node_modules`, `.git`, `.codefence`, etc.) are skipped.
+Use **`--deps-scope tree`** to discover every dependency manifest under the repository (or under each `--paths` directory) for ecosystems in the v1 matrix (see [dependency-support.md](docs/dependency-support.md)). Common vendor directories (`node_modules`, `.venv`, `venv`, `__pycache__`, `.git`, `.codefence`, etc.) are skipped.
 
 ```bash
 # Audit all dependency manifests in the repo (deps aspect only)
@@ -267,7 +267,7 @@ Hook details: [docs/hooks.md](docs/hooks.md).
 | [docs/roadmap.md](docs/roadmap.md) | MVP features, ecosystems, what comes later |
 | [docs/ai-assistants.md](docs/ai-assistants.md) | Cursor, Claude, Copilot, `codefence install` |
 | [docs/hooks.md](docs/hooks.md) | Git pre-commit, background scanner, cache |
-| [docs/dependency-support.md](docs/dependency-support.md) | Dependency ecosystems: MVP npm (JS/TS) + Go; post-MVP roadmap |
+| [docs/dependency-support.md](docs/dependency-support.md) | Dependency ecosystems: MVP npm (JS/TS) + Go + Python; post-MVP roadmap |
 | [docs/README.md](docs/README.md) | Documentation index |
 | [specs/README.md](specs/README.md) | Spec-driven development process |
 | [AGENTS.md](AGENTS.md) | Agent authority stack |

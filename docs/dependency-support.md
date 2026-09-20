@@ -17,6 +17,7 @@ Engineering source of truth:
 | --------- | ------------- | ------- | ----- |
 | JavaScript / TypeScript (Node) | `npm` | `package.json` (exact pins), `package-lock.json` v2/v3, Classic `yarn.lock`, `pnpm-lock.yaml` | Lock prefer: pnpm → npm → yarn; Yarn Berry warn/empty |
 | Go | `Go` | `go.mod` | `go.sum` is **trigger-only** (no version extraction) |
+| Python | `PyPI` | `requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock` | Prefer `Pipfile.lock` over `Pipfile`; same-dir lock prefer: `uv.lock` → `poetry.lock` → `Pipfile.lock` |
 
 Shared rules:
 
@@ -53,6 +54,19 @@ Same-directory lock preference: `pnpm-lock.yaml` → `package-lock.json` → `ya
 | `go.mod` | Extract | `require` lines with semver (`v` prefix stripped for OSV); pseudo-versions skipped |
 | `go.sum` | Trigger only | Checksum companion; does not produce coordinates |
 
+## Python (`PyPI`)
+
+| Manifest | Role | Notes |
+| -------- | ---- | ----- |
+| `requirements.txt` | Extract | Exact pins (`==`) only; ranges / unpinned need a lockfile in scope |
+| `Pipfile` | Extract | Exact pins only when no `Pipfile.lock` |
+| `pyproject.toml` | Extract | Exact pins from PEP 621 / Poetry/uv tables when no preferred lock is in scope |
+| `Pipfile.lock` | Extract | Preferred over `Pipfile` |
+| `poetry.lock` | Extract | Resolved Poetry packages |
+| `uv.lock` | Extract | Resolved uv packages |
+
+Same-directory lock preference: `uv.lock` → `poetry.lock` → `Pipfile.lock` (over ranged `Pipfile` / `pyproject.toml` / `requirements.txt`).
+
 ## Empty coordinates and trigger-only
 
 When manifests are in scope but nothing extractable is found:
@@ -73,11 +87,10 @@ Not required for MVP. Each wave ships as its own feature slice (see `008` spec):
 
 | Wave | Ecosystem | OSV ecosystem |
 | ---- | --------- | ------------- |
-| 2 | Python | `PyPI` |
-| 3 | Rust | `crates.io` |
-| 4 | Ruby, PHP | `RubyGems`, `Packagist` |
-| 5 | JVM, .NET | `Maven`, `NuGet` |
-| 6 | Swift | `SwiftURL` |
+| 2 | Rust | `crates.io` |
+| 3 | Ruby, PHP | `RubyGems`, `Packagist` |
+| 4 | JVM, .NET | `Maven`, `NuGet` |
+| 5 | Swift | `SwiftURL` |
 
 Manifest details for roadmap ecosystems live in [`specs/features/008-deps-extractors/spec.md`](../specs/features/008-deps-extractors/spec.md) (roadmap table). Do not invent extractors ahead of an accepted feature.
 

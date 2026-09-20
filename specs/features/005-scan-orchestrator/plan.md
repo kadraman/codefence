@@ -78,7 +78,7 @@ User-facing scan semantics if `docs/` documents orchestration; keep `specs/globa
 ### Integration / fixture tests
 
 - Temp git repos for staged/unstaged selection.
-- Tree discovery skips `node_modules`.
+- Tree discovery skips `node_modules`, `.venv`, `venv`, `__pycache__`, `.git`, and `.codefence`.
 
 ### NFR / manual
 
@@ -90,4 +90,4 @@ Required staged/unstaged and aspect behavior. Document any unavoidable git porce
 
 ## Open implementation questions
 
-- Exact list of “vendor-like heavy dirs” must match this feature’s discovery rules (do not invent extras).
+- Exact skip-dir list for tree discovery is specified in FR-005 (`node_modules`, `.venv`, `venv`, `__pycache__`, `.git`, `.codefence`, plus documented vendor-like heavy dirs).

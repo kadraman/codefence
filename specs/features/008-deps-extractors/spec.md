@@ -5,7 +5,7 @@ slug: "deps-extractors"
 status: specified
 authors: ["@kadraman"]
 created: 2026-09-19
-updated: 2026-09-19
+updated: 2026-09-20
 issue: "https://github.com/kadraman/codefence/issues/8"
 area: deps
 ---
@@ -14,11 +14,11 @@ area: deps
 
 ## Summary
 
-Implement manifest triggers and version extraction for the **MVP ecosystem matrix** (JavaScript/TypeScript via npm, and Go). Prefer lockfiles over ranged manifests using the merge precedence rules below. Enforce a **10 MiB** lockfile read cap with warning. OSV queries need exact versions; extractors MUST follow the MVP matrix. Additional ecosystems are **post-MVP roadmap** (not required to complete this feature).
+Implement manifest triggers and version extraction for the **MVP ecosystem matrix** (JavaScript/TypeScript via npm, Go, and Python / PyPI). Prefer lockfiles over ranged manifests using the merge precedence rules below. Enforce a **10 MiB** lockfile read cap with warning. OSV queries need exact versions; extractors MUST follow the MVP matrix. Additional ecosystems are **post-MVP roadmap** (not required to complete this feature).
 
 ## Problem
 
-Without faithful extraction for the ecosystems agents actually use first (JS/TS and Go), the `deps` aspect cannot produce accurate OSV coordinates. Expanding to every package manager before MVP ships delays the core loop.
+Without faithful extraction for the ecosystems agents actually use first (JS/TS, Go, and Python), the `deps` aspect cannot produce accurate OSV coordinates. Expanding to every package manager before MVP ships delays the core loop.
 
 ## User scenarios
 
@@ -35,7 +35,7 @@ Without faithful extraction for the ecosystems agents actually use first (JS/TS 
 
 ### User Story 2 — MVP ecosystem matrix and lock preference (Priority: P1)
 
-**Why this priority**: npm + Go are the MVP definition of done for extractors.
+**Why this priority**: npm + Go + Python are the MVP definition of done for extractors.
 
 **Independent test**: Table tests per extractor; golden coordinate JSON.
 
@@ -47,6 +47,7 @@ Without faithful extraction for the ecosystems agents actually use first (JS/TS 
 4. **Given** only a ranged manifest is in scope but a lockfile exists on disk, **When** extracting, **Then** a warning is emitted.
 5. **Given** Yarn Berry lockfiles for Node, **When** extracting, **Then** warn/empty (Classic `yarn.lock` supported).
 6. **Given** Go `go.sum`, **When** classifying, **Then** it is trigger-only (extraction from `go.mod`).
+7. **Given** Python lockfiles and ranged manifests in the same directory, **When** merge precedence applies, **Then** locks win: `uv.lock` → `poetry.lock` → `Pipfile.lock` over `Pipfile` / `pyproject.toml` / `requirements.txt` ranges.
 
 ### User Story 3 — Size cap and dispatch (Priority: P1)
 
@@ -74,7 +75,7 @@ Without faithful extraction for the ecosystems agents actually use first (JS/TS 
 - **FR-005**: System MUST enforce `MAX_LOCKFILE_BYTES = 10 MiB` with warning.
 - **FR-006**: System MUST use a basename/dispatch table covering the MVP matrix manifests.
 - **FR-007**: Extractors MUST live under `internal/scan/deps/extract/` in separate files for reviewability.
-- **FR-008**: Prefer pure Go parsers; YAML lockfiles (pnpm, etc.) SHOULD share the YAML dependency with config/secrets if possible.
+- **FR-008**: Prefer pure Go parsers; YAML/TOML lockfiles (pnpm, Poetry, uv, Pipfile, etc.) SHOULD share small YAML/TOML dependencies with config/secrets when possible.
 - **FR-009**: Post-MVP roadmap ecosystems MUST NOT be required to mark this feature complete; each later ecosystem needs its own accepted feature/spec slice before implementation.
 
 ### Ecosystem matrix (MVP required)
@@ -83,6 +84,7 @@ Without faithful extraction for the ecosystems agents actually use first (JS/TS 
 | --------- | ------------- | ------------------- | ----- |
 | JavaScript / TypeScript (Node) | `npm` | `package.json` (exact pins), `package-lock.json` v2/v3, `yarn.lock` Classic, `pnpm-lock.yaml` | Lock prefer: pnpm → npm → yarn; Yarn Berry warn/empty |
 | Go | `Go` | `go.mod` | `go.sum` trigger-only |
+| Python | `PyPI` | `requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock` | Prefer `Pipfile.lock` over `Pipfile`; same-dir lock prefer: `uv.lock` → `poetry.lock` → `Pipfile.lock` over ranged `pyproject.toml` / `requirements.txt` |
 
 ### Post-MVP roadmap (not in MVP DoD)
 
@@ -90,13 +92,12 @@ Ship later as separate feature slices (order may change; suggested default):
 
 | Wave | Ecosystem | OSV ecosystem | Manifests (extract) | Notes |
 | ---- | --------- | ------------- | ------------------- | ----- |
-| 2 | Python | `PyPI` | `requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock` | Prefer Pipfile.lock over Pipfile; uv → poetry → pyproject |
-| 3 | Rust | `crates.io` | `Cargo.toml`, `Cargo.lock` | Lock wins |
-| 4 | Ruby | `RubyGems` | `Gemfile`, `Gemfile.lock` | Lock wins |
-| 4 | PHP | `Packagist` | `composer.json`, `composer.lock` | Lock wins |
-| 5 | JVM | `Maven` | `pom.xml`, `build.gradle`, `build.gradle.kts` | No BOM resolution in first JVM slice |
-| 5 | .NET | `NuGet` | `*.csproj`, `packages.config`, `*.sln`→csproj, `packages.lock.json` | Lock preferred |
-| 6 | Swift | `SwiftURL` | `Package.swift`, `Package.resolved` | Exact pins; lock preferred |
+| 2 | Rust | `crates.io` | `Cargo.toml`, `Cargo.lock` | Lock wins |
+| 3 | Ruby | `RubyGems` | `Gemfile`, `Gemfile.lock` | Lock wins |
+| 3 | PHP | `Packagist` | `composer.json`, `composer.lock` | Lock wins |
+| 4 | JVM | `Maven` | `pom.xml`, `build.gradle`, `build.gradle.kts` | No BOM resolution in first JVM slice |
+| 4 | .NET | `NuGet` | `*.csproj`, `packages.config`, `*.sln`→csproj, `packages.lock.json` | Lock preferred |
+| 5 | Swift | `SwiftURL` | `Package.swift`, `Package.resolved` | Exact pins; lock preferred |
 
 ### Non-goals
 
@@ -107,8 +108,8 @@ Ship later as separate feature slices (order may change; suggested default):
 
 ## Success criteria
 
-- **SC-001**: Both MVP ecosystems extract correctly under tests.
-- **SC-002**: Merge precedence tests exist for Node lock preference and Go trigger-only `go.sum`.
+- **SC-001**: All MVP ecosystems (npm, Go, Python) extract correctly under tests.
+- **SC-002**: Merge precedence tests exist for Node lock preference, Go trigger-only `go.sum`, and Python lock preference.
 - **SC-003**: Size cap warnings covered by tests.
 - **SC-004**: Discovery skip dirs remain consistent with feature `005` discovery.
 - **SC-005**: Golden coordinate lists committed as JSON under `testdata/` for MVP ecosystems.
@@ -117,7 +118,7 @@ Ship later as separate feature slices (order may change; suggested default):
 ## Assumptions
 
 - Manifest discovery skip dirs follow feature `005`.
-- Fixtures under `examples/deps/**` (npm / Go first) feed `testdata/deps/`.
+- Fixtures under `examples/deps/**` (npm / Go / Python) feed `testdata/deps/`.
 
 ## Open questions
 

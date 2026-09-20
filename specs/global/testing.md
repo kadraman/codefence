@@ -41,7 +41,7 @@ A feature may move to `complete` only when:
 1. Features `001`–`012` complete (or explicitly deferred with issue links).
 2. Hard budgets B1–B7 green on CI.
 3. MCP tools in `012-mcp-server` all tested.
-4. MVP ecosystem extractor matrix complete per `008-deps-extractors` (npm + Go).
+4. MVP ecosystem extractor matrix complete per `008-deps-extractors` (npm + Go + Python).
 
 ## References
 

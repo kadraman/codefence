@@ -1,17 +1,17 @@
 # Implementation Plan: Deps Extractors
 
-**Spec**: [spec.md](spec.md) | **Date**: 2026-09-19 | **Branch**: `feat/008-deps-extractors`
+**Spec**: [spec.md](spec.md) | **Date**: 2026-09-20 | **Branch**: `feat/008-deps-extractors`
 
 ## Summary
 
-Implement MVP manifest extractors (npm for JS/TS, and Go) in `internal/scan/deps/extract/` with lockfile preference, range skip, and a **10 MiB** lockfile read cap. Produce coordinates for OSV (query owned by feature `009`). Post-MVP ecosystems stay on the roadmap — do not implement them in this feature.
+Implement MVP manifest extractors (npm for JS/TS, Go, and Python / PyPI) in `internal/scan/deps/extract/` with lockfile preference, range skip, and a **10 MiB** lockfile read cap. Produce coordinates for OSV (query owned by feature `009`). Post-MVP ecosystems stay on the roadmap — do not implement them in this feature.
 
 ## Technical context
 
 - **Packages / surfaces**: `internal/scan/deps/extract/...`; trigger/discovery may share `internal/scan/deps/`
 - **Language**: Go
-- **Testing**: table tests + golden JSON under `testdata/deps/` (npm + Go)
-- **NFR**: `MAX_LOCKFILE_BYTES = 10 MiB`; share YAML with config/secrets when possible (pnpm)
+- **Testing**: table tests + golden JSON under `testdata/deps/` (npm + Go + Python)
+- **NFR**: `MAX_LOCKFILE_BYTES = 10 MiB`; share YAML/TOML with config/secrets when possible (pnpm, Poetry, uv, Pipfile)
 - **Performance / constraints**: pure Go parsers preferred; per-file extractors for reviewability
 
 ## Constitution Check
@@ -19,9 +19,9 @@ Implement MVP manifest extractors (npm for JS/TS, and Go) in `internal/scan/deps
 GATE: must pass before implementation. Re-check after design changes.
 
 - [ ] No invented CLI/config/rule/finding/MCP behavior — ecosystems and precedence from the MVP matrix only
-- [ ] Core contract impact identified — dependency extractor ecosystems (constitution § III); MVP scope is npm + Go
+- [ ] Core contract impact identified — dependency extractor ecosystems (constitution § III); MVP scope is npm + Go + Python
 - [ ] Required behavior preserved or deliberate difference documented in spec + compatibility.md
-- [ ] NFR / dependency budget impact assessed — 10 MiB cap; shared YAML
+- [ ] NFR / dependency budget impact assessed — 10 MiB cap; shared YAML/TOML
 - [ ] Security boundaries preserved — no network in extractors; OSV later sends coordinates only
 - [ ] Tests planned for new behavior — per-ecosystem tables (MVP), precedence, size cap, goldens
 
@@ -34,7 +34,7 @@ GATE: must pass before implementation. Re-check after design changes.
 ## Project structure
 
 ```text
-internal/scan/deps/extract/     # node.go, golang.go, shared helpers
+internal/scan/deps/extract/     # node.go, golang.go, python.go, shared helpers
 internal/scan/deps/dispatch.go  # basename / extension matchers (MVP only)
 testdata/deps/                  # fixtures + golden coordinate JSON
 ```
@@ -44,9 +44,9 @@ testdata/deps/                  # fixtures + golden coordinate JSON
 ### Library / package changes
 
 1. Dispatch table for MVP basename/extension matchers.
-2. Extractors for npm and Go with documented lock prefer / trigger-only rules.
+2. Extractors for npm, Go, and Python with documented lock prefer / trigger-only rules.
 3. Shared helpers: range skip, lock-on-disk warning, 10 MiB read cap + warning.
-4. Prefer pure Go; share YAML for `pnpm-lock.yaml` with config/secrets when possible.
+4. Prefer pure Go; share YAML/TOML for `pnpm-lock.yaml`, `poetry.lock`, `uv.lock`, `Pipfile` / `Pipfile.lock` with config/secrets when possible.
 
 ### CLI changes
 
@@ -68,11 +68,11 @@ Update `docs/dependency-support.md` for MVP vs roadmap.
 
 ### Unit tests
 
-- Table tests for npm and Go: exact pins, ranges skipped, lock preference, size cap.
+- Table tests for npm, Go, and Python: exact pins, ranges skipped, lock preference, size cap.
 
 ### Integration / fixture tests
 
-- Use fixtures from `examples/deps/**` (npm / Go).
+- Use fixtures from `examples/deps/**` (npm / Go / Python).
 - Golden coordinate lists as JSON under `testdata/deps/`.
 
 ### NFR / manual
@@ -86,3 +86,4 @@ Follow the MVP ecosystem matrix. Roadmap ecosystems require a new feature slice 
 ## Open implementation questions
 
 - Exact Yarn Berry warn/empty message text: follow this feature’s acceptance scenarios.
+- Exact pin parsing for `requirements.txt` / PEP 621 `pyproject.toml` vs Poetry/uv lock contents: follow FR-003 (ranges need a lock in scope).

@@ -19,7 +19,7 @@
 
 - [ ] T010 [US1] Implement context build in `internal/scan/context.go`: cwd, `--paths` expansion + `explicitPaths`, git file list when no paths
 - [ ] T011 [US1] Apply `git_ignored_prefixes` in `internal/scan/context.go` only when not `explicitPaths`
-- [ ] T012 [US1] Implement tree-scope discovery in `internal/scan/deps/discover.go` (skip `node_modules`, `.git`, vendor-like heavy dirs)
+- [ ] T012 [US1] Implement tree-scope discovery in `internal/scan/deps/discover.go` (skip `node_modules`, `.venv`, `venv`, `__pycache__`, `.git`, `.codefence`, and other vendor-like heavy dirs per FR-005)
 - [ ] T013 [US1] Unit tests in `internal/scan/context_test.go` and `internal/scan/deps/discover_test.go`; temp git coverage in `internal/git/changed_test.go`
 
 **Checkpoint**: context + discovery independently testable.

@@ -26,8 +26,9 @@
 
 - [ ] T020 [P] [US2] Node / JS-TS (`npm`) extractors in `internal/scan/deps/extract/node.go` (`package.json` exact pins, `package-lock.json` v2/v3, Classic `yarn.lock`, `pnpm-lock.yaml`; prefer pnpm → npm → yarn; Yarn Berry warn/empty)
 - [ ] T021 [P] [US2] Go (`Go`) in `internal/scan/deps/extract/golang.go` (`go.mod` extract; `go.sum` trigger-only)
-- [ ] T022 [US2] Shared range-skip + lock-on-disk warning in `internal/scan/deps/extract/merge.go`
-- [ ] T023 [US2] Table tests for npm + Go under `internal/scan/deps/extract/*_test.go`; fixtures + golden JSON under `testdata/deps/`
+- [ ] T022 [P] [US2] Python (`PyPI`) in `internal/scan/deps/extract/python.go` (`requirements.txt`, `Pipfile`, `pyproject.toml`, `Pipfile.lock`, `poetry.lock`, `uv.lock`; prefer `Pipfile.lock` over `Pipfile`; same-dir lock prefer `uv.lock` → `poetry.lock` → `Pipfile.lock`)
+- [ ] T023 [US2] Shared range-skip + lock-on-disk warning in `internal/scan/deps/extract/merge.go`
+- [ ] T024 [US2] Table tests for npm + Go + Python under `internal/scan/deps/extract/*_test.go`; fixtures + golden JSON under `testdata/deps/`
 
 **Checkpoint**: MVP matrix + precedence tests green.
 
@@ -46,4 +47,4 @@
 
 ## Out of scope (post-MVP — separate feature slices)
 
-Do **not** implement in this feature: Python, Rust, Ruby, PHP, JVM, .NET, Swift (see roadmap table in `spec.md`).
+Do **not** implement in this feature: Rust, Ruby, PHP, JVM, .NET, Swift (see roadmap table in `spec.md`).

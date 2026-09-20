@@ -14,7 +14,7 @@ What Codefence aims to ship, in plain language. Engineering detail lives under [
 | Config | `codefence-config.yml` + `CODEFENCE_*` env (flags win) |
 | Secrets | Semgrep-style YAML rules, builtin pack, entropy heuristics |
 | Secure-coding | Built-in line rules (e.g. eval / insecure HTTP) |
-| Dependencies | OSV lookups for **JavaScript/TypeScript (npm)** and **Go** |
+| Dependencies | OSV lookups for **JavaScript/TypeScript (npm)**, **Go**, and **Python (PyPI)** |
 | Output | Table and NDJSON (`--format`) |
 
 ### Integrations
@@ -31,6 +31,7 @@ What Codefence aims to ship, in plain language. Engineering detail lives under [
 | --------- | ------ |
 | JavaScript / TypeScript (npm lockfiles) | MVP |
 | Go (`go.mod`) | MVP |
+| Python (`requirements.txt` / Poetry / uv / Pipfile) | MVP |
 
 Details and manifests: [dependency-support.md](dependency-support.md).
 
@@ -42,11 +43,10 @@ Suggested order (may change):
 
 | Wave | Ecosystems |
 | ---- | ---------- |
-| 2 | Python |
-| 3 | Rust |
-| 4 | Ruby, PHP |
-| 5 | JVM (Maven/Gradle), .NET (NuGet) |
-| 6 | Swift |
+| 2 | Rust |
+| 3 | Ruby, PHP |
+| 4 | JVM (Maven/Gradle), .NET (NuGet) |
+| 5 | Swift |
 
 Each wave needs its own accepted feature before implementation. Manifest lists: [dependency-support.md](dependency-support.md) and [`008-deps-extractors`](../specs/features/008-deps-extractors/).
 

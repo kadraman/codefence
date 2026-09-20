@@ -5,7 +5,7 @@ slug: "deps-scanning"
 status: specified
 authors: ["@kadraman"]
 created: 2026-09-19
-updated: 2026-09-19
+updated: 2026-09-20
 issue: "https://github.com/kadraman/codefence/issues/9"
 area: deps
 ---
@@ -101,7 +101,7 @@ Vulnerable or hallucinated packages can enter projects via AI suggestions. Shipp
 
 ### Non-goals
 
-- Implementing ecosystem extractors (feature `008`; MVP = npm + Go).
+- Implementing ecosystem extractors (feature `008`; MVP = npm + Go + Python).
 - Local offline vulnerability database.
 - Post-MVP ecosystems and Gradle/Maven BOM resolution (see `008` roadmap).
 - Inventing `go.sum` version extraction beyond trigger-only until separately specified.

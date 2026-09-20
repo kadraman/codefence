@@ -5,7 +5,7 @@ slug: "scan-orchestrator"
 status: specified
 authors: ["@kadraman"]
 created: 2026-09-19
-updated: 2026-09-19
+updated: 2026-09-20
 issue: "https://github.com/kadraman/codefence/issues/5"
 area: scan
 ---
@@ -34,7 +34,7 @@ Without a single orchestrator, CLI and MCP would diverge on file scoping, aspect
 2. **Given** no `--paths` and `--staged`, **When** the orchestrator builds context, **Then** the file list is staged git changes.
 3. **Given** no `--paths` and not `--staged`, **When** the orchestrator builds context, **Then** the file list is unstaged/working-tree changes.
 4. **Given** a git-based scan (not explicit `--paths`), **When** config has `git_ignored_prefixes`, **Then** those prefixes are applied; explicit `--paths` does **not** apply them.
-5. **Given** `--deps-scope tree`, **When** context is built, **Then** all manifests under the repo or `--paths` roots are discovered, skipping `node_modules`, `.git`, and vendor-like heavy dirs.
+5. **Given** `--deps-scope tree`, **When** context is built, **Then** all manifests under the repo or `--paths` roots are discovered, skipping `node_modules`, `.venv`, `venv`, `__pycache__`, `.git`, `.codefence`, and other vendor-like heavy dirs listed in FR-005.
 
 ### User Story 2 — Resolve aspects including auto-deps (Priority: P1)
 
@@ -77,7 +77,7 @@ Without a single orchestrator, CLI and MCP would diverge on file scoping, aspect
 - **FR-002**: System MUST expand `--paths` directories to files and set `explicitPaths=true` (bypass demo ignore lists).
 - **FR-003**: System MUST select staged vs unstaged/working-tree files via git when `--paths` is absent. Prefer calling the `git` CLI for fidelity.
 - **FR-004**: System MUST apply `git_ignored_prefixes` from config for git-based scans only (not for explicit `--paths`).
-- **FR-005**: System MUST discover manifests for `--deps-scope tree`, skipping `node_modules`, `.git`, and vendor-like heavy dirs.
+- **FR-005**: System MUST discover manifests for `--deps-scope tree`, skipping at least `node_modules`, `.venv`, `venv`, `__pycache__`, `.git`, and `.codefence` (plus other vendor-like heavy dirs documented in this feature’s discovery rules).
 - **FR-006**: System MUST resolve aspects from `--only` or env/config/`defaultAspects` (default `[code]`), then apply `--skip`.
 - **FR-007**: System MUST auto-add `deps` when manifests are in scope (or `--deps-scope tree`), unless `--only` was specified or `--skip deps` was specified; auto-add runs after `--skip` and MUST re-check `--skip deps`.
 - **FR-008**: System MUST NOT suppress auto-inclusion of `deps` when only other aspects are skipped (e.g. `--skip code`).
@@ -119,7 +119,7 @@ type AspectOutcome struct {
 
 - **SC-001**: Aspect resolution matrix covers `only`, `skip deps` vs `skip code`, manifest present/absent, and tree scope; `--skip deps` never yields `deps` after auto-add.
 - **SC-002**: Temp git repos verify staged/unstaged selection.
-- **SC-003**: Tree discovery skips `node_modules`.
+- **SC-003**: Tree discovery skips `node_modules`, `.venv`, `venv`, `__pycache__`, `.git`, and `.codefence`.
 - **SC-004**: CLI and MCP invoke the same `RunScan` path.
 - **SC-005**: Exit code aggregation matches FR-010.
 
