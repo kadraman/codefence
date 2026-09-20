@@ -16,6 +16,11 @@ type ScanOptions struct {
 	Only []string
 	Skip []string
 
+	// Aspects is the default aspect list from config/env (used when Only is empty).
+	Aspects []string
+	// GitIgnoredPrefixes comes from config/env (feature 002); applied by scan when not explicit paths.
+	GitIgnoredPrefixes []string
+
 	Format  string
 	Quiet   bool
 	Verbose bool

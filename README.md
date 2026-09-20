@@ -148,7 +148,10 @@ With `--deps-scope tree` and no `--only`, Codefence still runs **code** on git-c
 
 ### Finding severity
 
+Library/MCP findings use the camelCase schema in `internal/findings` (feature 003). CLI `--format json` uses a **separate NDJSON wire shape** (`filename`, `location`, `package`, …) from `internal/output` (feature 004) — not Finding field names.
+
 All aspects emit findings with one of four severity levels: `critical`, `high`, `medium`, `low` (table output and `--format json`).
+
 
 | Source | How severity is chosen |
 | ------ | ---------------------- |
@@ -204,7 +207,9 @@ python3 -m http.server 8765 --directory examples/rules
 
 Remote rule bundles are cached under `.codefence/cache/secret-rules/` for offline and low-latency scans. Use `--secret-rules-refresh` or `CODEFENCE_SECRET_RULES_REFRESH=1` to force a re-download before scanning.
 
-**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP`, `CODEFENCE_FORMAT`, `CODEFENCE_GIT_IGNORED_PREFIXES`, `CODEFENCE_DEPS_PROVIDER`, `CODEFENCE_DEPS_PROVIDER_URL`, `CODEFENCE_DEPS_REFRESH`, `CODEFENCE_DEPS_CACHE_TTL`, `CODEFENCE_DEPS_TIMEOUT`, `CODEFENCE_DEPS_HTTP2`, `CODEFENCE_DEPS_SCOPE`, `CODEFENCE_SECRET_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES_VERSION`, `CODEFENCE_SECRET_RULES_UPDATE_URL`, `CODEFENCE_SECRET_RULES_REFRESH`, `CODEFENCE_SECRET_RULES_CACHE_TTL`, `CODEFENCE_SECRET_ENTROPY_THRESHOLD`, `CODEFENCE_SECRET_MIN_LENGTH`, `CODEFENCE_SECRET_MIN_CONFIDENCE`.
+**Environment:** `CODEFENCE_ASPECTS`, `CODEFENCE_ONLY`, `CODEFENCE_SKIP`, `CODEFENCE_FORMAT`, `CODEFENCE_QUIET`, `CODEFENCE_VERBOSE`, `CODEFENCE_GIT_IGNORED_PREFIXES`, `CODEFENCE_DEPS_PROVIDER`, `CODEFENCE_DEPS_PROVIDER_URL`, `CODEFENCE_DEPS_REFRESH`, `CODEFENCE_DEPS_CACHE_TTL`, `CODEFENCE_DEPS_TIMEOUT`, `CODEFENCE_DEPS_HTTP2`, `CODEFENCE_DEPS_SCOPE`, `CODEFENCE_SECRET_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES`, `CODEFENCE_SECRET_DEFAULT_RULES_VERSION`, `CODEFENCE_SECRET_RULES_UPDATE_URL`, `CODEFENCE_SECRET_RULES_REFRESH`, `CODEFENCE_SECRET_RULES_CACHE_TTL`, `CODEFENCE_SECRET_ENTROPY_THRESHOLD`, `CODEFENCE_SECRET_MIN_LENGTH`, `CODEFENCE_SECRET_MIN_CONFIDENCE`.
+
+Boolean env values treat `1|true|on|yes` as truthy (case-insensitive). Config errors (invalid YAML or unsupported `version`) exit **2**. Local cache paths live under `.codefence/cache/{code,deps,secret-rules}/` and `.codefence/debounce.json` (see `internal/cache`).
 
 ## Git pre-commit and background scanning
 

@@ -1,0 +1,1 @@
+{"category":"dependency","severity":"high","package":"left-pad","version":"1.0.0","fixed":">= 1.0.1","cve":"CVE-2019-1","filename":"package-lock.json","location":{"line":10},"ruleId":"vulnerable-dependency","advisoryId":"GHSA-1","message":"vulnerable","confidence":null,"evidence":null,"remediation":null,"kind":"dependency","detectionMethod":null}

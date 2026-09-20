@@ -1,7 +1,7 @@
 # Scan Orchestrator
 
 - **ID**: 005
-- **Status**: specified
+- **Status**: complete
 - **Area**: scan
 - **Issue**: https://github.com/kadraman/codefence/issues/5
 - [spec.md](spec.md) — WHAT / WHY

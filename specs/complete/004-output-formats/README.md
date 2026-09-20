@@ -1,7 +1,7 @@
 # Output Formats
 
 - **ID**: 004
-- **Status**: specified
+- **Status**: complete
 - **Area**: output
 - **Issue**: https://github.com/kadraman/codefence/issues/4
 - [spec.md](spec.md) — WHAT / WHY

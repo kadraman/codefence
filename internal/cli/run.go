@@ -6,6 +6,9 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"github.com/kadraman/codefence/internal/config"
+	"github.com/kadraman/codefence/internal/scan"
 )
 
 // IO streams for the CLI (overridable in tests).
@@ -77,6 +80,12 @@ func runScanCommand(args []string, forceStaged bool) int {
 		opts.Staged = true
 		opts.SetStaged = true
 	}
+	cfg, err := config.ResolveCWD(flagsFromScanOptions(opts))
+	if err != nil {
+		writeCmdError(Stderr, err)
+		return ExitUsage
+	}
+	applyMergedConfig(&opts, cfg)
 	return dispatchScan(opts)
 }
 
@@ -182,9 +191,43 @@ func writeCmdError(w io.Writer, err error) {
 	fmt.Fprintf(w, "error: %s\n\n", strings.TrimSpace(err.Error()))
 }
 
-// dispatchScan is the scan library entry point. Stub until feature 005.
+// dispatchScan runs the shared scan orchestrator (feature 005).
 func dispatchScan(opts ScanOptions) int {
-	_ = opts
+	scanOpts := scan.Options{
+		Staged:                        opts.Staged,
+		Paths:                         append([]string(nil), opts.Paths...),
+		Only:                          append([]string(nil), opts.Only...),
+		Skip:                          append([]string(nil), opts.Skip...),
+		Aspects:                       append([]string(nil), opts.Aspects...),
+		Format:                        opts.Format,
+		Quiet:                         opts.Quiet,
+		Verbose:                       opts.Verbose,
+		GitIgnoredPrefixes:            append([]string(nil), opts.GitIgnoredPrefixes...),
+		DepsScope:                     opts.DepsScope,
+		DepsProvider:                  opts.DepsProvider,
+		DepsProviderURL:               opts.DepsProviderURL,
+		DepsRefresh:                   opts.DepsRefresh,
+		DepsCacheTTL:                  opts.DepsCacheTTL,
+		DepsTimeout:                   opts.DepsTimeout,
+		DepsHTTP2:                     opts.DepsHTTP2,
+		SecretRules:                   append([]string(nil), opts.SecretRules...),
+		SecretDefaultRules:            opts.SecretDefaultRules,
+		SecretDefaultRulesVersion:     opts.SecretDefaultRulesVersion,
+		SecretRulesUpdateURL:          opts.SecretRulesUpdateURL,
+		SecretRulesRefresh:            opts.SecretRulesRefresh,
+		SecretRulesCacheTTL:           opts.SecretRulesCacheTTL,
+		SecretEntropyThreshold:        opts.SecretEntropyThreshold,
+		SecretMinLength:               opts.SecretMinLength,
+		SecretMinConfidence:           opts.SecretMinConfidence,
+	}
+	res, err := scan.RunScan("", scanOpts, Stdout, Stderr)
+	if err != nil {
+		writeCmdError(Stderr, err)
+		return ExitUsage
+	}
+	if res.ExitCode != 0 {
+		return ExitFindings
+	}
 	return ExitOK
 }
 
