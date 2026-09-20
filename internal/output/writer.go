@@ -63,14 +63,11 @@ func (w *Writer) Progress(format string, args ...any) {
 	fmt.Fprintln(w.streams.Progress, msg)
 }
 
-// WriteTable prints a colored findings table to the findings stream (table mode).
-func (w *Writer) WriteTable(title string, list []findings.Finding) error {
+// WriteTable prints findings for one aspect (colored table or NDJSON lines).
+// aspect must be the registry ID ("code" or "deps") so JSON category follows the wire contract.
+func (w *Writer) WriteTable(aspect, title string, list []findings.Finding) error {
 	if w.opts.Format == FormatJSON {
 		for _, f := range list {
-			aspect := "code"
-			if f.Kind == findings.KindDependency {
-				aspect = "deps"
-			}
 			if err := w.WriteFinding(f, aspect); err != nil {
 				return err
 			}
@@ -89,20 +86,26 @@ func (w *Writer) WriteTable(title string, list []findings.Finding) error {
 		if w.color {
 			line = boldYellow(line)
 		}
-		fmt.Fprintln(w.streams.Findings, line)
+		if _, err := fmt.Fprintln(w.streams.Findings, line); err != nil {
+			return err
+		}
 	}
 	header := "Severity\tRule\tFilename\tLine\tMessage"
 	if w.color {
 		header = yellow(header)
 	}
-	fmt.Fprintln(w.streams.Findings, header)
+	if _, err := fmt.Fprintln(w.streams.Findings, header); err != nil {
+		return err
+	}
 	for _, f := range sorted {
 		sev := strings.ToUpper(string(f.Severity))
 		if w.color {
 			sev = colorSeverity(f.Severity, sev)
 		}
-		fmt.Fprintf(w.streams.Findings, "%s\t%s\t%s\t%d\t%s\n",
-			sev, f.RuleID, f.FilePath, f.Line, f.Message)
+		if _, err := fmt.Fprintf(w.streams.Findings, "%s\t%s\t%s\t%d\t%s\n",
+			sev, f.RuleID, f.FilePath, f.Line, f.Message); err != nil {
+			return err
+		}
 	}
 	return nil
 }

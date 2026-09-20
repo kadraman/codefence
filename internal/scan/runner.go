@@ -7,14 +7,16 @@ import (
 	"github.com/kadraman/codefence/internal/output"
 )
 
-// RunScan builds context, resolves aspects, runs them sequentially, aggregates exit.
-func RunScan(opts Options, stdout, stderr io.Writer) (Result, error) {
-	return RunScanWithRegistry(opts, DefaultRegistry(), stdout, stderr)
+// RunScan builds context for cwd, resolves aspects, runs them sequentially, aggregates exit.
+// Empty cwd resolves to the process working directory (CLI default). MCP and other
+// callers MUST pass the configured repository root instead of changing process cwd.
+func RunScan(cwd string, opts Options, stdout, stderr io.Writer) (Result, error) {
+	return RunScanWithRegistry(cwd, opts, DefaultRegistry(), stdout, stderr)
 }
 
 // RunScanWithRegistry is like RunScan but uses a custom registry (tests / stubs).
-func RunScanWithRegistry(opts Options, reg Registry, stdout, stderr io.Writer) (Result, error) {
-	ctx, err := BuildContext("", opts)
+func RunScanWithRegistry(cwd string, opts Options, reg Registry, stdout, stderr io.Writer) (Result, error) {
+	ctx, err := BuildContext(cwd, opts)
 	if err != nil {
 		return Result{}, err
 	}
@@ -45,7 +47,7 @@ func runWithContext(ctx Context, reg Registry, stdout, stderr io.Writer) (Result
 		w.Progress("Running scan aspects: %s", joinComma(ids))
 	}
 
-	var result Result
+	result := Result{CWD: ctx.CWD}
 	for _, id := range aspects {
 		runner, ok := reg[id]
 		if !ok {
@@ -58,7 +60,11 @@ func runWithContext(ctx Context, reg Registry, stdout, stderr io.Writer) (Result
 		outcome := runner(ctx)
 		logAspectStatus(w, outcome)
 		if len(outcome.Findings) > 0 {
-			_ = w.WriteTable(fmt.Sprintf("--- %s ---", id), outcome.Findings)
+			if err := w.WriteTable(string(id), fmt.Sprintf("--- %s ---", id), outcome.Findings); err != nil {
+				result.Outcomes = append(result.Outcomes, outcome)
+				result.ExitCode = 1
+				return result, fmt.Errorf("write findings for aspect %s: %w", id, err)
+			}
 		}
 		result.Outcomes = append(result.Outcomes, outcome)
 	}

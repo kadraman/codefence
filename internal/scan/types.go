@@ -74,6 +74,7 @@ type AspectOutcome struct {
 
 // Result aggregates a full RunScan.
 type Result struct {
+	CWD      string // resolved repository root used for the scan
 	Outcomes []AspectOutcome
 	ExitCode int
 }

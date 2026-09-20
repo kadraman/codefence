@@ -9,17 +9,17 @@ import (
 
 // StagedFiles returns paths of staged changes (Added/Copied/Modified/Renamed).
 func StagedFiles(cwd string) ([]string, error) {
-	return gitLines(cwd, "diff", "--cached", "--name-only", "--diff-filter=ACMR")
+	return gitPaths(cwd, "diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z")
 }
 
 // WorkingTreeFiles returns unstaged modifications plus untracked files
 // (working-tree changes relative to HEAD index).
 func WorkingTreeFiles(cwd string) ([]string, error) {
-	unstaged, err := gitLines(cwd, "diff", "--name-only", "--diff-filter=ACMR")
+	unstaged, err := gitPaths(cwd, "diff", "--name-only", "--diff-filter=ACMR", "-z")
 	if err != nil {
 		return nil, err
 	}
-	untracked, err := gitLines(cwd, "ls-files", "--others", "--exclude-standard")
+	untracked, err := gitPaths(cwd, "ls-files", "--others", "--exclude-standard", "-z")
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +35,7 @@ func WorkingTreeFiles(cwd string) ([]string, error) {
 	return out, nil
 }
 
-func gitLines(cwd string, args ...string) ([]string, error) {
+func gitPaths(cwd string, args ...string) ([]string, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = cwd
 	var stdout, stderr bytes.Buffer
@@ -48,13 +48,22 @@ func gitLines(cwd string, args ...string) ([]string, error) {
 		}
 		return nil, fmt.Errorf("git %s: %s", strings.Join(args, " "), msg)
 	}
-	raw := strings.Split(strings.ReplaceAll(stdout.String(), "\r\n", "\n"), "\n")
-	out := make([]string, 0, len(raw))
-	for _, line := range raw {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			out = append(out, line)
-		}
+	return splitNULPaths(stdout.Bytes()), nil
+}
+
+// splitNULPaths splits NUL-delimited (-z) Git path lists without trimming
+// whitespace so paths are preserved byte-for-byte.
+func splitNULPaths(raw []byte) []string {
+	if len(raw) == 0 {
+		return nil
 	}
-	return out, nil
+	parts := bytes.Split(raw, []byte{0})
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if len(p) == 0 {
+			continue
+		}
+		out = append(out, string(p))
+	}
+	return out
 }

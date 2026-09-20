@@ -3,6 +3,8 @@ package output
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -54,6 +56,15 @@ func TestMapFinding_CodeSecretDeps(t *testing.T) {
 	}
 	if wd.CVE == nil || *wd.CVE != "CVE-1" {
 		t.Fatalf("cve: %+v", wd.CVE)
+	}
+
+	emptyKindDeps := findings.Finding{
+		RuleID: findings.RuleVulnerableDependency, Message: "vuln", FilePath: "go.mod",
+		Severity: findings.SeverityMedium, PackageName: "lib", PackageVersion: "1.0.0",
+	}
+	wek := MapFinding(emptyKindDeps, "deps")
+	if wek.Category != "dependency" {
+		t.Fatalf("deps aspect with empty kind: category %q", wek.Category)
 	}
 }
 
@@ -149,6 +160,26 @@ func TestWarningWire(t *testing.T) {
 	s := string(b)
 	if !strings.Contains(s, `"category":"warning"`) || !strings.Contains(s, `"aspect":"deps"`) {
 		t.Fatalf("%s", s)
+	}
+}
+
+type errWriter struct{ err error }
+
+func (w errWriter) Write([]byte) (int, error) { return 0, w.err }
+
+func TestWriteTablePropagatesWriteError(t *testing.T) {
+	want := io.ErrClosedPipe
+	w := NewWriter(Options{Format: FormatTable}, io.Discard, errWriter{err: want})
+	list := []findings.Finding{{
+		RuleID: "no-eval", Message: "m", FilePath: "a.go", Line: 1,
+		Severity: findings.SeverityHigh, Kind: findings.KindCode,
+	}}
+	err := w.WriteTable("code", "title", list)
+	if err == nil {
+		t.Fatal("expected write error")
+	}
+	if !errors.Is(err, want) {
+		t.Fatalf("got %v want %v", err, want)
 	}
 }
 

@@ -89,7 +89,7 @@ type WireWarning struct {
 // aspect must be "code" or "deps" (registry IDs); category becomes "code" or "dependency".
 func MapFinding(f findings.Finding, aspect string) WireFinding {
 	category := "code"
-	if aspect == "deps" || f.Kind == findings.KindDependency {
+	if aspect == "deps" {
 		category = "dependency"
 	}
 	// Secrets from the code aspect stay category "code" with kind "secret".

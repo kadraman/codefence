@@ -220,7 +220,7 @@ func dispatchScan(opts ScanOptions) int {
 		SecretMinLength:               opts.SecretMinLength,
 		SecretMinConfidence:           opts.SecretMinConfidence,
 	}
-	res, err := scan.RunScan(scanOpts, Stdout, Stderr)
+	res, err := scan.RunScan("", scanOpts, Stdout, Stderr)
 	if err != nil {
 		writeCmdError(Stderr, err)
 		return ExitUsage

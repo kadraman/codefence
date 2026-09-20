@@ -77,6 +77,24 @@ func TestLoadFile_UnsupportedVersion(t *testing.T) {
 	}
 }
 
+func TestParseYAML_UnknownFieldRejected(t *testing.T) {
+	_, err := ParseYAML([]byte("version: 1\nscan:\n  formt: json\n"))
+	if err == nil {
+		t.Fatal("expected unknown field error for scan.formt")
+	}
+	_, err = ParseYAML([]byte("version: 1\nformt: json\n"))
+	if err == nil {
+		t.Fatal("expected unknown top-level field error")
+	}
+	cfg, err := ParseYAML([]byte("version: 1\nscan:\n  format: json\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Format != "json" {
+		t.Fatalf("format: %q", cfg.Format)
+	}
+}
+
 func TestLoadFile_CwdOnly(t *testing.T) {
 	parent := t.TempDir()
 	child := filepath.Join(parent, "sub")

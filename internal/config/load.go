@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,9 +30,12 @@ func LoadFile(cwd string) (partial Config, found bool, err error) {
 }
 
 // ParseYAML parses and validates a version-1 config document.
+// Unknown mapping keys are rejected (strict schema).
 func ParseYAML(data []byte) (Config, error) {
 	var doc fileDoc
-	if err := yaml.Unmarshal(data, &doc); err != nil {
+	dec := yaml.NewDecoder(bytes.NewReader(data))
+	dec.KnownFields(true)
+	if err := dec.Decode(&doc); err != nil {
 		return Config{}, fmt.Errorf("invalid config YAML: %w", err)
 	}
 	if doc.Version == 0 {

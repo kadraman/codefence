@@ -2,9 +2,13 @@ package scan
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/kadraman/codefence/internal/findings"
 )
 
 func TestBuildContext_ExplicitPathsBypassIgnore(t *testing.T) {
@@ -37,14 +41,6 @@ func TestRunScan_OrderingAndAggregation(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module x\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Chdir(dir); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.Chdir(wd) })
 
 	order := []AspectID{}
 	reg := Registry{
@@ -58,7 +54,7 @@ func TestRunScan_OrderingAndAggregation(t *testing.T) {
 		},
 	}
 	var stdout, stderr bytes.Buffer
-	res, err := RunScanWithRegistry(Options{
+	res, err := RunScanWithRegistry(dir, Options{
 		Paths:   []string{"go.mod"},
 		Aspects: []string{"code"},
 		Format:  "json",
@@ -67,10 +63,92 @@ func TestRunScan_OrderingAndAggregation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if res.CWD != dir {
+		t.Fatalf("CWD = %q want %q", res.CWD, dir)
+	}
 	if len(order) != 2 || order[0] != AspectCode || order[1] != AspectDeps {
 		t.Fatalf("order %#v", order)
 	}
 	if res.ExitCode != 1 {
 		t.Fatalf("exit %d", res.ExitCode)
+	}
+}
+
+type errWriter struct{ err error }
+
+func (w errWriter) Write([]byte) (int, error) { return 0, w.err }
+
+func TestRunScan_PropagatesWriteTableError(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	want := io.ErrClosedPipe
+	reg := Registry{
+		AspectCode: func(ctx Context) AspectOutcome {
+			return AspectOutcome{
+				Aspect: AspectCode, Status: StatusOK,
+				Findings: []findings.Finding{{
+					RuleID: "no-eval", Message: "m", FilePath: "a.go", Line: 1,
+					Severity: findings.SeverityHigh, Kind: findings.KindCode,
+				}},
+			}
+		},
+	}
+	res, err := RunScanWithRegistry(dir, Options{
+		Paths:  []string{"a.go"},
+		Only:   []string{"code"},
+		Format: "json",
+		Quiet:  true,
+	}, reg, errWriter{err: want}, io.Discard)
+	if err == nil {
+		t.Fatal("expected write error")
+	}
+	if !errors.Is(err, want) {
+		t.Fatalf("got %v want %v", err, want)
+	}
+	if res.ExitCode == 0 {
+		t.Fatalf("exit code should be non-zero on output failure, got %d", res.ExitCode)
+	}
+}
+
+func TestRunScan_UsesExplicitCWDWithoutChdir(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var saw string
+	reg := Registry{
+		AspectCode: func(ctx Context) AspectOutcome {
+			saw = ctx.CWD
+			return AspectOutcome{Aspect: AspectCode, Status: StatusSkipped, Message: "no files in scope"}
+		},
+	}
+	res, err := RunScanWithRegistry(dir, Options{
+		Paths:  []string{"a.go"},
+		Only:   []string{"code"},
+		Format: "json",
+		Quiet:  true,
+	}, reg, io.Discard, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if saw != dir {
+		t.Fatalf("ctx.CWD = %q want %q", saw, dir)
+	}
+	if res.CWD != dir {
+		t.Fatalf("result.CWD = %q want %q", res.CWD, dir)
+	}
+	gotWD, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotWD != wd {
+		t.Fatalf("process cwd changed from %q to %q", wd, gotWD)
 	}
 }
