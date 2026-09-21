@@ -34,7 +34,7 @@ type Options struct {
 	GitIgnoredPrefixes []string
 	DepsScope          string // changed | tree
 
-	// Passed through for later aspect engines (006–009).
+	// Passed through for later aspect engines (007–009).
 	DepsProvider    string
 	DepsProviderURL string
 	DepsRefresh     bool

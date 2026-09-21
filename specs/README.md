@@ -72,7 +72,7 @@ go.mod
 1. CLI + config (`001`, `002` complete)
 2. Findings + output (`003`, `004` complete)
 3. Scan orchestrator (`005` complete)
-4. Secure-coding (`006`)
+4. Secure-coding (`006` complete)
 5. Secret engine (`007`)
 6. Deps extractors + OSV (`008`, `009`)
 7. Hooks + install (`010`, `011`)
