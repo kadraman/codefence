@@ -5,31 +5,54 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/kadraman/codefence/internal/findings"
+	"github.com/kadraman/codefence/internal/rules"
 )
 
-func TestDefaultRegistry_FailsClosedWhenWorkInScope(t *testing.T) {
+func TestDefaultRegistry_CodeSecureCoding(t *testing.T) {
 	dir := t.TempDir()
-	src := filepath.Join(dir, "main.go")
-	if err := os.WriteFile(src, []byte("package main\n"), 0o644); err != nil {
+	clean := filepath.Join(dir, "main.go")
+	if err := os.WriteFile(clean, []byte("package main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	bad := filepath.Join(dir, "evil.js")
+	if err := os.WriteFile(bad, []byte("eval(1)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	reg := DefaultRegistry()
+	ok := reg[AspectCode](Context{CWD: dir, Files: []string{"main.go"}, Options: Options{}})
+	if ok.Status != StatusOK || ok.ExitCode != 0 {
+		t.Fatalf("clean: %+v", ok)
+	}
+
+	failed := reg[AspectCode](Context{CWD: dir, Files: []string{"evil.js"}, Options: Options{}})
+	if failed.Status != StatusFailed || failed.ExitCode != 1 {
+		t.Fatalf("evil: %+v", failed)
+	}
+	if len(failed.Findings) != 1 || failed.Findings[0].RuleID != rules.IDNoEval {
+		t.Fatalf("findings: %+v", failed.Findings)
+	}
+	if failed.Findings[0].Kind != findings.KindCode || failed.Findings[0].Severity != findings.SeverityHigh {
+		t.Fatalf("finding fields: %+v", failed.Findings[0])
+	}
+}
+
+func TestDefaultRegistry_DepsFailsClosedWhenWorkInScope(t *testing.T) {
+	dir := t.TempDir()
 	mod := filepath.Join(dir, "go.mod")
 	if err := os.WriteFile(mod, []byte("module example\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
 	reg := DefaultRegistry()
-	code := reg[AspectCode](Context{Files: []string{"main.go"}, Options: Options{}})
-	if code.Status != StatusFailed || code.ExitCode != 1 {
-		t.Fatalf("code: %+v", code)
-	}
-	if !strings.Contains(code.Message, "not implemented") {
-		t.Fatalf("code message: %q", code.Message)
-	}
-
-	deps := reg[AspectDeps](Context{Files: []string{"go.mod"}, Options: Options{}})
+	deps := reg[AspectDeps](Context{CWD: dir, Files: []string{"go.mod"}, Options: Options{}})
 	if deps.Status != StatusFailed || deps.ExitCode != 1 {
 		t.Fatalf("deps: %+v", deps)
+	}
+	if !strings.Contains(deps.Message, "not implemented") {
+		t.Fatalf("deps message: %q", deps.Message)
 	}
 }
 

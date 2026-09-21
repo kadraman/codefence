@@ -1,7 +1,7 @@
 # Secure-Coding Rules
 
 - **ID**: 006
-- **Status**: specified
+- **Status**: complete
 - **Area**: secure-coding
 - **Issue**: https://github.com/kadraman/codefence/issues/6
 - [spec.md](spec.md) — WHAT / WHY

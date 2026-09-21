@@ -2,10 +2,10 @@
 title: "Secure-Coding Rules"
 id: 6
 slug: "secure-coding-rules"
-status: specified
+status: complete
 authors: ["@kadraman"]
 created: 2026-09-19
-updated: 2026-09-19
+updated: 2026-09-21
 issue: "https://github.com/kadraman/codefence/issues/6"
 area: secure-coding
 ---
@@ -32,9 +32,10 @@ AI assistants may introduce `eval`, `shell: true`, or `http://` endpoints. These
 
 1. **Given** a scannable file containing `\beval\s*\(` or `\bnew\s+Function\s*\(`, **When** the `code` aspect runs, **Then** a finding with ID `no-eval`, severity `high`, and `kind: code` is emitted.
 2. **Given** a scannable file containing `shell\s*:\s*true`, **When** the `code` aspect runs, **Then** a finding with ID `no-shell-true`, severity `medium`, and `kind: code` is emitted.
-3. **Given** a scannable file containing `http://` not followed by `localhost` or `127.0.0.1`, **When** the `code` aspect runs, **Then** a finding with ID `no-insecure-http`, severity `medium`, and `kind: code` is emitted.
-4. **Given** `http://localhost` or `http://127.0.0.1`, **When** the `code` aspect runs, **Then** `no-insecure-http` does **not** fire for that occurrence.
-5. **Given** any secure-coding finding, **When** the `code` aspect completes, **Then** the aspect fails (exit 1).
+3. **Given** a scannable file containing `http://` whose host is not `localhost` or `127.0.0.1`, **When** the `code` aspect runs, **Then** a finding with ID `no-insecure-http`, severity `medium`, and `kind: code` is emitted.
+4. **Given** `http://localhost` or `http://127.0.0.1` as the full host (host ends at end of string or at `:`, `/`, `?`, or `#`), **When** the `code` aspect runs, **Then** `no-insecure-http` does **not** fire for that occurrence.
+5. **Given** lookalike hosts such as `http://localhost.evil.example` or `http://127.0.0.1.attacker.example`, **When** the `code` aspect runs, **Then** `no-insecure-http` **does** fire.
+6. **Given** any secure-coding finding, **When** the `code` aspect completes, **Then** the aspect fails (exit 1).
 
 ### User Story 2 — File filtering and scan loop (Priority: P1)
 
@@ -44,13 +45,14 @@ AI assistants may introduce `eval`, `shell: true`, or `http://` endpoints. These
 
 **Acceptance scenarios**:
 
-1. **Given** files in the `code` aspect, **When** scanning, **Then** only scannable extensions / config-like sources are scanned; binaries and known heavy dirs are skipped.
+1. **Given** files in the `code` aspect, **When** scanning, **Then** only paths that match the v1 scannable source extensions, config-like extensions, or config-like basenames in **File filter (v1)** are scanned; binaries and paths under **Heavy dirs** are skipped.
 2. **Given** a rule that defines `windowSize` / windowed test, **When** matching, **Then** an optional sliding window is supported (API reserved for future rules; v1 three rules are line-oriented).
+3. **Given** `eval(` only in a `.md` file or under `node_modules/`, **When** the `code` aspect runs, **Then** no secure-coding finding is emitted for that path.
 
 ### Edge cases
 
-- What happens when a file matches multiple rules on the same line?
-- What happens when `--skip code` or `--only deps` excludes the `code` aspect?
+- When a file matches multiple rules on the same line, emit **one finding per matching rule** (same line number).
+- When `--skip code` or `--only deps` excludes the `code` aspect, secure-coding rules do not run (owned by feature `005`).
 
 ## Requirements
 
@@ -61,10 +63,30 @@ AI assistants may introduce `eval`, `shell: true`, or `http://` endpoints. These
 - **FR-003**: System MUST fail the `code` aspect (exit 1) when any secure-coding finding is produced.
 - **FR-004**: System MUST implement built-in rule `no-eval` — severity `high` — detection `\beval\s*\(` or `\bnew\s+Function\s*\(` — message intent: avoid eval/new Function.
 - **FR-005**: System MUST implement built-in rule `no-shell-true` — severity `medium` — detection `shell\s*:\s*true` — message intent: avoid shell-enabled child_process.
-- **FR-006**: System MUST implement built-in rule `no-insecure-http` — severity `medium` — detection `http://` not followed by localhost/127.0.0.1 — message intent: prefer HTTPS.
-- **FR-007**: System MUST scan source and config-like files only; skip binaries and known heavy dirs.
+- **FR-006**: System MUST implement built-in rule `no-insecure-http` — severity `medium` — detection `http://` unless the host is exactly `localhost` or `127.0.0.1` (host ends at end of string or at `:`, `/`, `?`, or `#`) — message intent: prefer HTTPS.
+- **FR-007**: System MUST scan only paths that match **File filter (v1)**; skip binaries (NUL byte in file contents) and paths with a **Heavy dirs** path component.
 - **FR-008**: System MUST wire secure-coding into the `code` aspect together with the secret engine (ordering: before/with secrets).
 - **FR-009**: Control surface is aspect flags only (`--only code` / `--skip code` and path scoping); no dedicated secure-coding CLI flags in v1.
+
+### File filter (v1)
+
+Scan a path when it is not under a heavy dir, is not binary, and matches **any** of: a source extension, a config-like extension, or a config-like basename. Extension match is case-insensitive. Basename match is case-insensitive.
+
+**Source extensions** (MVP languages where v1 patterns apply: JS/TS `eval` / `new Function` / `shell: true`; Go and Python `eval(` / `http://`):
+
+`.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts`, `.cts`, `.go`, `.py`
+
+**Config-like extensions:**
+
+`.yml`, `.yaml`, `.json`, `.toml`, `.env`, `.ini`, `.cfg`, `.conf`
+
+**Config-like basenames:**
+
+`Dockerfile`, `Makefile`, `makefile`, `.env`
+
+**Heavy dirs** (skip when any path component equals one of these names). Same set as feature `005` tree-scope discovery:
+
+`node_modules`, `.venv`, `venv`, `__pycache__`, `.git`, `.codefence`, `vendor`, `dist`, `build`, `.tox`, `.mypy_cache`, `.pytest_cache`, `target`, `.idea`, `.vscode`
 
 ### Built-in rules (v1)
 
@@ -72,7 +94,7 @@ AI assistants may introduce `eval`, `shell: true`, or `http://` endpoints. These
 | -- | -------- | --------- | -------------- |
 | `no-eval` | high | `\beval\s*\(` or `\bnew\s+Function\s*\(` | Avoid eval/new Function |
 | `no-shell-true` | medium | `shell\s*:\s*true` | Avoid shell-enabled child_process |
-| `no-insecure-http` | medium | `http://` not followed by localhost/127.0.0.1 | Prefer HTTPS |
+| `no-insecure-http` | medium | `http://` unless host is exactly `localhost` or `127.0.0.1` (boundary: EOS / `:` / `/` / `?` / `#`) | Prefer HTTPS |
 
 ### Non-goals
 
@@ -94,7 +116,7 @@ AI assistants may introduce `eval`, `shell: true`, or `http://` endpoints. These
 
 ## Open questions
 
-_(none; IDs and severities MUST match the built-in rules table; message text may vary slightly)_
+_(none; IDs and severities MUST match the built-in rules table; message text may vary slightly; file filter lists above are the v1 allowlist)_
 
 ## References
 

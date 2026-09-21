@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/kadraman/codefence/internal/findings"
@@ -150,5 +151,50 @@ func TestRunScan_UsesExplicitCWDWithoutChdir(t *testing.T) {
 	}
 	if gotWD != wd {
 		t.Fatalf("process cwd changed from %q to %q", wd, gotWD)
+	}
+}
+
+func TestRunScan_SecureCodingFixturesFailCodeAspect(t *testing.T) {
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("runtime.Caller failed")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(thisFile), "..", "..", "testdata", "code"))
+	res, err := RunScan(root, Options{
+		Paths:  []string{"positive/eval.js"},
+		Only:   []string{"code"},
+		Format: "json",
+		Quiet:  true,
+	}, io.Discard, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.ExitCode != 1 {
+		t.Fatalf("exit %d outcomes %+v", res.ExitCode, res.Outcomes)
+	}
+	if len(res.Outcomes) != 1 || res.Outcomes[0].Aspect != AspectCode || res.Outcomes[0].Status != StatusFailed {
+		t.Fatalf("outcomes %+v", res.Outcomes)
+	}
+	found := false
+	for _, f := range res.Outcomes[0].Findings {
+		if f.RuleID == "no-eval" && f.Kind == findings.KindCode {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("missing no-eval in %+v", res.Outcomes[0].Findings)
+	}
+
+	okRes, err := RunScan(root, Options{
+		Paths:  []string{"negative/safe.js"},
+		Only:   []string{"code"},
+		Format: "json",
+		Quiet:  true,
+	}, io.Discard, io.Discard)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if okRes.ExitCode != 0 {
+		t.Fatalf("safe.js exit %d outcomes %+v", okRes.ExitCode, okRes.Outcomes)
 	}
 }

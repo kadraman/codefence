@@ -1,6 +1,10 @@
 package scan
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/kadraman/codefence/internal/scan/code"
+)
 
 // DefaultRegistryOrder is the sequential execution order for aspects.
 var DefaultRegistryOrder = []AspectID{AspectCode, AspectDeps}
@@ -9,20 +13,41 @@ var DefaultRegistryOrder = []AspectID{AspectCode, AspectDeps}
 type Registry map[AspectID]AspectRunner
 
 // DefaultRegistry returns production aspect runners.
-// Engines for code/deps (features 006–009) are not wired yet; when work is in
+// The deps engine (features 008–009) is not wired yet; when work is in
 // scope the aspect fails closed instead of reporting success (constitution § II).
 func DefaultRegistry() Registry {
 	return Registry{
-		AspectCode: pendingAspect(AspectCode),
+		AspectCode: runCodeAspect,
 		AspectDeps: pendingAspect(AspectDeps),
 	}
 }
 
+func runCodeAspect(ctx Context) AspectOutcome {
+	if len(ctx.Files) == 0 && !ctx.Options.DepsScopeIsTree() {
+		return AspectOutcome{Aspect: AspectCode, Status: StatusSkipped, ExitCode: 0, Message: "no files in scope"}
+	}
+	found, err := code.ScanFiles(ctx.CWD, ctx.Files)
+	if err != nil {
+		return AspectOutcome{
+			Aspect:   AspectCode,
+			Status:   StatusFailed,
+			ExitCode: 1,
+			Message:  err.Error(),
+		}
+	}
+	if len(found) > 0 {
+		return AspectOutcome{
+			Aspect:   AspectCode,
+			Status:   StatusFailed,
+			ExitCode: 1,
+			Findings: found,
+		}
+	}
+	return AspectOutcome{Aspect: AspectCode, Status: StatusOK, ExitCode: 0}
+}
+
 func pendingAspect(id AspectID) AspectRunner {
 	return func(ctx Context) AspectOutcome {
-		if id == AspectCode && len(ctx.Files) == 0 && !ctx.Options.DepsScopeIsTree() {
-			return AspectOutcome{Aspect: id, Status: StatusSkipped, ExitCode: 0, Message: "no files in scope"}
-		}
 		if id == AspectDeps {
 			hasManifests := false
 			for _, f := range ctx.Files {

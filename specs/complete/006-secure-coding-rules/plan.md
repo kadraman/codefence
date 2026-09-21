@@ -18,12 +18,12 @@ Hardcode the three v1 secure-coding rules as compiled regex in Go under `interna
 
 GATE: must pass before implementation. Re-check after design changes.
 
-- [ ] No invented CLI/config/rule/finding/MCP behavior — only the three built-in rule IDs
-- [ ] Core contract impact identified — secure-coding rule IDs are core (constitution § III)
-- [ ] Required behavior preserved or deliberate difference documented in spec + compatibility.md
-- [ ] NFR / dependency budget impact assessed — stdlib regex only
-- [ ] Security boundaries preserved — evidence snippets only as Finding allows; no network
-- [ ] Tests planned for new behavior — per-rule unit + `testdata/code/` fixtures
+- [x] No invented CLI/config/rule/finding/MCP behavior — only the three built-in rule IDs
+- [x] Core contract impact identified — secure-coding rule IDs are core (constitution § III)
+- [x] Required behavior preserved or deliberate difference documented in spec + compatibility.md
+- [x] NFR / dependency budget impact assessed — stdlib regex only
+- [x] Security boundaries preserved — evidence snippets only as Finding allows; no network
+- [x] Tests planned for new behavior — per-rule unit + `testdata/code/` fixtures
 
 **Exceptions** (fill only if a principle cannot be met):
 
@@ -84,4 +84,4 @@ Preserve rule IDs and severities. Do not rename without migration (compatibility
 
 ## Open implementation questions
 
-- Exact ignore-path list and scannable extensions: follow this feature’s filter requirements; do not invent.
+- Exact ignore-path list and scannable extensions: locked in [spec.md](spec.md) **File filter (v1)** (heavy dirs match feature `005` discovery).

@@ -4,7 +4,6 @@ Assign the next feature id as **013** (one past the highest id below). Process: 
 
 ## Active (`specs/features/`)
 
-- **006** `secure-coding-rules` — specified — secure-coding — issue: https://github.com/kadraman/codefence/issues/6 — [specs/features/006-secure-coding-rules/](features/006-secure-coding-rules/)
 - **007** `secret-engine` — specified — secrets — issue: https://github.com/kadraman/codefence/issues/7 — [specs/features/007-secret-engine/](features/007-secret-engine/)
 - **008** `deps-extractors` — specified — deps — issue: https://github.com/kadraman/codefence/issues/8 — [specs/features/008-deps-extractors/](features/008-deps-extractors/)
 - **009** `deps-scanning` — specified — deps — issue: https://github.com/kadraman/codefence/issues/9 — [specs/features/009-deps-scanning/](features/009-deps-scanning/)
@@ -21,6 +20,7 @@ Shipped behavior. Do not load this entire tree into every agent turn.
 - **003** `finding-model` — complete — findings — issue: https://github.com/kadraman/codefence/issues/3 — [specs/complete/003-finding-model/](complete/003-finding-model/)
 - **004** `output-formats` — complete — output — issue: https://github.com/kadraman/codefence/issues/4 — [specs/complete/004-output-formats/](complete/004-output-formats/)
 - **005** `scan-orchestrator` — complete — scan — issue: https://github.com/kadraman/codefence/issues/5 — [specs/complete/005-scan-orchestrator/](complete/005-scan-orchestrator/)
+- **006** `secure-coding-rules` — complete — secure-coding — issue: https://github.com/kadraman/codefence/issues/6 — [specs/complete/006-secure-coding-rules/](complete/006-secure-coding-rules/)
 
 ## Archive (`specs/archive/`)
 

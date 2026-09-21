@@ -2,7 +2,7 @@
 
 What Codefence aims to ship, in plain language. Engineering detail lives under [`specs/`](../specs/); this page is for users.
 
-**Status today:** CLI, config, findings, output, and scan orchestration (**001–005**) are shipped; engines and integrations (**006–012**) are specified but not yet ([`specs/STATUS.md`](../specs/STATUS.md)). Treat “MVP” as the planned first cut, not a promise of dates.
+**Status today:** CLI, config, findings, output, scan orchestration, and secure-coding rules (**001–006**) are shipped; remaining engines and integrations (**007–012**) are specified but not yet ([`specs/STATUS.md`](../specs/STATUS.md)). Treat “MVP” as the planned first cut, not a promise of dates.
 
 ## First release (MVP)
 
@@ -13,7 +13,7 @@ What Codefence aims to ship, in plain language. Engineering detail lives under [
 | CLI | `codefence scan`, help, exit codes, `version` |
 | Config | `codefence-config.yml` + `CODEFENCE_*` env (flags win) |
 | Secrets | Semgrep-style YAML rules, builtin pack, entropy heuristics |
-| Secure-coding | Built-in line rules (e.g. eval / insecure HTTP) |
+| Secure-coding | Built-in line rules `no-eval`, `no-shell-true`, `no-insecure-http` |
 | Dependencies | OSV lookups for **JavaScript/TypeScript (npm)**, **Go**, and **Python (PyPI)** |
 | Output | Table and NDJSON (`--format`) |
 
