@@ -26,6 +26,7 @@ func TestScanFiles_PositiveFixtures(t *testing.T) {
 		"positive/new-function.ts",
 		"positive/shell.js",
 		"positive/http.py",
+		"positive/http-lookalike.js",
 		"positive/multi.js",
 	}
 	got, err := ScanFiles(root, files)
@@ -33,10 +34,11 @@ func TestScanFiles_PositiveFixtures(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[string]string{
-		"positive/eval.js":         rules.IDNoEval,
-		"positive/new-function.ts": rules.IDNoEval,
-		"positive/shell.js":        rules.IDNoShellTrue,
-		"positive/http.py":         rules.IDNoInsecureHTTP,
+		"positive/eval.js":           rules.IDNoEval,
+		"positive/new-function.ts":   rules.IDNoEval,
+		"positive/shell.js":          rules.IDNoShellTrue,
+		"positive/http.py":           rules.IDNoInsecureHTTP,
+		"positive/http-lookalike.js": rules.IDNoInsecureHTTP,
 	}
 	seen := map[string][]string{}
 	for _, f := range got {

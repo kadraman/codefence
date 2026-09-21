@@ -3,7 +3,6 @@ package rules
 
 import (
 	"regexp"
-	"strings"
 
 	"github.com/kadraman/codefence/internal/findings"
 )
@@ -23,8 +22,7 @@ type Rule struct {
 	Message    string
 	WindowSize int
 	re         *regexp.Regexp
-	// skipIfFollowedBy implements "http:// not followed by …" without RE2-unsupported lookaheads.
-	skipIfFollowedBy []string
+	match      func(string) bool
 }
 
 // MustCompile builds a rule. Panics if expr is not a valid regexp (init-time use).
@@ -40,27 +38,10 @@ func MustCompile(id string, severity findings.Severity, message string, windowSi
 
 // Match reports whether text (one line, or a joined window) hits the rule.
 func (r Rule) Match(text string) bool {
-	if r.re == nil {
-		return false
+	if r.match != nil {
+		return r.match(text)
 	}
-	if len(r.skipIfFollowedBy) == 0 {
-		return r.re.MatchString(text)
-	}
-	locs := r.re.FindAllStringIndex(text, -1)
-	for _, loc := range locs {
-		rest := text[loc[1]:]
-		skip := false
-		for _, prefix := range r.skipIfFollowedBy {
-			if strings.HasPrefix(rest, prefix) {
-				skip = true
-				break
-			}
-		}
-		if !skip {
-			return true
-		}
-	}
-	return false
+	return r.re != nil && r.re.MatchString(text)
 }
 
 // LineWindow returns the number of consecutive lines to join for matching.

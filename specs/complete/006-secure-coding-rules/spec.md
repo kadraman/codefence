@@ -32,9 +32,10 @@ AI assistants may introduce `eval`, `shell: true`, or `http://` endpoints. These
 
 1. **Given** a scannable file containing `\beval\s*\(` or `\bnew\s+Function\s*\(`, **When** the `code` aspect runs, **Then** a finding with ID `no-eval`, severity `high`, and `kind: code` is emitted.
 2. **Given** a scannable file containing `shell\s*:\s*true`, **When** the `code` aspect runs, **Then** a finding with ID `no-shell-true`, severity `medium`, and `kind: code` is emitted.
-3. **Given** a scannable file containing `http://` not followed by `localhost` or `127.0.0.1`, **When** the `code` aspect runs, **Then** a finding with ID `no-insecure-http`, severity `medium`, and `kind: code` is emitted.
-4. **Given** `http://localhost` or `http://127.0.0.1`, **When** the `code` aspect runs, **Then** `no-insecure-http` does **not** fire for that occurrence.
-5. **Given** any secure-coding finding, **When** the `code` aspect completes, **Then** the aspect fails (exit 1).
+3. **Given** a scannable file containing `http://` whose host is not `localhost` or `127.0.0.1`, **When** the `code` aspect runs, **Then** a finding with ID `no-insecure-http`, severity `medium`, and `kind: code` is emitted.
+4. **Given** `http://localhost` or `http://127.0.0.1` as the full host (host ends at end of string or at `:`, `/`, `?`, or `#`), **When** the `code` aspect runs, **Then** `no-insecure-http` does **not** fire for that occurrence.
+5. **Given** lookalike hosts such as `http://localhost.evil.example` or `http://127.0.0.1.attacker.example`, **When** the `code` aspect runs, **Then** `no-insecure-http` **does** fire.
+6. **Given** any secure-coding finding, **When** the `code` aspect completes, **Then** the aspect fails (exit 1).
 
 ### User Story 2 — File filtering and scan loop (Priority: P1)
 
@@ -62,7 +63,7 @@ AI assistants may introduce `eval`, `shell: true`, or `http://` endpoints. These
 - **FR-003**: System MUST fail the `code` aspect (exit 1) when any secure-coding finding is produced.
 - **FR-004**: System MUST implement built-in rule `no-eval` — severity `high` — detection `\beval\s*\(` or `\bnew\s+Function\s*\(` — message intent: avoid eval/new Function.
 - **FR-005**: System MUST implement built-in rule `no-shell-true` — severity `medium` — detection `shell\s*:\s*true` — message intent: avoid shell-enabled child_process.
-- **FR-006**: System MUST implement built-in rule `no-insecure-http` — severity `medium` — detection `http://` not followed by localhost/127.0.0.1 — message intent: prefer HTTPS.
+- **FR-006**: System MUST implement built-in rule `no-insecure-http` — severity `medium` — detection `http://` unless the host is exactly `localhost` or `127.0.0.1` (host ends at end of string or at `:`, `/`, `?`, or `#`) — message intent: prefer HTTPS.
 - **FR-007**: System MUST scan only paths that match **File filter (v1)**; skip binaries (NUL byte in file contents) and paths with a **Heavy dirs** path component.
 - **FR-008**: System MUST wire secure-coding into the `code` aspect together with the secret engine (ordering: before/with secrets).
 - **FR-009**: Control surface is aspect flags only (`--only code` / `--skip code` and path scoping); no dedicated secure-coding CLI flags in v1.
@@ -93,7 +94,7 @@ Scan a path when it is not under a heavy dir, is not binary, and matches **any**
 | -- | -------- | --------- | -------------- |
 | `no-eval` | high | `\beval\s*\(` or `\bnew\s+Function\s*\(` | Avoid eval/new Function |
 | `no-shell-true` | medium | `shell\s*:\s*true` | Avoid shell-enabled child_process |
-| `no-insecure-http` | medium | `http://` not followed by localhost/127.0.0.1 | Prefer HTTPS |
+| `no-insecure-http` | medium | `http://` unless host is exactly `localhost` or `127.0.0.1` (boundary: EOS / `:` / `/` / `?` / `#`) | Prefer HTTPS |
 
 ### Non-goals
 
