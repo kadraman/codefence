@@ -48,3 +48,27 @@ func EntropySeverity(entropy, threshold float64) Severity {
 	}
 	return SeverityMedium
 }
+
+// severityRank orders severities for merge/dedup (higher is stronger).
+func severityRank(s Severity) int {
+	switch s {
+	case SeverityCritical:
+		return 4
+	case SeverityHigh:
+		return 3
+	case SeverityMedium:
+		return 2
+	case SeverityLow:
+		return 1
+	default:
+		return 0
+	}
+}
+
+// StrongerSeverity returns the higher of two severities.
+func StrongerSeverity(a, b Severity) Severity {
+	if severityRank(a) >= severityRank(b) {
+		return a
+	}
+	return b
+}

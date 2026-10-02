@@ -96,3 +96,12 @@ func TestRuleVulnerableDependencyConstant(t *testing.T) {
 		t.Fatalf("got %q", RuleVulnerableDependency)
 	}
 }
+
+func TestStrongerSeverity(t *testing.T) {
+	if StrongerSeverity(SeverityLow, SeverityHigh) != SeverityHigh {
+		t.Fatal("expected high")
+	}
+	if StrongerSeverity(SeverityCritical, SeverityMedium) != SeverityCritical {
+		t.Fatal("expected critical")
+	}
+}

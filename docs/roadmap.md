@@ -2,7 +2,7 @@
 
 What Codefence aims to ship, in plain language. Engineering detail lives under [`specs/`](../specs/); this page is for users.
 
-**Status today:** CLI, config, findings, output, scan orchestration, and secure-coding rules (**001–006**) are shipped; remaining engines and integrations (**007–012**) are specified but not yet ([`specs/STATUS.md`](../specs/STATUS.md)). Treat “MVP” as the planned first cut, not a promise of dates.
+**Status today:** CLI, config, findings, output, scan orchestration, secure-coding rules, and the secret engine (**001–007**) are shipped; remaining engines and integrations (**008–012**) are specified but not yet ([`specs/STATUS.md`](../specs/STATUS.md)). Treat “MVP” as the planned first cut, not a promise of dates.
 
 ## First release (MVP)
 

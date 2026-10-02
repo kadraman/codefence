@@ -2,10 +2,10 @@
 title: "Secret Engine"
 id: 7
 slug: "secret-engine"
-status: specified
+status: complete
 authors: ["@kadraman"]
 created: 2026-09-19
-updated: 2026-09-19
+updated: 2026-10-02
 issue: "https://github.com/kadraman/codefence/issues/7"
 area: secrets
 ---

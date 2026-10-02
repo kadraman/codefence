@@ -18,12 +18,12 @@ Implement Semgrep-subset YAML secret matching + entropy under `internal/scan/sec
 
 GATE: must pass before implementation. Re-check after design changes.
 
-- [ ] No invented CLI/config/rule/finding/MCP behavior — Semgrep subset and flags from existing specs only
-- [ ] Core contract impact identified — secret rule IDs + Semgrep-subset YAML surface (constitution § III)
-- [ ] Required behavior preserved or deliberate difference documented in spec + compatibility.md
-- [ ] NFR / dependency budget impact assessed — shared small YAML dep; lazy init
-- [ ] Security boundaries preserved — remote integrity before activation; evidence truncation
-- [ ] Tests planned for new behavior — fixtures, entropy skip, merge, cache TTL/refresh, YAML errors
+- [x] No invented CLI/config/rule/finding/MCP behavior — Semgrep subset and flags from existing specs only
+- [x] Core contract impact identified — secret rule IDs + Semgrep-subset YAML surface (constitution § III)
+- [x] Required behavior preserved or deliberate difference documented in spec + compatibility.md
+- [x] NFR / dependency budget impact assessed — shared small YAML dep; lazy init
+- [x] Security boundaries preserved — remote integrity before activation; evidence truncation
+- [x] Tests planned for new behavior — fixtures, entropy skip, merge, cache TTL/refresh, YAML errors
 
 **Exceptions** (fill only if a principle cannot be met):
 

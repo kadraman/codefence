@@ -1,4 +1,4 @@
-// Package code implements the code aspect: secure-coding rules and (later) secret wiring.
+// Package code implements the code aspect: secure-coding rules and secret engine.
 package code
 
 import (
@@ -8,15 +8,56 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/kadraman/codefence/internal/findings"
 	"github.com/kadraman/codefence/internal/rules"
+	"github.com/kadraman/codefence/internal/scan/secret"
 )
 
-// ScanFiles runs built-in secure-coding rules on scannable files under cwd.
-// Secret engine matching (feature 007) will run from this package after rules.
-func ScanFiles(cwd string, files []string) ([]findings.Finding, error) {
-	return scanWithRules(cwd, files, rules.Builtin())
+// SecretOptions mirrors scan/cli secret settings for the code aspect.
+type SecretOptions struct {
+	Rules               []string
+	DefaultRules        string
+	DefaultRulesVersion string
+	RulesUpdateURL      string
+	RulesRefresh        bool
+	RulesCacheTTL       time.Duration
+	EntropyThreshold    float64
+	MinLength           int
+	MinConfidence       string
+}
+
+// ToSecret converts to secret.Options with defaults applied.
+func (o SecretOptions) ToSecret() secret.Options {
+	return secret.Options{
+		RulePaths:           append([]string(nil), o.Rules...),
+		DefaultRules:        o.DefaultRules,
+		DefaultRulesVersion: o.DefaultRulesVersion,
+		RulesUpdateURL:      o.RulesUpdateURL,
+		RulesRefresh:        o.RulesRefresh,
+		RulesCacheTTL:       o.RulesCacheTTL,
+		EntropyThreshold:    o.EntropyThreshold,
+		MinLength:           o.MinLength,
+		MinConfidence:       o.MinConfidence,
+	}.Normalize()
+}
+
+// ScanFiles runs built-in secure-coding rules and the secret engine on scannable files.
+// Secret rules are loaded lazily on first call (not at process start).
+func ScanFiles(cwd string, files []string, secretOpts SecretOptions) ([]findings.Finding, error) {
+	codeFindings, err := scanWithRules(cwd, files, rules.Builtin())
+	if err != nil {
+		return nil, err
+	}
+	secretFindings, err := secret.ScanFiles(cwd, FilterScannable(files), secretOpts.ToSecret())
+	if err != nil {
+		return nil, err
+	}
+	out := make([]findings.Finding, 0, len(codeFindings)+len(secretFindings))
+	out = append(out, codeFindings...)
+	out = append(out, secretFindings...)
+	return out, nil
 }
 
 func scanWithRules(cwd string, files []string, rs []rules.Rule) ([]findings.Finding, error) {

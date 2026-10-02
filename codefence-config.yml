@@ -1,0 +1,16 @@
+# Repository-local Codefence defaults for dogfooding this project.
+version: 1
+
+scan:
+  aspects: [code]
+  format: table
+
+paths:
+  # Fixture trees intentionally contain secrets / insecure patterns.
+  git_ignored_prefixes:
+    - examples/
+    - testdata/
+
+secret:
+  default_rules: on
+  min_confidence: low

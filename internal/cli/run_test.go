@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -68,6 +69,36 @@ func TestMain_ScanDispatchAndPreCommit(t *testing.T) {
 	if code != ExitOK {
 		t.Fatalf("scan exit %d", code)
 	}
+
+	// Run pre-commit in an isolated clean repo so workspace fixture trees do not
+	// affect this dispatch smoke test (secret fixtures are intentional positives).
+	dir := t.TempDir()
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Dir = dir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("%v: %v\n%s", args, err, out)
+		}
+	}
+	run("git", "init")
+	run("git", "config", "user.email", "test@example.com")
+	run("git", "config", "user.name", "Test")
+	if err := os.WriteFile(filepath.Join(dir, "ok.go"), []byte("package ok\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run("git", "add", "ok.go")
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(wd) })
+
 	_, _, code = withCapture(t, func() int {
 		return Main([]string{"pre-commit"})
 	})
