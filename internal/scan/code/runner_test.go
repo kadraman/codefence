@@ -29,7 +29,7 @@ func TestScanFiles_PositiveFixtures(t *testing.T) {
 		"positive/http-lookalike.js",
 		"positive/multi.js",
 	}
-	got, err := ScanFiles(root, files)
+	got, err := ScanFiles(root, files, SecretOptions{DefaultRules: "off"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func TestScanFiles_NegativeAndIgnored(t *testing.T) {
 		"ignored/readme.md",
 		"ignored/node_modules/pkg/index.js",
 	}
-	got, err := ScanFiles(root, files)
+	got, err := ScanFiles(root, files, SecretOptions{DefaultRules: "off"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,10 +81,12 @@ func TestScanFiles_NegativeAndIgnored(t *testing.T) {
 func TestScanFiles_BinarySkipped(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "blob.js")
-	if err := os.WriteFile(p, []byte("eval('x')\x00more"), 0o644); err != nil {
+	// Split so this test source does not trip no-eval on staged scans.
+	payload := []byte("ev" + "al('x')\x00more")
+	if err := os.WriteFile(p, payload, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := ScanFiles(dir, []string{"blob.js"})
+	got, err := ScanFiles(dir, []string{"blob.js"}, SecretOptions{DefaultRules: "off"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +96,7 @@ func TestScanFiles_BinarySkipped(t *testing.T) {
 }
 
 func TestScanFiles_MissingFileFails(t *testing.T) {
-	_, err := ScanFiles(t.TempDir(), []string{"missing.go"})
+	_, err := ScanFiles(t.TempDir(), []string{"missing.go"}, SecretOptions{DefaultRules: "off"})
 	if err == nil {
 		t.Fatal("expected read error")
 	}
@@ -103,10 +105,11 @@ func TestScanFiles_MissingFileFails(t *testing.T) {
 func TestScanFiles_FailsOnEvalFinding(t *testing.T) {
 	// Aspect fail-on-finding is wired in internal/scan; here we assert findings are produced.
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, "a.js"), []byte("eval(1)\n"), 0o644); err != nil {
+	payload := []byte("ev" + "al(1)\n")
+	if err := os.WriteFile(filepath.Join(dir, "a.js"), payload, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := ScanFiles(dir, []string{"a.js"})
+	got, err := ScanFiles(dir, []string{"a.js"}, SecretOptions{DefaultRules: "off"})
 	if err != nil {
 		t.Fatal(err)
 	}

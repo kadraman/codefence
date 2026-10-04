@@ -26,13 +26,27 @@ func runCodeAspect(ctx Context) AspectOutcome {
 	if len(ctx.Files) == 0 && !ctx.Options.DepsScopeIsTree() {
 		return AspectOutcome{Aspect: AspectCode, Status: StatusSkipped, ExitCode: 0, Message: "no files in scope"}
 	}
-	found, err := code.ScanFiles(ctx.CWD, ctx.Files)
+	var warnings []string
+	secretOpts := code.SecretOptions{
+		Warn:                func(msg string) { warnings = append(warnings, msg) },
+		Rules:               append([]string(nil), ctx.Options.SecretRules...),
+		DefaultRules:        ctx.Options.SecretDefaultRules,
+		DefaultRulesVersion: ctx.Options.SecretDefaultRulesVersion,
+		RulesUpdateURL:      ctx.Options.SecretRulesUpdateURL,
+		RulesRefresh:        ctx.Options.SecretRulesRefresh,
+		RulesCacheTTL:       ctx.Options.SecretRulesCacheTTL,
+		EntropyThreshold:    ctx.Options.SecretEntropyThreshold,
+		MinLength:           ctx.Options.SecretMinLength,
+		MinConfidence:       ctx.Options.SecretMinConfidence,
+	}
+	found, err := code.ScanFiles(ctx.CWD, ctx.Files, secretOpts)
 	if err != nil {
 		return AspectOutcome{
 			Aspect:   AspectCode,
 			Status:   StatusFailed,
 			ExitCode: 1,
 			Message:  err.Error(),
+			Warnings: warnings,
 		}
 	}
 	if len(found) > 0 {
@@ -41,9 +55,10 @@ func runCodeAspect(ctx Context) AspectOutcome {
 			Status:   StatusFailed,
 			ExitCode: 1,
 			Findings: found,
+			Warnings: warnings,
 		}
 	}
-	return AspectOutcome{Aspect: AspectCode, Status: StatusOK, ExitCode: 0}
+	return AspectOutcome{Aspect: AspectCode, Status: StatusOK, ExitCode: 0, Warnings: warnings}
 }
 
 func pendingAspect(id AspectID) AspectRunner {

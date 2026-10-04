@@ -75,6 +75,35 @@ func TestRunScan_OrderingAndAggregation(t *testing.T) {
 	}
 }
 
+func TestRunScan_WarningsGoToStderrOnly(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	reg := Registry{
+		AspectCode: func(ctx Context) AspectOutcome {
+			return AspectOutcome{Aspect: AspectCode, Status: StatusOK, Warnings: []string{"rules fell back"}}
+		},
+	}
+	for _, format := range []string{"json", "table"} {
+		var stdout, stderr bytes.Buffer
+		if _, err := RunScanWithRegistry(dir, Options{
+			Paths:  []string{"a.go"},
+			Only:   []string{"code"},
+			Format: format,
+			Quiet:  true,
+		}, reg, &stdout, &stderr); err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Contains(stderr.Bytes(), []byte("warning[code]: rules fell back\n")) {
+			t.Fatalf("%s: stderr missing warning: %q", format, stderr.String())
+		}
+		if bytes.Contains(stdout.Bytes(), []byte("rules fell back")) {
+			t.Fatalf("%s: warning leaked to stdout: %q", format, stdout.String())
+		}
+	}
+}
+
 type errWriter struct{ err error }
 
 func (w errWriter) Write([]byte) (int, error) { return 0, w.err }

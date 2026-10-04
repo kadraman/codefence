@@ -70,6 +70,7 @@ type AspectOutcome struct {
 	ExitCode   int
 	Message    string
 	Findings   []findings.Finding
+	Warnings   []string // non-fatal diagnostics, written to stderr
 }
 
 // Result aggregates a full RunScan.

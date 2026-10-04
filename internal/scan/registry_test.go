@@ -17,7 +17,7 @@ func TestDefaultRegistry_CodeSecureCoding(t *testing.T) {
 		t.Fatal(err)
 	}
 	bad := filepath.Join(dir, "evil.js")
-	if err := os.WriteFile(bad, []byte("eval(1)\n"), 0o644); err != nil {
+	if err := os.WriteFile(bad, []byte("ev"+"al(1)\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

@@ -2,10 +2,10 @@
 title: "Secret Engine"
 id: 7
 slug: "secret-engine"
-status: specified
+status: complete
 authors: ["@kadraman"]
 created: 2026-09-19
-updated: 2026-09-19
+updated: 2026-10-04
 issue: "https://github.com/kadraman/codefence/issues/7"
 area: secrets
 ---
@@ -56,11 +56,15 @@ Secrets leak via AI context and commits. Portable YAML rules + entropy must meet
 2. **Given** CLI mode, **When** `code` aspect has not started, **Then** secret rules are not loaded (lazy).
 3. **Given** MCP mode, **When** multiple tool calls run, **Then** the compiled rule set stays in memory across calls; all active regexes compile once per process.
 4. **Given** a scan, **When** remote YAML is used, **Then** it is parsed once per scan (not per file).
+5. **Given** a last known-good cached remote pack, **When** a fetch fails (network error, non-2xx status, a response body over the 8 MiB cap, or a response body that does not parse and compile), **Then** the cached pack is used, the cache is not replaced, and a warning is written to **stderr** stating the failure reason and when the cached pack was fetched.
+6. **Given** no usable cached remote pack, **When** a fetch fails or returns a body that does not parse and compile, **Then** rule loading fails with an actionable error.
 
 ### Edge cases
 
 - What happens when default builtin rules are turned off via `--secret-default-rules off`?
 - What happens when evidence would contain a full secret (truncate; do not write full secrets to logs)?
+- What happens when the remote server returns a malformed pack with a 2xx status (keep and use the last known-good cache, warn on stderr; never cache the malformed body)?
+- What happens when a cached remote entry passes its checksum but no longer parses or compiles (treat it as absent and re-fetch)?
 
 ## Requirements
 
@@ -77,6 +81,9 @@ Secrets leak via AI context and commits. Portable YAML rules + entropy must meet
 - **FR-009**: Compile all active regexes once per process; MCP keeps compiled set across tool calls; CLI lazy-loads only when `code` aspect runs; do not parse remote YAML on every file.
 - **FR-010**: Evidence strings MUST NOT write full secrets to logs (truncate).
 - **FR-011**: CLI/env/config flags for secrets are those specified in feature `001` / `002` (including `--secret-rules`, `--secret-default-rules`, `--secret-rules-update-url`, `--secret-rules-refresh`, `--secret-rules-cache-ttl`, `--secret-entropy-threshold`, `--secret-min-length`, `--secret-min-confidence`).
+- **FR-012**: A fetched remote pack MUST parse and compile successfully before it replaces the cache entry. When a fetch fails or returns an invalid pack, the system MUST fall back to the last known-good cached pack if one exists, and otherwise fail with an actionable error. A cached entry that passes its checksum but does not parse or compile MUST be treated as absent.
+- **FR-013**: When FR-012 falls back to a cached pack, the system MUST write one human-readable warning line per fallback to **stderr** in the form `warning[code]: <message>`, where the message gives the failure reason (download failure, HTTP status, or the parse/compile error) and the cached pack's fetch time. The warning MUST be written to stderr for every `--format`, MUST NOT appear on stdout (so NDJSON output and MCP stdout stay clean), is not suppressed by `--quiet`, and is not an NDJSON warning object (feature `004`, FR-005). It MUST identify the pack by host only and MUST NOT include the URL's userinfo, path, query, or fragment. A fresh cache hit (no fetch attempted) MUST NOT warn.
+- **FR-014**: Remote pack downloads MUST be capped at 8 MiB. A response body larger than the cap MUST be rejected as a failed fetch (never truncated and activated), and is handled by FR-012 and FR-013 like any other fetch failure.
 
 ### Defaults table
 
@@ -98,7 +105,7 @@ Secrets leak via AI context and commits. Portable YAML rules + entropy must meet
 
 - **SC-001**: YAML subset parser documented with supported fields list.
 - **SC-002**: Builtin embed + version present; fixture tests under `testdata/secrets` (and/or `examples/secrets`) green.
-- **SC-003**: Entropy lockfile skip, merge/dedup, cache TTL/refresh, and actionable YAML errors covered by tests.
+- **SC-003**: Entropy lockfile skip, merge/dedup, cache TTL/refresh, known-good cache fallback on invalid remote packs with its stderr warning, and actionable YAML errors covered by tests.
 - **SC-004**: Flags/env/config wired without inventing names.
 - **SC-005**: Lazy load and once-per-process compile satisfy NFR startup design for secrets.
 

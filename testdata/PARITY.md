@@ -47,3 +47,27 @@ Exercised by `internal/scan/code/runner_test.go` (`ScanFiles`) and `internal/sca
 | ---- | ------------- | -------- |
 | `ignored/readme.md` | Markdown containing `eval(` and `http://` | Not scannable (extension not in 006 allowlist) |
 | `ignored/node_modules/pkg/index.js` | `eval(` under `node_modules/` | Not scannable (heavy dir) |
+
+## `testdata/secrets/` — secret engine fixtures (feature `007`)
+
+Exercised by `internal/scan/secret/match_test.go` and related package tests. Builtin rule IDs: `specs/complete/007-secret-engine/spec.md`.
+
+### Positive (must emit secret findings)
+
+| Path | Source / role | Contract |
+| ---- | ------------- | -------- |
+| `positive/github.env` | Fake `ghp_` token | `secret-github-token` (`kind: secret`) |
+| `positive/gitlab.env` | Fake `glpat-` token | `secret-gitlab-token` |
+| `positive/stripe.env` | Fake `sk_test_` key | `secret-stripe-key` |
+| `positive/bearer.env` | `Bearer …` header | `secret-bearer-token` |
+| `positive/private-key.conf` | PEM `BEGIN RSA PRIVATE KEY` | `secret-private-key` |
+| `positive/password.js` | `password = "…"` assignment | `secret-password-assignment` |
+| `positive/uri.conf` | `scheme://user:pass@host` | `secret-uri-credentials` |
+
+### Negative (must not emit entropy/rule noise)
+
+| Path | Source / role | Contract |
+| ---- | ------------- | -------- |
+| `negative/safe.js` | Benign `name` / HTTPS URL | No secret findings |
+| `negative/Cargo.lock` | Lockfile `source` / `checksum` metadata | Entropy skips lockfile-noise keys |
+

@@ -1,7 +1,7 @@
 # Secret Engine
 
 - **ID**: 007
-- **Status**: specified
+- **Status**: complete
 - **Area**: secrets
 - **Issue**: https://github.com/kadraman/codefence/issues/7
 - [spec.md](spec.md) — WHAT / WHY
