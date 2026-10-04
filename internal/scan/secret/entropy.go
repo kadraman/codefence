@@ -43,10 +43,12 @@ func ShannonEntropy(input string) float64 {
 		return 0
 	}
 	counts := make(map[rune]int, len(input))
+	total := 0
 	for _, r := range input {
 		counts[r]++
+		total++
 	}
-	n := float64(len(input))
+	n := float64(total)
 	var entropy float64
 	for _, c := range counts {
 		p := float64(c) / n

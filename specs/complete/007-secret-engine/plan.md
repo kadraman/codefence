@@ -47,7 +47,7 @@ testdata/secrets/                 # builtin + entropy + merge fixtures
 1. YAML subset parser with documented supported fields (`pattern-regex`, `pattern`, `patterns`, `pattern-either`).
 2. Builtin embed + pack version metadata.
 3. Entropy + merge/dedup + lockfile mitigations.
-4. Remote fetch: checksum, TTL cache, refresh flag.
+4. Remote fetch: checksum, TTL cache, refresh flag; validate (parse + compile) before replacing the cache, fall back to the last known-good pack on failure (FR-012) and warn on stderr when doing so (FR-013).
 5. Wire flags/env/config from `001`/`002`.
 
 ### CLI changes

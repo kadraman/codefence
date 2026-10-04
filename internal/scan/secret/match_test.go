@@ -62,6 +62,8 @@ func TestParseAndMatchBuiltinFixtures(t *testing.T) {
 	root := testdataSecrets(t)
 	files := []string{
 		"positive/github.env",
+		"positive/gitlab.env",
+		"positive/stripe.env",
 		"positive/password.js",
 		"positive/uri.conf",
 		"positive/private-key.conf",
@@ -73,6 +75,8 @@ func TestParseAndMatchBuiltinFixtures(t *testing.T) {
 	}
 	want := map[string]string{
 		"positive/github.env":      "secret-github-token",
+		"positive/gitlab.env":      "secret-gitlab-token",
+		"positive/stripe.env":      "secret-stripe-key",
 		"positive/password.js":     "secret-password-assignment",
 		"positive/uri.conf":        "secret-uri-credentials",
 		"positive/private-key.conf": "secret-private-key",
@@ -84,8 +88,10 @@ func TestParseAndMatchBuiltinFixtures(t *testing.T) {
 			t.Fatalf("kind %q", f.Kind)
 		}
 		seen[f.FilePath] = append(seen[f.FilePath], f.RuleID)
-		if strings.Contains(f.Evidence, "ghp_") || strings.Contains(f.Evidence, "glpat-") {
-			t.Fatalf("evidence leaked secret: %q", f.Evidence)
+		for _, prefix := range []string{"ghp_", "glpat-", "sk_test_"} {
+			if strings.Contains(f.Evidence, prefix) {
+				t.Fatalf("evidence leaked secret: %q", f.Evidence)
+			}
 		}
 	}
 	for path, id := range want {

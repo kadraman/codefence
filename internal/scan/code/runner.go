@@ -26,6 +26,7 @@ type SecretOptions struct {
 	EntropyThreshold    float64
 	MinLength           int
 	MinConfidence       string
+	Warn                func(string)
 }
 
 // ToSecret converts to secret.Options with defaults applied.
@@ -40,6 +41,7 @@ func (o SecretOptions) ToSecret() secret.Options {
 		EntropyThreshold:    o.EntropyThreshold,
 		MinLength:           o.MinLength,
 		MinConfidence:       o.MinConfidence,
+		Warn:                o.Warn,
 	}.Normalize()
 }
 

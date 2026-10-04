@@ -41,6 +41,9 @@
 - [x] T032 [US3] Lazy CLI load + MCP in-memory compiled set wiring from `internal/scan/code/` into `internal/scan/secret/`
 - [x] T033 [US3] Evidence truncation in `internal/scan/secret/evidence.go`
 - [x] T034 [US3] Cache/refresh tests in `internal/scan/secret/remote_test.go`
+- [x] T035 [US3] Validate fetched remote packs (parse + compile) before caching and fall back to the last known-good cache on invalid bodies in `internal/scan/secret/remote.go` (FR-012); tests in `internal/scan/secret/remote_test.go`
+- [x] T036 [US3] Stderr warning on remote cache fallback (FR-013): `Warn` hook in `internal/scan/secret/types.go` / `internal/scan/code/runner.go`, `AspectOutcome.Warnings` in `internal/scan/types.go`, written to stderr by `internal/scan/runner.go`; tests in `internal/scan/secret/remote_test.go` and `internal/scan/runner_test.go`
+- [x] T037 [US3] Reject remote responses over the 8 MiB cap instead of truncating (FR-014) in `internal/scan/secret/remote.go`; tests in `internal/scan/secret/remote_test.go`
 
 **Checkpoint**: remote integrity + lazy load verified.
 

@@ -1,6 +1,7 @@
 package secret
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -83,6 +84,18 @@ func TestShannonEntropyKnownSample(t *testing.T) {
 	e := ShannonEntropy(highEntropySample)
 	if e < 4.2 {
 		t.Fatalf("sample entropy %.4f below threshold", e)
+	}
+}
+
+func TestShannonEntropyCountsRunesNotBytes(t *testing.T) {
+	// 8 distinct 3-byte runes: uniform distribution over 8 symbols = 3 bits.
+	e := ShannonEntropy("一二三四五六七八")
+	if math.Abs(e-3) > 1e-9 {
+		t.Fatalf("entropy %.6f, want 3", e)
+	}
+	ascii := ShannonEntropy("abcdefgh")
+	if math.Abs(e-ascii) > 1e-9 {
+		t.Fatalf("multibyte entropy %.6f differs from ASCII %.6f", e, ascii)
 	}
 }
 

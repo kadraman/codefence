@@ -2,6 +2,7 @@ package secret
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -37,11 +38,10 @@ func LoadRules(workspace string, opts Options) ([]Rule, error) {
 	}
 
 	if opts.RulesUpdateURL != "" {
-		body, err := LoadRemoteRuleBundle(workspace, opts.RulesUpdateURL, opts.RulesCacheTTL, opts.RulesRefresh)
-		if err != nil {
-			return nil, err
-		}
-		remote, err := ParseRuleBundle(body, opts.RulesUpdateURL, SourceRemote)
+		remote, err := LoadRemoteRules(
+			workspace, opts.RulesUpdateURL, remoteSourceName(opts.RulesUpdateURL),
+			opts.RulesCacheTTL, opts.RulesRefresh, opts.Warn,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -65,6 +65,17 @@ func loadBuiltinRules() ([]Rule, error) {
 		return nil, fmt.Errorf("built-in secret rules bundle is empty")
 	}
 	return rules, nil
+}
+
+// remoteSourceName returns a display name for a remote pack that is safe to put in
+// finding evidence. Userinfo, path, query, and fragment can all carry credentials
+// (basic auth, webhook tokens, signed-URL signatures), so only the host is kept.
+func remoteSourceName(rawURL string) string {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || parsed.Host == "" {
+		return SourceRemote
+	}
+	return SourceRemote + "@" + parsed.Host
 }
 
 func loadRulesFromPaths(rulePaths []string, workspace string) ([]Rule, error) {

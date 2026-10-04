@@ -71,11 +71,12 @@ func cacheKey(workspace string, opts Options) string {
 }
 
 // CompileRules compiles all regex patterns once (mutates Patterns in place).
+// Patterns that are already compiled are left as-is.
 func CompileRules(rules []Rule) error {
 	for i := range rules {
 		for j := range rules[i].Patterns {
 			p := &rules[i].Patterns[j]
-			if p.Kind != PatternRegex {
+			if p.Kind != PatternRegex || p.compiled != nil {
 				continue
 			}
 			expr := p.Value

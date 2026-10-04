@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -20,7 +21,10 @@ const (
 	cacheEntryVersion = 1
 	maxRedirects      = 5
 	downloadTimeout   = 30 * time.Second
+	maxBundleBytes    = 8 << 20
 )
+
+var errBundleTooLarge = fmt.Errorf("remote secret rules exceed %d MiB limit", maxBundleBytes>>20)
 
 // CachedSecretRules is the on-disk remote pack entry under .codefence/cache/secret-rules/.
 type CachedSecretRules struct {
@@ -124,42 +128,97 @@ func validateRulesURL(raw string) error {
 	}
 }
 
-// LoadRemoteRuleBundle fetches (or reuses TTL cache) a remote YAML pack.
-// Checksum metadata on the cache entry is verified before activation.
-func LoadRemoteRuleBundle(workspace, rulesURL string, ttl time.Duration, refresh bool) (string, error) {
+// LoadRemoteRules fetches (or reuses TTL cache) a remote YAML pack and returns its
+// parsed, compiled rules. Checksum metadata on the cache entry is verified before
+// activation, and a fetched body only replaces the cache once it parses and
+// compiles, so a malformed response never overwrites the last known-good pack.
+// When a fetch fails and the cached pack is used instead, warn (if non-nil) is
+// called with a message that identifies the pack only by sourceName.
+func LoadRemoteRules(workspace, rulesURL, sourceName string, ttl time.Duration, refresh bool, warn func(string)) ([]Rule, error) {
 	if err := validateRulesURL(rulesURL); err != nil {
-		return "", err
+		return nil, err
 	}
 	if ttl <= 0 {
 		ttl = DefaultCacheTTL
 	}
 
+	var cachedRules []Rule
 	cached, _ := ReadCachedSecretRules(workspace, rulesURL)
+	if cached != nil {
+		rules, err := parseRemoteBundle(cached.Body, sourceName)
+		if err != nil {
+			cached = nil
+		} else {
+			cachedRules = rules
+		}
+	}
+
 	if !refresh && cached != nil && IsSecretRulesCacheFresh(cached, ttl, time.Now()) {
 		if cached.TTLMs != ttl.Milliseconds() {
 			_, _ = WriteCachedSecretRules(workspace, rulesURL, cached.Body, ttl, mustParseFetched(cached.FetchedAt))
 		}
-		return cached.Body, nil
+		return cachedRules, nil
+	}
+
+	useCached := func(reason string) []Rule {
+		if warn != nil {
+			warn(fmt.Sprintf(
+				"remote secret rules %s could not be refreshed (%s); using cached pack fetched %s",
+				sourceName, reason, cached.FetchedAt,
+			))
+		}
+		return cachedRules
 	}
 
 	body, status, err := requestRuleBundle(rulesURL, 0)
 	if err != nil {
 		if cached != nil {
-			return cached.Body, nil
+			return useCached(describeFetchError(err)), nil
 		}
-		return "", err
+		return nil, err
 	}
 	if status < 200 || status >= 300 {
 		if cached != nil {
-			return cached.Body, nil
+			return useCached(fmt.Sprintf("HTTP %d", status)), nil
 		}
-		return "", fmt.Errorf("failed to download remote secret rules: %d", status)
+		return nil, fmt.Errorf("failed to download remote secret rules: %d", status)
 	}
 
-	if _, err := WriteCachedSecretRules(workspace, rulesURL, body, ttl, time.Now().UTC()); err != nil {
-		return "", fmt.Errorf("cache remote secret rules: %w", err)
+	rules, err := parseRemoteBundle(body, sourceName)
+	if err != nil {
+		if cached != nil {
+			return useCached("invalid rule pack: " + err.Error()), nil
+		}
+		return nil, err
 	}
-	return body, nil
+	if _, err := WriteCachedSecretRules(workspace, rulesURL, body, ttl, time.Now().UTC()); err != nil {
+		return nil, fmt.Errorf("cache remote secret rules: %w", err)
+	}
+	return rules, nil
+}
+
+// describeFetchError summarizes a download failure without the request URL,
+// which may carry credentials.
+func describeFetchError(err error) string {
+	if errors.Is(err, errBundleTooLarge) {
+		return "download failed: " + errBundleTooLarge.Error()
+	}
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		return "download failed: " + urlErr.Err.Error()
+	}
+	return "download failed"
+}
+
+func parseRemoteBundle(body, sourceName string) ([]Rule, error) {
+	rules, err := ParseRuleBundle(body, sourceName, SourceRemote)
+	if err != nil {
+		return nil, err
+	}
+	if err := CompileRules(rules); err != nil {
+		return nil, err
+	}
+	return rules, nil
 }
 
 func mustParseFetched(s string) time.Time {
@@ -211,9 +270,12 @@ func requestRuleBundle(rawURL string, redirectDepth int) (body string, status in
 		return requestRuleBundle(nextURL, redirectDepth+1)
 	}
 
-	data, err := io.ReadAll(io.LimitReader(res.Body, 8<<20)) // 8 MiB cap
+	data, err := io.ReadAll(io.LimitReader(res.Body, maxBundleBytes+1))
 	if err != nil {
 		return "", res.StatusCode, err
+	}
+	if len(data) > maxBundleBytes {
+		return "", res.StatusCode, errBundleTooLarge
 	}
 	return string(data), res.StatusCode, nil
 }

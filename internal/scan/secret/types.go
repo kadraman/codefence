@@ -27,6 +27,9 @@ type Options struct {
 	EntropyThreshold     float64
 	MinLength            int
 	MinConfidence        string
+	// Warn receives non-fatal rule-loading warnings (e.g. remote cache fallback).
+	// It is not part of the process rule-cache key.
+	Warn func(string)
 }
 
 // DefaultOptions returns production defaults (builtin on, entropy 4.2, etc.).

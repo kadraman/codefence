@@ -58,6 +58,9 @@ func runWithContext(ctx Context, reg Registry, stdout, stderr io.Writer) (Result
 			continue
 		}
 		outcome := runner(ctx)
+		for _, msg := range outcome.Warnings {
+			fmt.Fprintf(stderr, "warning[%s]: %s\n", id, msg)
+		}
 		logAspectStatus(w, outcome)
 		if len(outcome.Findings) > 0 {
 			if err := w.WriteTable(string(id), fmt.Sprintf("--- %s ---", id), outcome.Findings); err != nil {
